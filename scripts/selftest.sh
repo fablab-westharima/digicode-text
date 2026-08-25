@@ -1424,9 +1424,54 @@ fi
 # appearing somewhere proves nothing about whether the field has a legal value — and UNSET is a legal
 # value, not an error (2026-08-25 ruling).
 echo "[11] current-state owner completeness"
+# The baton STATUS closed set has exactly ONE declaration in this project, and it is the comment
+# that governs the baton table in the current-state file. Both B55 and B58 assert that the file
+# carries it, so both read it through this one function.
+#
+# WHY IT IS A FUNCTION AND NOT AN ERE. The predicate used until 2026-08-25 was
+#     OPEN \(actionable once its trigger fires\) \| HOLD .* \| DEFERRED
+# matched against the line-joined document. `.*` crosses the whole file, so the match began inside
+# the declaration and ended at whatever `| DEFERRED` came next — a baton row's own status cell,
+# thousands of characters away. Measured on this repository the day it was found: the intended
+# declaration ALONE satisfied the predicate 0 times, the whole-document match was 14135 characters
+# long, and 19 stray `| DEFERRED` occurrences were available to complete it. Both this repository
+# and the first consumer were green for that reason, and the consumer went red only when a baton's
+# status changed from DEFERRED to OPEN and the last stray occurrence disappeared. A check that a
+# document satisfies by accident is not a check (case PT-31's shape, and PT-4's).
+#
+# WHAT IT NOW REQUIRES: the anchor phrase occurs exactly once (two declarations would be two
+# owners), and reading forward from that anchor alone — never from the document — the three members
+# appear in order, separated by the literal ` | `. There is NO `.*` anywhere in the pattern, so no
+# text outside the declaration can contribute to a match, whatever the window size.
+#
+# WHITESPACE: the file is line-joined and then whitespace-squeezed before matching, so the
+# declaration may wrap at any column. That is deliberate — the earlier predicate measured
+# typography (the wrap put six spaces between `|` and `DEFERRED`, which is what hid the defect).
+#
+# LIMITS: this checks membership, order and single ownership. It does NOT check that every STATUS
+# cell in the baton table is one of the three, and it does not reject a fourth member appended
+# after DEFERRED. Both are separate propositions and neither is claimed here.
+status_decl_ok() {   # $1 = a handover file; 0 = the closed set is declared, exactly once, in full
+  # \n AND \t both become spaces before the run is squeezed. Squeezing spaces alone was not enough:
+  # measured while building this check, a tab-separated declaration went undetected — which would
+  # have been the same defect in a different typography.
+  #
+  # COUNT DECLARATIONS, NOT OCCURRENCES OF THE ANCHOR. An earlier draft required the anchor phrase
+  # to appear exactly once, and it reddened on this repository's own handover the moment §3 recorded
+  # a settled decision *about* the declaration: prose that mentions the phrase is not a second
+  # declaration. The property worth guarding is "exactly one complete declaration", so the whole
+  # pattern is counted. A verbatim second copy still counts as two, which is correct — that would be
+  # two owners.
+  sdo_n="$(tr '\n\t' '  ' < "$1" 2>/dev/null | tr -s ' ' \
+    | grep -oE 'STATUS is a closed set: OPEN( \([^)]*\))? \| HOLD( \([^)]*\))? \| DEFERRED' \
+    | wc -l | tr -d ' ')"
+  [ "$sdo_n" = "1" ]
+}
+
 b55_h=prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md
 if [ -f "$b55_h" ]; then
   b55_n=0; b55_miss=""
+
   # Line-joined: a predicate that only matches when the author happened to wrap at the right column
   # measures typography, not the document's grammar.
   b55_flat="$(tr '\n' ' ' < "$b55_h")"
@@ -1436,7 +1481,7 @@ if [ -f "$b55_h" ]; then
   b55_req objective        '\*\*PRIMARY_OBJECTIVE:\*\* `(UNSET|ACTIVE|ACCEPTED|BLOCKED|STOPPED) — '
   b55_req go-stop          'GO / STOP boundary'
   b55_req baton-trigger    '\| *# *\| *Baton *\| *Status *\| *Trigger'
-  b55_req status-grammar   'OPEN \(actionable once its trigger fires\) \| HOLD .* \| DEFERRED'
+  if status_decl_ok "$b55_h"; then b55_n=$((b55_n + 1)); else b55_miss="$b55_miss status-grammar"; fi
   b55_req supersedes       '\*Supersedes\*:'
   b55_req generation       '> \*\*GEN: S[0-9]+-close\*\*'
   b55_req baseline-command '\| Item \| Measured \| Command \|'
@@ -1618,7 +1663,7 @@ else
     b58_ask "$1" objective  '\*\*PRIMARY_OBJECTIVE:\*\* `(UNSET|ACTIVE|ACCEPTED|BLOCKED|STOPPED) — '
     b58_ask "$1" go-stop    'GO / STOP boundary'
     b58_ask "$1" baton      '\| *# *\| *Baton *\| *Status *\| *Trigger'
-    b58_ask "$1" statuses   'OPEN \(actionable once its trigger fires\) \| HOLD .* \| DEFERRED'
+    if status_decl_ok "$1"; then b58_n=$((b58_n + 1)); else b58_miss="$b58_miss statuses"; fi
     b58_ask "$1" settled    '## §3\. Settled decisions'
     b58_ask "$1" supersedes '\*Supersedes\*:'
     b58_ask "$1" baseline   '\| Item \| Measured \| Command \|'

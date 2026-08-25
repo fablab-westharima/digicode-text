@@ -150,6 +150,7 @@ RPROF = "scripts/fixtures/routing-profile.md"
 PKT = "prompt/maintenance/global/templates/delegation-packet-template.md"
 CLAUDEMD = "CLAUDE.md"
 RULE15 = "prompt/maintenance/global/rules/common/15-docs-organization.md"
+HANDOVER = "prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md"
 PSCAN = "scripts/placement-scan.sh"
 
 MUTATIONS = [
@@ -161,6 +162,33 @@ MUTATIONS = [
     # the contract still reads as enforced. Mutation 3 is the one that matters most: it edits only
     # the RULE, and B67 has to redden, which is what proves the scan derives its allow-set from the
     # rule instead of carrying a private copy.
+    # ---- M14: the baton STATUS closed set (B55 / B58) ----------------------------------
+    # The predicate these guard was a false green until 2026-08-25: `.*` let the match start in the
+    # declaration and finish at a baton row's own status cell 14135 characters away. The first
+    # mutation below is therefore not just a mutation, it is THE negative control for that defect —
+    # it breaks the declaration and deliberately leaves every stray `| DEFERRED` in the file intact.
+    # If the check ever regresses to a document-wide match, this one goes green and says so.
+    dict(id="M14-B55-status-member-dropped", family="M14", check="B55",
+         predicate="the closed STATUS set is declared, in full @ 16.md §2 (strays must not rescue it)",
+         file=HANDOVER,
+         op=op_replace("     DEFERRED (recorded, not scheduled).",
+                       "     (recorded, not scheduled).", 1)),
+    dict(id="M14-B58-status-anchor-removed", family="M14", check="B58",
+         predicate="the declaration is found by its own anchor phrase @ 16.md §2",
+         file=HANDOVER,
+         # Anchored on the phrase PLUS the first member, because the bare phrase is not unique:
+         # §3 records a settled decision that quotes it, and the first draft of this mutation came
+         # back INVALID ("anchor count 2 != expected 1") on the full run. That is the harness doing
+         # its job — but it also meant B58 had no executing mutation of its own, so the anchor was
+         # re-derived by counting rather than by assuming (case PT-39's defense).
+         op=op_replace("STATUS is a closed set: OPEN (actionable",
+                       "STATUS values: OPEN (actionable", 1)),
+    dict(id="M14-B55-status-order-scrambled", family="M14", check="B55",
+         predicate="the declared members appear in their contract order @ 16.md §2",
+         file=HANDOVER,
+         op=op_replace("OPEN (actionable once its trigger fires) | HOLD (parked by the user)",
+                       "HOLD (parked by the user) | OPEN (actionable once its trigger fires)", 1)),
+
     # ---- M13: the fresh-project transcript corpus (B68) --------------------------------
     # B68 is the only check in this harness whose condition this repository can never reach on its
     # own — the template has always had transcripts. These two mutations put the two ways the
