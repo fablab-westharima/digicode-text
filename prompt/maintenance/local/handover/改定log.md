@@ -12,3 +12,4 @@
 | S | 日付 | 1行サマリ | ファイル |
 |---|---|---|---|
 | 000 | 2026-08-25 | Project_Template から bootstrap(consumer 初期化・DigiCode 混入 0・製品実装なし) | [S000](sessions/S000_2026-08-25_bootstrap.md) |
+| 001 | 2026-08-26 | DigiCode Donor Inventory / Audit(READ ONLY・donor 変更 0・実装なし)。case DT-1 起票。目的は受理され close、次目的は UNSET | [S001](sessions/S001_2026-08-26_donor-inventory-audit.md) |

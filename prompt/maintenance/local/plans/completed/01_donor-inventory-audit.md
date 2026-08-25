@@ -8,8 +8,8 @@
 | 起案日 | 2026-08-26 |
 | 起案契機 | 2026-08-26 Human 裁定 + HUMAN GO「PRIMARY_OBJECTIVE = DigiCode Donor Inventory / Audit」 |
 | 起案者 | Claude Code (Opus 5) |
-| ステータス | 🟢 GO済・進行中 |
-| 想定Phase数・工数 | 6 Phase / 試算 3-5 session (完走時に実績を追記) |
+| ステータス | 🎉 全Phase完走 (2026-08-26 Human 受理) |
+| 想定Phase数・工数 | 6 Phase / 試算 3-5 session — **実績 1 session** |
 | 先行依存 | なし (Project Template 適用は S000 で完了済み) |
 | 後継計画 | Architecture Decision (次 objective 候補。本計画は候補を記録するだけで、着手しない) |
 
@@ -54,13 +54,13 @@ founding use case (2026-08-26 Human 裁定、逐語):
 
 | Phase | Task | Severity | 完了条件 (機械検証可能な形) | 状態 |
 |---|---|---|---|---|
-| 0 | 監査枠組みの確定 — 成果物の骨格・**証拠契約**・分類語彙を先に固定する | 🔴 | `investigations/2026-08-26_donor-audit/00_index.md` が存在し、30 調査対象すべてが行として列挙され、全行の verdict 列が `未調査` である | ⬜ |
-| 1 | donor 取得と全体地図 — repo 構造 / 言語 / ビルド系 / 依存 / 規模 / 対象 commit SHA の固定 | 🔴 | `01_overview.md` に donor repo・**commit SHA**・取得方法・トップレベル構造・依存マニフェストの実測が記録されている。SHA は以後すべての証拠行に付く | ⬜ |
-| 2 | クラスタ別深掘り (A〜G、下表) | 🔴 | 各クラスタファイルの全項目が 14 属性を埋め、各主張に `path:line` + SHA が付く。埋まらない項目は `追加調査必要` として理由付きで残す | ⬜ |
-| 3 | 横断分類とリスク — Classic 固有依存 / Text 化で不要になる機能 / Compiler 共用可否の判断材料 | 🔴 | `00_index.md` の verdict 列が 5 分類で全行埋まる。`未調査` が 0 行 | ⬜ |
-| 4 | Editor / LSP の OSS 調査 (**donor 非依存・並行実行可**) | 🟡 | `08_editor-lsp-survey.md` に候補ごとの比較表 (要求 13 項目 × license / 保守状況 / 導入重量 / server 依存 / browser 依存 / Chromium 相性 / 組み込み粒度) | ⬜ |
-| 5 | 第三者資料の安全な配置調査 (**donor 非依存・並行実行可**) | 🟢 | `09_third-party-material-placement.md` に、rule 15 と整合し git 管理対象外で参照できる配置案が候補比較付きで提示されている | ⬜ |
-| 6 | 統合レポート + next objective candidates → **STOP** | 🔴 | `10_findings-and-next.md` に finding / risk / proposal / next objective candidate が severity 付きで分離記録され、実装へ進んでいない | ⬜ |
+| 0 | ✅ 監査枠組みの確定 — 成果物の骨格・**証拠契約**・分類語彙を先に固定する | 🔴 | `investigations/2026-08-26_donor-audit/00_index.md` が存在し、30 調査対象すべてが行として列挙され、全行の verdict 列が `未調査` である | ✅ |
+| 1 | donor 取得と全体地図 — repo 構造 / 言語 / ビルド系 / 依存 / 規模 / 対象 commit SHA の固定 | 🔴 | `01_overview.md` に donor repo・**commit SHA**・取得方法・トップレベル構造・依存マニフェストの実測が記録されている。SHA は以後すべての証拠行に付く | ✅ |
+| 2 | クラスタ別深掘り (A〜G、下表) | 🔴 | 各クラスタファイルの全項目が 14 属性を埋め、各主張に `path:line` + SHA が付く。埋まらない項目は `追加調査必要` として理由付きで残す | ✅ |
+| 3 | 横断分類とリスク — Classic 固有依存 / Text 化で不要になる機能 / Compiler 共用可否の判断材料 | 🔴 | `00_index.md` の verdict 列が 5 分類で全行埋まる。`未調査` が 0 行 | ✅ |
+| 4 | Editor / LSP の OSS 調査 (**donor 非依存・並行実行可**) | 🟡 | `08_editor-lsp-survey.md` に候補ごとの比較表 (要求 13 項目 × license / 保守状況 / 導入重量 / server 依存 / browser 依存 / Chromium 相性 / 組み込み粒度) | ✅ |
+| 5 | 第三者資料の安全な配置調査 (**donor 非依存・並行実行可**) | 🟢 | `09_third-party-material-placement.md` に、rule 15 と整合し git 管理対象外で参照できる配置案が候補比較付きで提示されている | ✅ |
+| 6 | 統合レポート + next objective candidates → **STOP** | 🔴 | `10_findings-and-next.md` に finding / risk / proposal / next objective candidate が severity 付きで分離記録され、実装へ進んでいない | ✅ |
 
 ### Phase 2 クラスタ割り (裁定の調査対象 30 項目を漏れなく配分)
 
@@ -96,7 +96,11 @@ founding use case (2026-08-26 Human 裁定、逐語):
 - [ ] finding / risk / proposal / next objective candidate が分離記録されている
 - [ ] STOP して Human へ報告した
 
-## 6. 引き継ぎメモ
+## 6. 完走時の実績 (2026-08-26)
+
+成果物 `local/investigations/2026-08-26_donor-audit/` 12 ファイル。§5 の完了条件はすべて満たし、`未調査` 0 行。Human は「今回指定した範囲が一巡し、次の判断に必要な材料が整理されたこと」を受理 — **各 finding の仮説・未verify・将来 architecture 案を承認したものではない**。
+
+## 7. 引き継ぎメモ
 
 - 本計画は **調査 objective** であり、完了しても実装 GO にはならない (裁定「GO は明示された PRIMARY_OBJECTIVE の範囲だけに対する作業許可」)。
 - Phase 4 / 5 は donor 非依存なので、判断点 #1 (donor 所在) が未回答でも実行できる。**Phase 1〜3 は blocker あり。**

@@ -156,11 +156,11 @@ When in doubt, ask the user. Don't sacrifice required work to fit scope or hours
 - Reverting to old parent execution because a long session weakened start-of-session salience
 - Continuing after the accepted objective is DONE — extra hardening, an adjacent defect, a cleanup — without a new user GO (rule 24)
 - Treating a RED result as authorization to fix it, or promoting a finding on severity alone (rule 24: classify against acceptance first)
-- Reading, cloning, or importing anything from the **DigiCode donor repository** before the user declares the donor-audit objective (16.md §1 GO/STOP boundary)
+- Reading, cloning, or importing anything from the **DigiCode donor repository** outside a user-declared objective that authorises it — the gate is the current GO/STOP boundary in 16.md §1, not a one-time event that has already passed
 - Importing DigiCode's legacy governance in any form — its old `CLAUDE.md`, rules, handover, sessions, judgment-mistakes history, or orchestration bodies (16.md §3, settled)
 - Merging, subtree-ing, rewriting or force-pushing history — this repository's history begins at its own Initial commit and stays linear and independent
 - Editing the `Project_Template` repository from this session. Defects found in the template are reported to the user and recorded as a baton; they are not fixed from here
-- Fixing the technology stack, deployment target, or DigiCode compatibility range by inference — all four are user decisions deferred to a post-donor-audit objective (§7, §9)
+- Fixing the technology stack, deployment target, or DigiCode compatibility range by inference — these are user decisions, and an audit that supplies material for them does not settle them (§7, §9)
 
 ---
 

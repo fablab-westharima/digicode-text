@@ -36,9 +36,12 @@
 
 ## 追補 (2026-08-26、残 ⑤ 消化)
 
-- 🔴 **`digicode-class-server` は PROPRIETARY (All rights reserved)。** README 冒頭に明記。DigiCode ecosystem の中で**唯一 AGPL-3.0 ではない**資産。
+- 🟡 **`digicode-class-server` の license 表記は現在 PROPRIETARY (All rights reserved)。** README 冒頭に明記。DigiCode ecosystem の中で表記上は唯一 AGPL-3.0 ではない。
   - 役割: enterprise プラン限定のクラス機能 (クラス作成 / 生徒アカウント代理作成 / 課題配布 / 提出 / 採点)。D1 の 10GB 制限を避けるため **SQLite** に保存。
   - 経路: Browser → Cloudflare Workers (`esp32-blockly-backend`、JWT 検証 + `requirePlan('enterprise')`) → Cloudflare Tunnel → 内部サーバの Hono + better-sqlite3。**外部から直接到達不可**、共有秘密ヘッダで呼び出し元検証。呼び出し側は `esp32-blockly-backend/src/utils/classApi.ts` (timeout 10s)。
-  - → **digicode-text (public / AGPL-3.0) へは一切持ち込めない。** 幸い verdict は元から ③ (Text では不採用)。**ライセンス境界として記録しておく価値がある。**
+  - ⚠️ **ここから「digicode-text へ持ち込めない」とは結論しない (2026-08-26 Human 裁定による訂正)。** donor 側の license 表記は**権利者が現在選んでいる提供条件**にすぎず、権利者自身が digicode-text 側で別の license 条件を設定できる場合がある。**`PROPRIETARY = 移植不可` という機械判定は禁止**されている。
+  - **確認済みの事実はここまで**: 現在の表記が PROPRIETARY / All rights reserved であること。
+  - **持ち込み可否を判断するときの分離** (裁定 §1.2): ①権利帰属 ②第三者由来コードの有無 ③third-party dependency / bundled / copied code の license 条件 ④DigiCode 側で現在採用している license・公開条件 ⑤digicode-text 側でどの license 条件で提供可能か。**④ と ⑤ は別の判断。**
+  - **製品判断とは別問題**: verdict ③ (Text では不採用) は**製品要件上の判断**であり、「license 上持ち込めない」ではない。混同しない。
 - **`digicode-installer` の上流は donor 内の `scripts/local-compile/`** (`install.sh` / `install.ps1` / `README.md`)。公開 repo `fablab-westharima/digicode-installer` は **MIT** で、**手動で同期**されると README に明記。Local Compiler のワンコマンド導入 (macOS/Linux は `bash <(curl ...)`、Windows は `irm ... | iex`) を提供。→ ⑤ 解消。
 - `variants/usb` は **tracked 1 ファイル** (`firmware/templates/DigiCodeUSB.ino`) のみ。`variants/_reference/` は「Phase 1.1-1.5 の OTA 専用化で削除した USB/Bluetooth コードを、将来の実装時の参考として保管する場所」で**実行されない**。→ ⑤ 解消 (別プロダクト構成ではない)。
