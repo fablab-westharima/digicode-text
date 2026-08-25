@@ -3,8 +3,8 @@
 <!-- 更新頻度: 構造変更時のみ(ファイル追加のたびには更新しない。件数は目安)。
      ヘッダに更新履歴を積層する: 最終更新 / 直前更新 の2行を維持 -->
 
-**最終更新:** 2026-08-25 (S000 bootstrap — Project_Template `v2026-08-13-106-g088b1c3` から初期化)
-**直前更新:** —
+**最終更新:** 2026-08-25 (テンプレート `5148e67` の bootstrap-defect 修正を再適用。件数の実体を撤去し数え方へ委譲 = L-5)
+**直前更新:** 2026-08-25 (S000 bootstrap — Project_Template `v2026-08-13-106-g088b1c3` から初期化)
 
 ---
 
@@ -16,28 +16,28 @@
 
 ## §1. global/ 構成
 
-| パス | 内容 | 件数 |
+| パス | 内容 | 数え方 |
 |---|---|---|
-| `global/rules/README.md` | ルール索引 + decision tree + format spec | 1 |
-| `global/rules/common/` | 共通ルール(01-24 + judgment-mistakes-history) | 25 |
-| `global/rules/reference/` | 参照資料(context-handoff / four-axis-essence / known-pitfalls / memory-index / migration-history / phase-patterns / whole-system-analysis) | 7 |
-| `global/templates/` | 雛形(AGENTS 生成器 / bug / delegation-packet / investigation / plan / review-report / routing-profile / rule / session-log) | 9 |
+| `global/rules/README.md` | ルール索引 + decision tree + format spec | 単一ファイル |
+| `global/rules/common/` | 共通ルール(`NN-topic.md` 連番 + judgment-mistakes-history) | `ls prompt/maintenance/global/rules/common \| wc -l` |
+| `global/rules/reference/` | 参照資料(origin 事例保存) | `ls prompt/maintenance/global/rules/reference \| wc -l` |
+| `global/templates/` | 雛形(AGENTS 生成器 / bug / delegation-packet / investigation / plan / review-report / routing-profile / rule / session-log) | `ls prompt/maintenance/global/templates \| wc -l` |
 | `global/{bugs,handover,plans,investigations,docs,legacy}/` | 空スケルトン(構造ミラー) | — |
 
-**件数は目安であって権威ではない。**正は `ls | wc -l`。ここに書かれた数は更新トリガを持たないので、数を根拠に判断しないこと。
+**この地図は routing-index であり、事実の owner ではない。**件数の実体をここに書かないのは方針ではなく実測の結果で、テンプレート側の同ファイルは bootstrap 時の数(rules 21 / 実際 25)を **7 週間**保持したまま新 consumer へ複製されていた — この repository の bootstrap が検出した finding **L-5** で、2026-08-25 にテンプレート側(`5148e67`)とここの両方で是正した。**数は書かず、数え方だけを書く。**
 
 ## §2. local/ 構成
 
-| パス | 内容 | 件数 |
+| パス | 内容 | 数え方 |
 |---|---|---|
-| `local/README.md` | local 層の運用標準(命名規則・ライフサイクル)。**テンプレート標準につき構造を変えない** | 1 |
-| `local/rules/digicode-text/` | プロジェクト固有ルール | 0 |
-| `local/docs/` | システム概要・手順書 + `routing-profile.md`(model / effort / target mapping の**唯一の owner**) | 1 |
-| `local/handover/` | 16.md(現在地・上書き)/ sessions/(履歴・1session=1file)/ 改定log.md(索引)/ 本ファイル | 3 + sessions 1 |
-| `local/bugs/active/` + `closed/` | バグ(active 0 / closed 0)+ index.md ×2 | 2 |
-| `local/plans/active/` + `completed/` | 計画(active 0 / completed 0) | 0 |
-| `local/investigations/` | 調査記録 | 0 |
-| `local/legacy/` | 旧版アーカイブ | 0 |
+| `local/README.md` | local 層の運用標準(命名規則・ライフサイクル)。**テンプレート標準につき構造を変えない** | 単一ファイル |
+| `local/rules/digicode-text/` | プロジェクト固有ルール | `bash scripts/baseline.sh`(rules 行の local 側) |
+| `local/docs/` | `routing-profile.md`(model / effort / target mapping の**唯一の owner**)/ `RULES_SNAPSHOT`(受領したテンプレート断面の受け手側記録) | `ls prompt/maintenance/local/docs \| wc -l` |
+| `local/handover/` | 16.md(現在地・上書き)/ sessions/(履歴・1session=1file)/ 改定log.md(索引)/ 本ファイル | `bash scripts/baseline.sh`(sessions 行) |
+| `local/bugs/active/` + `closed/` | バグ + index.md ×2 | `bash scripts/baseline.sh`(bug index 行) |
+| `local/plans/active/` + `completed/` | 計画 | `bash scripts/baseline.sh`(plans 行) |
+| `local/investigations/` | 調査記録 | `ls prompt/maintenance/local/investigations \| wc -l` |
+| `local/legacy/` | 旧版アーカイブ | `ls prompt/maintenance/local/legacy \| wc -l` |
 
 ## §3. 新セッションの読み順
 
@@ -58,4 +58,4 @@
 
 digicode-text は `Project_Template` の **consumer** であり、distributor ではない。テンプレート改訂は user が決断した展開訪問で inbound に届く。
 
-🔴 **受け手側 marker `global/RULES_SNAPSHOT` はこのリポジトリに存在しない。**decision tree の 1 行と `OPERATIONS.md` §1 付帯義務 2 はこのパスを指定するが、rule 15 の placement contract(`scripts/placement-scan.sh` / selftest B67)は layer root へのファイル配置を禁止しており、**両者が矛盾する**。テンプレート側は送り手なので受け手 marker を持たず、この矛盾は一度も発火していない。配置先の裁定は user のものなので、S000 bootstrap では矛盾を実体化させず、受領断面の記録は `sessions/S000_2026-08-25_bootstrap.md` と `README.md` に置いた(16.md §2 baton 7)。このリポジトリからテンプレートを直接編集しない(16.md §3 settled)。テンプレートへ還元すべき知見が生まれた場合は、`/close` の手順が候補として記録し、user の Yes を得てから反映する。
+受領断面の記録は **`local/docs/RULES_SNAPSHOT`** にある。bootstrap 時点ではこれを書けなかった — 当時テンプレートが指定していた `global/RULES_SNAPSHOT` は rule 15 §Forbidden locations に抵触し、placement-scan が `VIOLATIONS=1` を返したためで、配置は policy 判断なので単独で解決せず finding **L-1** として返した。2026-08-25 に user が案 A を裁定し、テンプレート側が `local/docs/` へ移した(`5148e67`)ので、受領記録はいま正規の場所にある。このリポジトリからテンプレートを直接編集しない(16.md §3 settled)。テンプレートへ還元すべき知見が生まれた場合は、`/close` の手順が候補として記録し、user の Yes を得てから反映する。

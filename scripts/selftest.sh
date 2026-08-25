@@ -151,7 +151,7 @@ scripts/mutation-harness.py|mutation-harness.py
 scripts/usage-report.sh|usage-report.sh
 .claude/commands/close.md|close.md
 prompt/maintenance/local/README.md|local/README.md
-prompt/maintenance/global/RULES_SNAPSHOT|RULES_SNAPSHOT
+prompt/maintenance/local/docs/RULES_SNAPSHOT|RULES_SNAPSHOT
 GOVEOF
   [ -z "$miss" ] && ok "B2 governance docs reachable from the decision tree" \
                  || ng "B2 governance docs with no inbound edge:$miss"
@@ -707,7 +707,7 @@ if [ -s "$terms_file" ]; then
   b23_terms="$(wc -l < "$b23_list" | tr -d ' ')"
   b23_paths="$(mktemp)"
   find prompt/maintenance/global .claude/commands .claude/hooks -type f 2>/dev/null \
-    | grep -v 'judgment-mistakes-history.md$' | grep -v 'RULES_SNAPSHOT$' > "$b23_paths"
+    | grep -v 'judgment-mistakes-history.md$' > "$b23_paths"
   find scripts -maxdepth 1 -type f -name '*.sh' 2>/dev/null >> "$b23_paths"
   find scripts -maxdepth 1 -type f -name '*.py' 2>/dev/null >> "$b23_paths"
   b23_files="$(wc -l < "$b23_paths" | tr -d ' ')"
@@ -791,6 +791,48 @@ B24EOF
     ng "B24 path-② brief contract failed (fixture RC=$b24_rc; control RC=$b24_ctl_rc, $b24_ctl_not missing; brief kept at $b24_dir/brief)"
   fi
   [ "$b24_good" -eq 1 ] && rm -rf "$b24_dir"
+fi
+
+# B68 — a corpus of zero is a measurement; a corpus whose location is unknown is not.
+#
+# context-brief reports the session-transcript corpus. Until 2026-08-25 it fail-closed whenever the
+# per-project directory was absent, and that is the state EVERY newly bootstrapped project is in:
+# no session has run in that working directory yet, so ~/.claude/projects/<sanitized-cwd> does not
+# exist and nothing the project does can make it exist. Measured on the first real consumer
+# (digicode-text): B24 went RED at bootstrap for a reason unrelated to the contract B24 tests, and
+# the only available green was to create the directory by hand — fabricating an instrument's input.
+#
+# THIS CHECK EXISTS BECAUSE THE TEMPLATE CANNOT OBSERVE THE CONDITION NATURALLY. This repository
+# has always had transcripts, which is exactly why the defect shipped. So the condition is
+# constructed here, with HOME redirected — never by touching the real state directory.
+echo "[B68] fresh-project transcript corpus: empty is measured, unlocatable is not"
+if [ -f scripts/context-brief.sh ]; then
+  b68_dir="$(mktemp -d)"; b68_bad=""
+  # positive: the root exists (so we know we looked in the right place), the project's own
+  # directory does not (so the corpus is genuinely empty). Must be a clean, complete brief.
+  mkdir -p "$b68_dir/fresh/.claude/projects"
+  HOME="$b68_dir/fresh" bash scripts/context-brief.sh > "$b68_dir/fresh.brief" 2>/dev/null
+  b68_fresh_rc=$?
+  [ "$b68_fresh_rc" -eq 0 ] || b68_bad="$b68_bad fresh-rc=$b68_fresh_rc"
+  grep -q '^BRIEF-MISSING: 0' "$b68_dir/fresh.brief" || b68_bad="$b68_bad fresh-counted-as-missing"
+  grep -q 'Measured empty, not unobtainable' "$b68_dir/fresh.brief" \
+    || b68_bad="$b68_bad fresh-not-labelled-as-measured"
+  grep -q 'NOT OBTAINED: session-transcript' "$b68_dir/fresh.brief" \
+    && b68_bad="$b68_bad fresh-still-not-obtained"
+  # negative control: no root at all. The branch must still fail closed, or the fix above has
+  # simply deleted the fail-closed behaviour rather than narrowing it.
+  mkdir -p "$b68_dir/nohome"
+  HOME="$b68_dir/nohome" bash scripts/context-brief.sh > "$b68_dir/nohome.brief" 2>/dev/null
+  b68_ctl_rc=$?
+  [ "$b68_ctl_rc" -eq 3 ] || b68_bad="$b68_bad control-rc=$b68_ctl_rc"
+  grep -q 'NOT OBTAINED: session-transcript root' "$b68_dir/nohome.brief" \
+    || b68_bad="$b68_bad control-not-fail-closed"
+  if [ -z "$b68_bad" ]; then
+    ok "B68 fresh-project transcript corpus: absent project dir under an existing root = 0 files, measured (RC=$b68_fresh_rc, BRIEF-MISSING 0); absent root still fail-closed (RC=$b68_ctl_rc, NOT OBTAINED)"
+    rm -rf "$b68_dir"
+  else
+    ng "B68 fresh-project transcript corpus failed:$b68_bad (kept at $b68_dir)"
+  fi
 fi
 
 # B25 — the S005-fix directive's authority/state wiring (2026-08-17 user ruling) must stay in the

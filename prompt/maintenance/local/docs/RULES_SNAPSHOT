@@ -1,0 +1,62 @@
+# RULES_SNAPSHOT — digicode-text (receiver side)
+
+# Owner: this file, written by whoever delivers a template snapshot into this repository
+# (Project_Template `OPERATIONS.md` §1 obligation 2, which owns this path and the reason it is
+# under local/ rather than global/). It exists so a cold start that finds differences in
+# global/rules/ it cannot explain can MEASURE which snapshot this project is on, instead of
+# reconstructing it by hand from `git diff --name-only`.
+#
+# Rule: `template_commit` must resolve in the TEMPLATE repository, not here. Prove it before
+# writing the value:  git -C <template> cat-file -t <hash>
+# (Measured failure, 2026-08-14: a receiver's own commit hash was written into this field and was
+#  `Not a valid object name` in the template repo — the obligation met in form, not in substance.)
+
+--- receipt 1 ---
+date:              2026-08-25
+kind:              BOOTSTRAP (full initialization, not an incremental sync)
+template_repo:     fablab-westharima/Project_Template
+template_commit:   088b1c3
+template_describe: v2026-08-13-106-g088b1c3
+resolved:          yes — `git -C <template> cat-file -t 088b1c3` -> commit
+files_received:    the whole template tree except `.git`, `.DS_Store`, `__pycache__/`, `*.pyc`,
+                   `scheduled_tasks.lock`, `.claude/settings.local.json`. Removed as
+                   template-repo-only or reset as consumer state: OPERATIONS.md · README.md ·
+                   local/handover/sessions/S001…S017 · local/plans/{active,completed}/* ·
+                   local/investigations/* · 16.md · 改定log.md · maintenance_index.md ·
+                   local/docs/routing-profile.md · AGENTS.md (regenerated, not inherited) ·
+                   scripts/spec-boundary-terms.txt (emptied).
+reason:            bootstrap of a new independent consumer project from the completed template
+                   (Project_Template Phases 1–7 ACCEPTED 2026-08-25). Not a fork of any other
+                   project; this repository's history begins at its own Initial commit 4913bc1.
+note:              THIS FILE COULD NOT BE WRITTEN AT THE BOOTSTRAP ITSELF. The path the template
+                   then specified (`prompt/maintenance/global/RULES_SNAPSHOT`) was forbidden by
+                   rule 15 §Forbidden locations, and creating it returned VIOLATIONS=1 from
+                   placement-scan. The conflict was reported instead of resolved unilaterally
+                   (finding L-1), the user ruled option A, and the receipt is written here now.
+
+--- receipt 2 ---
+date:              2026-08-25
+kind:              REPAIR RE-APPLICATION (targeted; not a re-bootstrap)
+template_repo:     fablab-westharima/Project_Template
+template_commit:   5148e67
+resolved:          yes — `git -C <template> cat-file -t 5148e67` -> commit
+files_received:    scripts/mutation-harness.py · scripts/context-brief.sh · scripts/selftest.sh
+                   (all three replaced wholesale — each was byte-identical to 088b1c3 here, so no
+                   consumer edit could be lost, verified before and after)
+                   prompt/maintenance/global/rules/README.md (two hunks only, NOT wholesale: this
+                   copy has its {{PROJECT_NAME}} / {{PROJECT_SLUG}} substituted and a wholesale
+                   copy would re-introduce the placeholders)
+                   AGENTS.md (structure-map line only — this file is per-project and is never
+                   copied between repositories; selftest B13)
+reason:            the six bootstrap defects this project's own bootstrap measured (L-8, L-2, L-1,
+                   L-5, L-3, L-4) were repaired in the template and re-applied here. L-6 / L-7
+                   deferred by the same ruling.
+what changed here: mutation-harness.py classifies a catalog entry whose target file this repo does
+                   not have as NOT_APPLICABLE (A) instead of aborting — the condition this repo is
+                   in, because OPERATIONS.md is correctly absent · context-brief.sh reports an
+                   absent per-project transcript directory under an existing root as 0 files
+                   MEASURED instead of NOT OBTAINED, which is what made selftest B24 red here at
+                   bootstrap · selftest gains B68 for that distinction and points B2 at this file's
+                   new path · the decision tree carries the new path and the NOT_APPLICABLE rule.
+breaking:          yes, for any receiver still holding `global/RULES_SNAPSHOT` — the path moved.
+                   This project never had the old file, so nothing was migrated.

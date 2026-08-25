@@ -64,6 +64,12 @@ INACTIVE_HEADING = re.compile(
 # Each entry: id, family, check (the selftest id expected to turn RED), files it touches,
 # and an op that returns the mutated text. `predicate` names the guard predicate broken,
 # so the report can state a predicate denominator, not only a check denominator.
+# The one file a correct consumer does not have. README's SETUP prompt tells a bootstrapped
+# project to delete it (it is the template repository's own operating procedure), and selftest
+# guards its check behind `if [ -f OPERATIONS.md ]`. Used only by --control missing-target.
+CONSUMER_DROPPED = "OPERATIONS.md"
+
+
 def op_replace(old, new, count=None):
     def f(text):
         n = text.count(old)
@@ -155,6 +161,26 @@ MUTATIONS = [
     # the contract still reads as enforced. Mutation 3 is the one that matters most: it edits only
     # the RULE, and B67 has to redden, which is what proves the scan derives its allow-set from the
     # rule instead of carrying a private copy.
+    # ---- M13: the fresh-project transcript corpus (B68) --------------------------------
+    # B68 is the only check in this harness whose condition this repository can never reach on its
+    # own — the template has always had transcripts. These two mutations put the two ways the
+    # distinction can collapse back into the file and require B68 to see each of them.
+    dict(id="M13-B68-empty-recounted-as-missing", family="M13", check="B68",
+         predicate="an absent project directory under an existing root is 0 files, MEASURED @ context-brief.sh",
+         file="scripts/context-brief.sh",
+         op=op_replace(
+             '  transcript_line="Session transcripts: $transcript_dir (0 *.jsonl files',
+             '  incomplete=1; missing_n=$((missing_n+1))\n'
+             '  transcript_line="NOT OBTAINED: session-transcript directory ($transcript_dir) (0 *.jsonl files',
+             1)),
+    dict(id="M13-B68-root-absence-no-longer-fail-closed", family="M13", check="B68",
+         predicate="an unlocatable transcript ROOT still fails closed @ context-brief.sh",
+         file="scripts/context-brief.sh",
+         op=op_replace(
+             '  transcript_line="NOT OBTAINED: session-transcript root (source: $transcript_root)"\n'
+             '  incomplete=1; missing_n=$((missing_n+1))',
+             '  transcript_line="Session transcripts: $transcript_dir (0 *.jsonl files)"',
+             1)),
     dict(id="M12-B67-forbidden-section-demoted", family="M12", check="B67",
          predicate="rule 15 §Forbidden locations is normative (active text)",
          file=RULE15, op=op_demote("### Forbidden locations")),
@@ -676,14 +702,47 @@ def run_selftest(tree):
     # was sound and the READER was broken).
     ID = r"(B[0-9]+[a-z]?)[: ]"
     red = set(re.findall(r"^  ❌ " + ID, r.stdout, re.M))
+    # The set of ids this repository's selftest EMITS AT ALL (green or red). A check can be
+    # legitimately absent — several are guarded by `if [ -f <file> ]` because the file they
+    # inspect does not travel to a consumer. Distinguishing "absent" from "present and green"
+    # is what lets an inapplicable mutation be classified instead of crashing the run.
+    green = set(re.findall(r"^  ✅ " + ID, r.stdout, re.M))
     unlabelled = len(re.findall(r"^  ❌ (?!" + ID + ")", r.stdout, re.M))
     unlab_ok = len(re.findall(r"^  ✅ (?!" + ID + ")", r.stdout, re.M))
     m = re.search(r"RESULT: (\d+) passed / (\d+) failed", r.stdout)
     return types.SimpleNamespace(
-        rc=r.returncode, red=red, unlabelled_red=unlabelled,
+        rc=r.returncode, red=red, green=green, emitted=red | green,
+        unlabelled_red=unlabelled,
         unlabelled_ok=unlab_ok,
         passed=int(m.group(1)) if m else -1,
         failed=int(m.group(2)) if m else -1, out=r.stdout)
+
+
+def restore_targets(pristine, live, touched):
+    """Put the live copy's declared targets back to their pristine state.
+
+    Restoring is not always a copy. A target may be absent from pristine — either because the
+    repository genuinely does not have it (a consumer that dropped a template-repo-only file) or
+    because the mutation created it. Copying unconditionally then raises FileNotFoundError and
+    takes the whole run down with it, losing every verdict already accumulated. Measured
+    2026-08-25 on the first real consumer bootstrap (digicode-text): the run aborted at catalog
+    index 68 on `OPERATIONS.md` — a file the template's own SETUP procedure instructs consumers
+    to delete — before printing a single verdict, and `--control rubber-stamp` aborted with it.
+
+    Returns the list of targets it could not put back, so the caller can still fail closed.
+    """
+    failed = []
+    for t in touched:
+        src = os.path.join(pristine, t)
+        dst = os.path.join(live, t)
+        try:
+            if os.path.exists(src):
+                shutil.copy2(src, dst)
+            elif os.path.exists(dst):
+                os.remove(dst)          # the mutation created it; pristine has no such file
+        except OSError as exc:
+            failed.append("%s (%s)" % (t, exc))
+    return failed
 
 
 def apply_op(tree, relpath, op):
@@ -702,11 +761,29 @@ def apply_op(tree, relpath, op):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--control", choices=["rubber-stamp", "zero-target"])
+    ap.add_argument("--control",
+                    choices=["rubber-stamp", "zero-target", "missing-target"])
     ap.add_argument("--keep", action="store_true", help="keep the working trees")
     args = ap.parse_args()
 
     catalog = [] if args.control == "zero-target" else MUTATIONS
+
+    # `missing-target` reproduces, inside the template, the condition every consumer is in.
+    # CONSUMER_DROPPED is not an arbitrary example: README's SETUP prompt instructs a bootstrapped
+    # project to delete this exact file, and selftest guards its check with `if [ -f ... ]`, so a
+    # correct consumer has the mutations for that check pointing at a file that is not there.
+    # Before 2026-08-25 the harness crashed on it; this control is how that stays fixed.
+    if args.control == "missing-target":
+        na_muts = [m for m in catalog if m["file"] == CONSUMER_DROPPED
+                   or m.get("also") == CONSUMER_DROPPED]
+        other = [m for m in catalog
+                 if m not in na_muts and m["family"] != "CONTROL"][:1]
+        if not na_muts or not other:
+            print("CONTROL UNAVAILABLE (missing-target): the catalog has %d mutation(s) against "
+                  "%s and %d applicable mutation(s) to pair them with — the control cannot "
+                  "distinguish anything." % (len(na_muts), CONSUMER_DROPPED, len(other)))
+            return 2
+        catalog = na_muts + other
 
     print("MUTATION HARNESS — scripts/mutation-harness.py")
     print("repo: %s" % ROOT)
@@ -716,7 +793,7 @@ def main():
 
     work = tempfile.mkdtemp(prefix="mutharness-")
     pristine = os.path.join(work, "pristine")
-    live = os.path.join(work, "Project_Template")
+    live = os.path.join(work, "live")
     shutil.copytree(ROOT, pristine, symlinks=True,
                     ignore=shutil.ignore_patterns(".git"))
     shutil.copytree(ROOT, live, symlinks=True)
@@ -737,6 +814,16 @@ def main():
             with open(os.path.join(tree, SELFTEST), "w", encoding="utf-8") as fh:
                 fh.write(stub)
 
+    if args.control == "missing-target":
+        # Removed from BOTH trees, for the same reason rubber-stamp stubs both: a file present in
+        # pristine and absent from live is a mutation, not a repository shape.
+        for tree in (live, pristine):
+            victim = os.path.join(tree, CONSUMER_DROPPED)
+            if os.path.exists(victim):
+                os.remove(victim)
+        print("CONTROL RUN: missing-target — %s removed from both copies, reproducing a "
+              "bootstrapped consumer that followed the SETUP procedure.\n" % CONSUMER_DROPPED)
+
     base = run_selftest(live)
     if base.passed <= 0:
         print("INSTRUMENT_ERROR: baseline selftest in the working copy reported "
@@ -752,20 +839,65 @@ def main():
         print("baseline red lines carrying no check id: %d" % base.unlabelled_red)
     print()
 
+    # ---- applicability: a mutation whose target file this repository does not have -------
+    #
+    # This is NOT the same as an invalid mutation. INVALID means the mutation was applied and did
+    # not do real work (a no-op edit, a collateral change, a declared target left untouched) — a
+    # defect in the mutation. NOT_APPLICABLE means the contract being mutated does not exist in
+    # this repository at all, which for a consumer is a correct and expected state: the template
+    # ships checks guarded by `if [ -f <file> ]`, and the file is deliberately not copied.
+    #
+    # Two conditions must BOTH hold, so this cannot become an escape hatch for a broken catalog:
+    #   (a) every declared target file is absent from PRISTINE (the unmutated copy of the repo);
+    #   (b) the check the mutation guards is not emitted by this repository's selftest at all.
+    # If the file is absent while the check still runs, the catalog's file->check mapping is wrong
+    # and that is an INSTRUMENT_ERROR, not a difference to wave through.
+    applicable, inapplicable, mapping_errors = [], [], []
+    for mut in catalog:
+        targets = [mut["file"]] + ([mut["also"]] if mut.get("also") else [])
+        absent = [t for t in targets if not os.path.exists(os.path.join(pristine, t))]
+        if not absent:
+            applicable.append(mut)
+        elif mut["check"] in base.emitted:
+            mapping_errors.append((mut["id"], mut["check"], absent))
+        else:
+            inapplicable.append((mut, absent))
+
+    if mapping_errors:
+        print("INSTRUMENT_ERROR: the catalog maps a check to a file this repository does not have,")
+        print("  yet the check is still emitted by selftest — the mapping, not the tree, is wrong:")
+        for mid, chk, absent in mapping_errors:
+            print("    %-34s check %-5s absent target(s): %s" % (mid, chk, absent))
+        shutil.rmtree(work, ignore_errors=True)
+        return 2
+
+    catalog = applicable
     target_checks = sorted({m["check"] for m in catalog if m["family"] != "CONTROL"})
     target_predicates = sorted({m["predicate"] for m in catalog if m["family"] != "CONTROL"})
+    na_checks = sorted({m["check"] for m, _ in inapplicable})
     print("DENOMINATORS")
     print("  checks scanned (selftest emits)      : %d" % checks_scanned)
     print("  mutation target checks               : %d  (%s)"
           % (len(target_checks), ", ".join(target_checks)))
     print("  mutation target predicates           : %d" % len(target_predicates))
-    print("  mutations in catalog                 : %d" % len(catalog))
+    print("  mutations in catalog                 : %d  (applicable here)" % len(catalog))
+    if inapplicable:
+        print("  not applicable to this repository    : %d mutations / %d checks (%s)"
+              % (len(inapplicable), len(na_checks), ", ".join(na_checks)))
+        for mut, absent in inapplicable:
+            print("      %-34s check %-5s target(s) not in this repo: %s"
+                  % (mut["id"], mut["check"], ", ".join(absent)))
+        print("      ^ these are a consumer difference, not a result. They are never counted as")
+        print("        killed, survived or invalid, and they never license a PASS on their own.")
     print()
 
     if not catalog or not target_checks:
         print("REFUSED: mutation target set is empty. A harness with nothing to mutate "
               "prints the same thing as a harness that killed everything "
               "(zero-denominator refusal).")
+        if inapplicable:
+            print("  %d catalog entries exist but none applies to this repository. That is a "
+                  "statement about coverage, never a pass." % len(inapplicable))
         print("\nRESULT: targets=%d mutations=0 — PASS is not available."
               % len(target_checks))
         shutil.rmtree(work, ignore_errors=True)
@@ -788,8 +920,10 @@ def main():
             invalid += 1
             rows.append((mut["id"], mut["family"], mut["check"], "INVALID_MUTATION",
                          note + note_extra))
-            for t in touched:
-                shutil.copy2(os.path.join(pristine, t), os.path.join(live, t))
+            restore_failed = restore_targets(pristine, live, touched)
+            if restore_failed:
+                print("INSTRUMENT_ERROR: restore failed for %s" % restore_failed)
+                return 2
             continue
 
         # §5: prove the mutation changed the declared targets and NOTHING else.
@@ -798,16 +932,20 @@ def main():
                          if pris.get(k) != now.get(k))
         stray = [c for c in changed if c not in touched]
         if stray:
-            for t in touched:
-                shutil.copy2(os.path.join(pristine, t), os.path.join(live, t))
+            restore_failed = restore_targets(pristine, live, touched)
+            if restore_failed:
+                print("INSTRUMENT_ERROR: restore failed for %s" % restore_failed)
+                return 2
             invalid += 1
             rows.append((mut["id"], mut["family"], mut["check"], "INVALID_MUTATION",
                          "collateral edit outside the declared targets: %s" % stray[:3]))
             continue
         if sorted(changed) != sorted(touched):
             missing = [t for t in touched if t not in changed]
-            for t in touched:
-                shutil.copy2(os.path.join(pristine, t), os.path.join(live, t))
+            restore_failed = restore_targets(pristine, live, touched)
+            if restore_failed:
+                print("INSTRUMENT_ERROR: restore failed for %s" % restore_failed)
+                return 2
             invalid += 1
             rows.append((mut["id"], mut["family"], mut["check"], "INVALID_MUTATION",
                          "declared target(s) unchanged: %s" % missing))
@@ -831,8 +969,10 @@ def main():
         rows.append((mut["id"], mut["family"], mut["check"], verdict,
                      note + note_extra + " — " + detail))
 
-        for t in touched:
-            shutil.copy2(os.path.join(pristine, t), os.path.join(live, t))
+        restore_failed = restore_targets(pristine, live, touched)
+        if restore_failed:
+            print("INSTRUMENT_ERROR: restore failed for %s" % restore_failed)
+            return 2
         after = manifest(live)
         drift = [k for k in touched if after.get(k) != pris.get(k)]
         if drift:
@@ -855,7 +995,12 @@ def main():
     print("  mutations killed       K = %d" % killed)
     print("  mutations survived     S = %d" % survived)
     print("  invalid mutations      I = %d" % invalid)
-    print("  catalog entries            %d (M + I = %d)" % (len(catalog), executed + invalid))
+    print("  not applicable here    A = %d  (target file(s) absent AND the check is not emitted)"
+          % len(inapplicable))
+    print("  catalog entries            %d applicable + %d not applicable = %d total "
+          "(M + I = %d)"
+          % (len(catalog), len(inapplicable), len(catalog) + len(inapplicable),
+             executed + invalid))
     print("  working copy contamination after restore: %s"
           % (contaminated or "none (byte-identical to pristine)"))
     print()
@@ -882,6 +1027,32 @@ def main():
             print("CONTROL FAILED: %s was expected to be INVALID_MUTATION, got %s — a "
                   "no-op is being counted as real work." % (r[0], r[3]))
             ok = False
+
+    if args.control == "missing-target":
+        na = len(inapplicable)
+        problems = []
+        if na == 0:
+            problems.append("nothing was classified NOT_APPLICABLE, so the classification path "
+                            "never ran")
+        if invalid:
+            problems.append("%d mutation(s) came back INVALID — an absent target is being counted "
+                            "as a broken mutation, which is the conflation this control exists to "
+                            "catch" % invalid)
+        if executed == 0:
+            problems.append("M = 0: no applicable mutation was left to prove the run still works")
+        if survived:
+            problems.append("%d survivor(s) among the applicable mutations" % survived)
+        if problems:
+            print("CONTROL FAILED (missing-target): " + "; ".join(problems))
+            shutil.rmtree(work, ignore_errors=True) if not args.keep else None
+            return 1
+        print("CONTROL PASSED (missing-target): with %s absent, A=%d classified NOT_APPLICABLE, "
+              "I=%d, and the run still executed M=%d / killed K=%d and restored byte-identically. "
+              "The absent target is a consumer difference; it is not a kill, not a survivor and "
+              "not an invalid mutation." % (CONSUMER_DROPPED, na, invalid, executed, killed))
+        print("\nRESULT: missing-target control behaved correctly.")
+        shutil.rmtree(work, ignore_errors=True) if not args.keep else None
+        return 0
 
     if args.control == "rubber-stamp":
         # inverted acceptance: the stub must make everything survive

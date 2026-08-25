@@ -233,7 +233,8 @@ digicode-text/
     └── local/                this project only
         ├── handover/         16.md = current state · sessions/ = immutable history · 改定log
         ├── rules/digicode-text/   project rules (none yet)
-        ├── docs/             routing-profile.md = the only owner of the model/effort mapping
+        ├── docs/             routing-profile.md = the only owner of the model/effort mapping;
+        │                     RULES_SNAPSHOT = which template snapshot this project received
         ├── bugs/{active,closed}/  plans/{active,completed}/  investigations/  legacy/
 ```
 

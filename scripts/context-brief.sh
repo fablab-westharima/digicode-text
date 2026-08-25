@@ -106,12 +106,31 @@ fi
 
 repo_path="$ROOT"
 sanitized_cwd="-$(printf '%s' "${ROOT#/}" | tr '/_' '--')"
-transcript_dir="${HOME:-}/.claude/projects/$sanitized_cwd"
+transcript_root="${HOME:-}/.claude/projects"
+transcript_dir="$transcript_root/$sanitized_cwd"
+# EMPTY is not MISSING (rule 04 §EMPTY vs MISSING before reading a count). A corpus of zero
+# transcripts is a MEASUREMENT; a corpus whose location cannot be determined is not. Conflating
+# them made this exporter fail closed on the one state every newly bootstrapped project is in —
+# no session has ever run in that working directory, so the per-project directory does not exist
+# yet and cannot be made to exist by anything the project itself does. Measured 2026-08-25 on the
+# first real consumer bootstrap (digicode-text): selftest B24 went RED at bootstrap for a reason
+# that had nothing to do with the contract B24 tests, and the only way to green it was to create
+# the directory by hand — fabricating an instrument's input.
+#
+# The discriminator is the ROOT, not the project directory: the root is what proves the harness
+# looked in the right place at all.
+#   root absent            -> NOT OBTAINED. The state directory itself is not where we think it
+#                             is, so a count of 0 would be a claim about a path we cannot vouch for.
+#   root present, dir absent -> 0 transcripts, MEASURED. No session has run in this working
+#                             directory. This is the correct and expected state of a new project.
+#   dir present            -> count the files.
 if [ -d "$transcript_dir" ]; then
   transcript_count="$(find "$transcript_dir" -type f -name '*.jsonl' -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')"
   transcript_line="Session transcripts: $transcript_dir (${transcript_count:-0} *.jsonl files)"
+elif [ -d "$transcript_root" ]; then
+  transcript_line="Session transcripts: $transcript_dir (0 *.jsonl files — the directory does not exist yet, i.e. no session has run in this working directory. Measured empty, not unobtainable.)"
 else
-  transcript_line="NOT OBTAINED: session-transcript directory (source: $transcript_dir)"
+  transcript_line="NOT OBTAINED: session-transcript root (source: $transcript_root)"
   incomplete=1; missing_n=$((missing_n+1))
 fi
 
