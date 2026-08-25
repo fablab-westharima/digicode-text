@@ -1,0 +1,4 @@
+.DS_Store
+scheduled_tasks.lock
+__pycache__/
+*.pyc

@@ -1,0 +1,21 @@
+# Protected paths — changes here are Route A automatically (rule 22 §Routes).
+# Mechanical check: compare a delegation's planned and actual changed-path sets against these
+# repo-relative prefixes (exact files allowed too). Semantic release/security impact stays a
+# self-reported trigger — this file is the mechanical floor, not the whole definition.
+#
+# PER-PROJECT FILE: the harness prefixes below travel with the template (every fork has them).
+# A project appends its own release/security surfaces (deploy configs, credential stores,
+# production manifests) at bootstrap. One prefix per line; # lines ignored.
+#
+# digicode-text (2026-08-25, S000 bootstrap): NO PROJECT ROWS YET, stated rather than left silent.
+# This repository has no application code, no deploy config and no credential store — the stack and
+# deployment target are undecided and are the user's to decide after the donor audit (16.md §2
+# baton 5). Guessing a prefix for a stack nobody chose would protect a path that does not exist
+# while leaving the real one unlisted. LICENSE is listed because relicensing is irreversible and
+# the file predates this bootstrap.
+prompt/maintenance/global/rules/
+.claude/hooks/
+.claude/commands/
+.claude/settings.json
+scripts/
+LICENSE

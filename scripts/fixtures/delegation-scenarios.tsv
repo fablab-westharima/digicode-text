@@ -1,0 +1,25 @@
+# Delegation action scenarios — executed by scripts/delegation-scenarios.py against the ordered
+# decision in prompt/maintenance/global/rules/common/22-model-orchestration.md
+# (```delegation-decision```).
+#
+# Fields (TAB separated): id <TAB> title <TAB> facts (key=value, comma separated) <TAB> expected verdict
+# The expected verdict is recorded HERE; the decision that has to produce it lives in the RULE.
+# Neither file may be edited to agree with the other without saying which one was wrong.
+#
+# S1..S10 are the scenarios the Phase 5 directive named. S11 and S12 exist because the harness
+# requires every decision row to be exercised by some scenario: without them the "parent works
+# outside the delegated scope" row and the "recorded exception trigger" row would be unmeasured
+# clauses, which is the shape this project refuses (M=0 refuses to pass).
+#
+S1	parent checks the running worker's status	actor=parent, delegation_state=ACTIVE, purpose=governance, overlaps_delegated_scope=no, parent_used_a_tool=yes	HARNESS_GOVERNANCE
+S2	parent reviews the submitted diff after the worker returns	actor=parent, delegation_state=CLOSED, purpose=review, material_is_submitted_deliverable=yes, overlaps_delegated_scope=yes	BOUNDED_REVIEW
+S3	parent debugs the same bug in parallel with the worker	actor=parent, delegation_state=ACTIVE, purpose=execution, overlaps_delegated_scope=yes, action_is_cheap=yes	SHADOW_EXECUTION
+S4	parent runs the worker's acceptance test in parallel	actor=parent, delegation_state=ACTIVE, purpose=execution, overlaps_delegated_scope=yes, worker_is_waiting=no	SHADOW_EXECUTION
+S5	an independent verifier lane is explicitly dispatched after completion	actor=verifier, delegation_state=CLOSED, dispatched_verifier_lane=yes, purpose=verification, overlaps_delegated_scope=yes	INDEPENDENT_VERIFICATION
+S6	worker finds a defect outside its packet that does not block its acceptance	actor=worker, finding_outside_packet_scope=yes, blocks_delegated_acceptance=no, purpose=execution, overlaps_delegated_scope=no	RETURN_OUT_OF_SCOPE_FINDING
+S7	worker finds an out-of-packet cause that does block its acceptance	actor=worker, finding_outside_packet_scope=yes, blocks_delegated_acceptance=yes, purpose=execution, overlaps_delegated_scope=no	RETURN_BLOCKER
+S8	parent checks objective / elapsed / acceptance state with a tool	actor=parent, delegation_state=ACTIVE, purpose=governance, overlaps_delegated_scope=no, parent_used_a_tool=yes	HARNESS_GOVERNANCE
+S9	"review" that re-runs the analysis from zero instead of reading what was submitted	actor=parent, delegation_state=CLOSED, purpose=review, material_is_submitted_deliverable=no, overlaps_delegated_scope=yes	SHADOW_EXECUTION
+S10	required close work after the delegation closed	actor=parent, delegation_state=CLOSED, required_by_close_protocol=yes, purpose=execution, overlaps_delegated_scope=yes	ALLOWED_CLOSE_WORK
+S11	parent works on an unrelated area while a delegation is active	actor=parent, delegation_state=ACTIVE, purpose=execution, overlaps_delegated_scope=no	OUT_OF_DELEGATED_SCOPE
+S12	two workers' results materially conflict and the exception trigger is recorded	actor=parent, delegation_state=ACTIVE, purpose=execution, overlaps_delegated_scope=yes, exception_trigger_recorded=yes	EXCEPTION_REPRODUCTION

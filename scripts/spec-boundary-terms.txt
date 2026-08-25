@@ -1,0 +1,24 @@
+# Spec-boundary term registry — consumed by selftest's fork-neutrality check.
+#
+# WHAT THIS GUARDS (user ruling 2026-08-17): consumer-specific premises, architecture, tools,
+# thresholds and workflows must never be fixed into the template's COMMON layer (global rules,
+# templates, scripts, default behavior). Consumer-specific material is fine — and expected — in
+# provenance notes, incident attributions, deployment/migration records, fixtures marked as
+# examples, and project-local layers; the check therefore treats a hit as a PROMOTION-CANDIDATE
+# SIGNAL and passes it when the line carries an allowed-context marker (origin/provenance/example
+# wording). It is not a word ban.
+#
+# PER-PROJECT FILE: list here the product/domain terms of the projects THIS repo observes or
+# consumes from — terms that would indicate consumer bleed if they appeared as common spec.
+# KNOWN GAP, stated: the check detects registered terms only; registering a new observed
+# project's product terms is part of starting to observe it.
+#
+# digicode-text (2026-08-25, S000 bootstrap): DELIBERATELY EMPTY, and an empty list is valid —
+# the check then guards only the mechanism. The template's own list named another project's
+# products and was not inherited: those were that project's observations, not this one's.
+#
+# The moment this repository begins the DigiCode donor audit it starts observing DigiCode, and
+# DigiCode's product/domain terms belong here (16.md §2 baton 6). Adding them before the audit
+# would register terms for an observation that has not been authorised.
+#
+# One term per line; case-insensitive substring; lines starting with # ignored.

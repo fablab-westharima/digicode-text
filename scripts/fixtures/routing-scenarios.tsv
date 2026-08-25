@@ -1,0 +1,45 @@
+# Routing scenarios — executed by scripts/routing-scenarios.py against the ordered decision in
+# prompt/maintenance/global/rules/common/22-model-orchestration.md (```routing-decision```) and the
+# fixture profile scripts/fixtures/routing-profile.md.
+#
+# Fields (TAB separated): id <TAB> title <TAB> request (key=value, comma separated) <TAB> expected verdict
+#
+# The request carries ONLY what a delegation packet is entitled to assert:
+#   subject      dispatch | harness_self
+#   target       a ROUTE_TARGET id
+#   effort       a ROUTE_EFFORT value (omit the key entirely to model a packet that declared none)
+#   reason       EFFORT_REASON
+#   evidence     EFFORT_EVIDENCE (NONE or a reference)
+#   selection    DEFAULT | EXPLICIT
+#   human_go     yes | no (ROUTE_AUTHORITY_REF present)
+# target_status, dispatchable, authority, effort_supported, effort_relation and effort_fixed are
+# RESOLVED FROM THE PROFILE by the harness — a scenario cannot assert them, which is the point:
+# the mapping has one owner and the validator reads it rather than re-implementing it.
+#
+# The expected verdict is recorded HERE; the decision that has to produce it lives in the RULE.
+# Neither file may be edited to agree with the other without saying which one was wrong.
+#
+# R1..R12 are the scenarios the Phase 6 directive named. R13..R18 exist because the harness requires
+# every decision row to be exercised by some scenario: without them the unknown-target row, the
+# not-dispatchable-but-not-disabled row, both fixed-route rows, the experimental-but-explicit path
+# and the fail-closed default would be unmeasured clauses (M=0 refuses to pass).
+#
+R1	baseline dispatch on a mapped active target	subject=dispatch, target=T-PRIMARY, effort=E2, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	DISPATCH_ALLOWED
+R2	escalation with an authorised reason and task-referencing evidence	subject=dispatch, target=T-PRIMARY, effort=E3, reason=BASELINE_ATTEMPT_FAILED, evidence=report#attempts-1-2, selection=EXPLICIT, human_go=no	DISPATCH_ALLOWED
+R3	escalation carrying a reason but no evidence	subject=dispatch, target=T-PRIMARY, effort=E3, reason=BASELINE_ATTEMPT_FAILED, evidence=NONE, selection=EXPLICIT, human_go=no	REJECT_ESCALATION_WITHOUT_EVIDENCE
+R4	effort the transport does not support	subject=dispatch, target=T-ECONOMY, effort=E3, reason=BLOCKER_DIAGNOSIS, evidence=bug#7, selection=EXPLICIT, human_go=no	REJECT_UNSUPPORTED_EFFORT
+R5	transport would accept the value but policy has no escalation ground	subject=dispatch, target=T-PRIMARY, effort=E3, reason=NONE, evidence=NONE, selection=EXPLICIT, human_go=no, transport_accepted=yes	REJECT_ESCALATION_REASON_INVALID
+R6	Human-only target selected without a GO reference	subject=dispatch, target=T-RESTRICTED, effort=E3, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	HUMAN_GO_REQUIRED
+R7	Human-only target with the Human GO quoted	subject=dispatch, target=T-RESTRICTED, effort=E3, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=yes	DISPATCH_ALLOWED
+R8	disabled target	subject=dispatch, target=T-RETIRED, effort=NONE, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	REJECT_NOT_DISPATCHABLE
+R9	experimental economy target reached by default routing	subject=dispatch, target=T-ECONOMY, effort=E1, reason=BASELINE, evidence=NONE, selection=DEFAULT, human_go=no	REJECT_EXPERIMENTAL_DEFAULT
+R10	a worker escalation is in flight and the subject is the harness itself	subject=harness_self, target=T-PRIMARY, effort=E3, reason=BASELINE_ATTEMPT_FAILED, evidence=report#x, selection=EXPLICIT, human_go=no, worker_effort_escalated=yes	HUMAN_OWNED_ROUTE
+R11	AI lowers a mapped target below its profile baseline	subject=dispatch, target=T-PRIMARY, effort=E1, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no, cheaper_target_available=yes	REJECT_UNAUTHORIZED_DOWNGRADE
+R12	verifier dispatched as a formal independent role at its baseline	subject=dispatch, target=T-VERIFY, effort=E2, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	DISPATCH_ALLOWED
+R13	packet names a target the profile does not know	subject=dispatch, target=T-GHOST, effort=E2, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	REJECT_UNKNOWN_TARGET
+R14	active target that is present but never dispatched to	subject=dispatch, target=T-ADVISORY, effort=NONE, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	REJECT_NOT_DISPATCHABLE
+R15	fixed-effort target raised with a valid reason and evidence	subject=dispatch, target=T-FIXED, effort=E3, reason=BLOCKER_DIAGNOSIS, evidence=bug#7, selection=EXPLICIT, human_go=no	REJECT_FIXED_ROUTE_DEVIATION
+R16	fixed-effort target lowered to save budget	subject=dispatch, target=T-FIXED, effort=E1, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no, quota_available=no	REJECT_FIXED_ROUTE_DEVIATION
+R17	experimental target chosen explicitly rather than by default	subject=dispatch, target=T-ECONOMY, effort=E1, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	DISPATCH_ALLOWED
+R18	packet declares a target but no effort at all	subject=dispatch, target=T-PRIMARY, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	REJECT_UNROUTED
+R19	transport with no effort concept, dispatched with none requested	subject=dispatch, target=T-NOEFFORT, effort=NONE, reason=BASELINE, evidence=NONE, selection=EXPLICIT, human_go=no	DISPATCH_ALLOWED
