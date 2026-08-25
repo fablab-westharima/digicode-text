@@ -13,3 +13,4 @@
 |---|---|---|---|
 | 000 | 2026-08-25 | Project_Template から bootstrap(consumer 初期化・DigiCode 混入 0・製品実装なし) | [S000](sessions/S000_2026-08-25_bootstrap.md) |
 | 001 | 2026-08-26 | DigiCode Donor Inventory / Audit(READ ONLY・donor 変更 0・実装なし)。case DT-1 起票。目的は受理され close、次目的は UNSET | [S001](sessions/S001_2026-08-26_donor-inventory-audit.md) |
+| 002 | 2026-08-26 | Compiler Shared/Separate 実証 probe(Acceptance 10/10 受理・Classic artifact バイト一致・donor 変更 0)。Human 裁定「Text 専用 Compiler を第一方針」。新規 rule/case なし、次目的は UNSET | [S002](sessions/S002_2026-08-26_compiler-shared-separate-probe.md) |
