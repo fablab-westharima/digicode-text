@@ -86,6 +86,11 @@ DigiCode (donor, READ ONLY)  ──selective port, evidence-recorded──▶  d
                          itself (no merge / subtree / rewrite / fork). 16.md §3, settled.
 ```
 
+**AI is a primary feature of digicode-text and ships from the start** (2026-08-26 user ruling). It is
+not provisional and is not deferred to the donor audit: the audit investigates *how* the donor
+implements AI, its API-key handling and its dictionary / context design — never *whether* AI belongs
+in the product. A template's generic provisional value never outranks this project's product ruling.
+
 **Everything below this line is PROVISIONAL and is settled by the user after the donor audit**
 (2026-08-25 user ruling). It is written out rather than left blank because an anchor that is empty
 still reads as present — but it is not a licence to treat it as settled. The four things explicitly
@@ -100,8 +105,7 @@ and the DigiCode compatibility range.
 - FabLab, education and workshop settings that want to handle real code rather than blocks.
 
 **Out of scope (provisional):** re-implementing DigiCode's block editor as-is · fully replacing a
-complete IDE such as VS Code · making an AI coding agent a required product feature · enterprise
-collaborative-editing / cloud-IDE features.
+complete IDE such as VS Code · enterprise collaborative-editing / cloud-IDE features.
 
 **"Passing grade" definition (provisional, user verbatim 2026-08-25):**
 
