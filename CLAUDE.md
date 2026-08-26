@@ -162,6 +162,8 @@ When in doubt, ask the user. Don't sacrifice required work to fit scope or hours
 
 - Starting work without reading the rules
 - Implementing without user GO (wait-for-go — rule 12)
+- **Completing a PRIMARY_OBJECTIVE with Opus 5 running solo** (2026-08-26 user ruling, 16.md §3). The conductor owns harness / scope / orchestration / packets / evidence audit / contradiction detection / integration; investigation, source reading, isolated probes, falsification and data extraction go to the delegate lanes. An objective that ends with `codex tool calls = 0` is **not** met — if the lane was unavailable, that is a STOP and an escalation with attempt evidence, never a silent solo completion
+- **Reusing a previous session's stated reason for not delegating without opening the rule it cites.** The reason recorded across S002/S003 was a misreading of rule 04 that survived four sessions unchecked (case DT-3); rule 04 §Delegated verification claims defines an E1/E2/E3 contract *so that* delegated work yields evidence, and forbids routine parent per-claim reproduction
 - Proposing changes that overturn settled decisions in §2 (settled is settled)
 - Reporting "I understand" based only on grep hit counts — read the implementation
 - Self-imposing scope ("out of scope" / "defer" is the user's decision — rule 17)
