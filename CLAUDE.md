@@ -76,6 +76,10 @@ Plan register: `local/plans/active/` (in flight) and `local/plans/completed/` (f
 development that handles ordinary **text code**, not a block editor — by selectively porting
 technical assets from **DigiCode** as a donor repository.
 
+**The Web version is the primary product, and it is not the only one** (2026-08-26 user ruling). A
+Desktop version is formally in view, so the Frontend is not to be fixed into a shape that only a
+browser can host; the shared-Frontend / adapter direction and its boundaries live in `16.md` §3.
+
 ```
 DigiCode (donor, READ ONLY)  ──selective port, evidence-recorded──▶  digicode-text
    ├ what may travel:  product/technical assets the user approves, one at a time,
@@ -90,6 +94,10 @@ DigiCode (donor, READ ONLY)  ──selective port, evidence-recorded──▶  d
 not provisional and is not deferred to the donor audit: the audit investigates *how* the donor
 implements AI, its API-key handling and its dictionary / context design — never *whether* AI belongs
 in the product. A template's generic provisional value never outranks this project's product ruling.
+
+**AI is the primary feature; LSP is advanced editing support, not a condition of the product**
+(2026-08-26 user ruling). A build without LSP is **never** to be described as a reduced or
+incomplete version. The grounds, and what the Web version must stand up on its own, are in `16.md` §3.
 
 **Everything below this line is PROVISIONAL and is settled by the user after the donor audit**
 (2026-08-25 user ruling). It is written out rather than left blank because an anchor that is empty

@@ -14,3 +14,4 @@
 | 000 | 2026-08-25 | Project_Template から bootstrap(consumer 初期化・DigiCode 混入 0・製品実装なし) | [S000](sessions/S000_2026-08-25_bootstrap.md) |
 | 001 | 2026-08-26 | DigiCode Donor Inventory / Audit(READ ONLY・donor 変更 0・実装なし)。case DT-1 起票。目的は受理され close、次目的は UNSET | [S001](sessions/S001_2026-08-26_donor-inventory-audit.md) |
 | 002 | 2026-08-26 | Compiler Shared/Separate 実証 probe(Acceptance 10/10 受理・Classic artifact バイト一致・donor 変更 0)。Human 裁定「Text 専用 Compiler を第一方針」。新規 rule/case なし、次目的は UNSET | [S002](sessions/S002_2026-08-26_compiler-shared-separate-probe.md) |
+| 003 | 2026-08-26 | Editor/LSP Technical Spike(Acceptance 14/14)+ Local LSP Helper Feasibility(17/17)を連続実行、両方 Human 受理。donor 3 repo 変更 0・実装なし。Human 裁定「AI 主機能 / LSP は必須でない・Web 主軸・Desktop 正式視野・Monaco 第一候補・内部標準 main.cpp」。case DT-2 起票、次目的は UNSET | [S003](sessions/S003_2026-08-26_editor-lsp-and-local-helper.md) |

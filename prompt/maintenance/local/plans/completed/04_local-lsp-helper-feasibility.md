@@ -8,7 +8,7 @@
 | 起案日 | 2026-08-26 |
 | 起案契機 | 2026-08-26 Human 裁定 + HUMAN GO「PRIMARY_OBJECTIVE = Local LSP Helper Feasibility」 |
 | 起案者 | Claude Code (Opus 5) |
-| ステータス | 進行中 |
+| ステータス | 🎉 Acceptance 17/17 達成 (2026-08-26)。**Human 受理済み** (裁定 §16) — ただし Local Helper の正式採否は保留、Desktop 版との役割重複を後続で評価 |
 | 先行依存 | `investigations/2026-08-26_editor-lsp-spike/`(特に F-17 clangd ≈261 MiB/セッション、F-15 target mismatch、F-16 esp-clangd、`06` Monaco 実接続) |
 | 後継計画 | Architecture Decision(Human) |
 
