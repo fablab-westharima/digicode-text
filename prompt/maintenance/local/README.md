@@ -20,11 +20,17 @@
 ## handover/ の役割分担(現在地 1 + 履歴 N + 索引 1 + 地図 1)
 
 ```
-16_次セッション引き継ぎ指示書.md   = 現在地の canonical owner(常に上書き。hook が注入する唯一の入口)
+16_次セッション引き継ぎ指示書.md   = 現在地の router 兼 mandatory owner(常に上書き。hook が全文注入する唯一の入口)
+batons.md                         = baton の本文と根拠(conditional。16.md §2 は stub + Status/Trigger/Owner/Sev)
+evidence-map.md                   = evidence owner と読解順序・donor SHA・外部一次資料の所在・loop position
+                                    ・Project_Template feedback queue(conditional)
 sessions/S{NNN}_{日付}_{slug}.md  = 何を・なぜやったか(1 セッション = 1 ファイル、close 後は不変)
 改定log.md                        = sessions/ の索引(1 セッション = 1 行、末尾追記のみ)
 maintenance_index.md              = どこに何があるか(静的な地図、構造変更時のみ更新)
 ```
+
+**この 3 ファイルが current-state owner set である**(2026-08-27 S008 で §OPTIONAL CAPABILITY を発動)。
+read class(どれが無条件でどれが条件付きか)の owner は `CLAUDE.md` §0 であり、ここには書き写さない。
 
 - **現在地は単一・履歴は分散**が原則(2026-07-07 確立)。16.md は「何が起きたか」を語らず、**現在成立している事実だけ**を持ち、経緯は「詳細は S{NNN}」と委譲する。同じ詳細を 16.md と session file の両方に書かない — それは一つの事実に二人の owner を置くことであり、片方が必ず古くなる(`global/rules/README.md` §Single source of truth)。
 
@@ -50,7 +56,7 @@ maintenance_index.md              = どこに何があるか(静的な地図、�
 
 **History is not current state**(Phase 2 で確立)を弱めるのは、履歴を消すことではなく**履歴を毎回読ませること**でもある: 現在地が復元できるかを試さないまま「念のため」を積むと、16.md が痩せても誰も気づかない。実測(2026-08-25、13/13 ファイル)では最新 session file は 341〜10,294 token に散り、無条件必読集合の大きさが**前任者の筆の長さだけ**で決まっていた。
 
-### OPTIONAL CAPABILITY — current owner の topic 分割
+### OPTIONAL CAPABILITY — current owner の topic 分割 — **本 project では 2026-08-27 に発動済み**
 
 **既定は単一 owner(16.md)。** プロジェクトが**実際に独立した authority domain を複数持つ**場合に限り、current state を topic 別の canonical owner へ分割してよい。分割は目的ではなく、authority 境界が実在するときだけの手段。
 
@@ -58,6 +64,23 @@ maintenance_index.md              = どこに何があるか(静的な地図、�
 - 分割する場合に**同時に負う義務**: ① close の同一 commit で全 topic file を更新する ② `handover-diff.sh` が全 topic file を走査対象にする(現行は単一 file・分母を印字)③ 各 topic file の generation が router の宣言と一致すること。
 - 分割の危険: 単一 file の stale は比較で見つかるが、**分割後は各 file が内部的に整合して見えるぶん、file の「あいだ」で落ちた事実が静かになる**。義務 ①〜③ はその相殺であって装飾ではない。
 - N=1 のプロジェクト(bootstrap 直後は必ずこれ)では分割しない — 儀式だけが残る。
+
+**digicode-text での発動記録(2026-08-27, S008 — Human GO 済みの harness maintenance objective)。**
+分割は「16.md を短くするため」ではなく、**authority domain と update trigger が実際に分かれていたため**に行った。
+実測(`investigations/2026-08-27_handover-architecture/` の 3 レポート)が支えた 3 点:
+
+1. **素朴な 4-owner 分割はコスト増だった。** 全 owner を無条件のままにすると owner shell だけで下限 +1,512 tok。
+   **無条件の topic を分割することは純損である** — 得になるのは条件付きにできる topic を出すときだけ。
+2. **§3 の Human ruling 39 本は 1 本も条件付きにしない。** Human 指示の安全条件(「条件付き化によって
+   Human ruling を読み落とす危険が増えるなら採用しない」)がそのまま拘束する。
+3. **測定時点の baton 45 件中、0 件が本文無条件・31 件が stub 前提で条件付き可・14 件が trigger のみで可。**
+   (現在件数はここに書かない — `selftest` B71 が印字する。)
+   したがって **stub は装飾ではなく分割の成立条件そのもの**。stub を削れば分割は不正になる。
+
+義務 ①②③ の履行状況: ① `/close` が owner set 全体を同一 commit で更新する(close.md step 3)
+② `handover-diff.sh` が 3 owner を走査し per-owner 分母を印字する(検出力は fixture で確認済み)
+③ GEN 一致は selftest **B70** が検査する。加えて **B69** が hook の全量注入を、**B71** が
+「stub と本文の対応」を検査する。**この 3 つが無い状態の分割は、義務を書いただけの分割である。**
 - **履歴を単一ファイルに蓄積しない**。起源プロジェクトでは単一の改定log が 4,600 行超になり、3分割アーカイブという追加メンテ機構と、追記時の大ファイル操作コスト(Edit のアンカー照合が危険になり script 頼みになる)を生んだ。per-session 分散ならアーカイブ運用が不要で、「最新 entry を読む」= 小さい 1 ファイルで済む。
 - ファイル名の「16」は起源プロジェクト(DigiCode)の通し番号の名残だが、ルール群・テンプレート中の相互参照(「16.md」)を壊さないため、および全プロジェクトで同名になる統一効果のため、**固有名詞としてそのまま使う**。
 

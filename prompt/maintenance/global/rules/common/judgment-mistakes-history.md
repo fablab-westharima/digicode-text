@@ -186,6 +186,7 @@ Read the Part 2 body only for cases whose pattern is suspected. **A number not p
 | DT-5 | digicode-text S006 (2026-08-26) | PT-21/PT-36 family, **delegation-removed-the-by-product version** | a fully delegated objective wrote nothing to disk; delegation removed the persistence solo work provides incidentally |
 | DT-6 | digicode-text S007 (2026-08-26/27) | DT-4 **replay, integration-phase version** + case 18 meta-trap | the synthesis outran its own evidence 13 times inside a document that names the trap; only a dispatched falsification lane caught it |
 | DT-7 | digicode-text S007 (2026-08-26) | PT-7 + PT-4/82 family, **parent's-leftover-work version** | strict delegation left the parent only "small" tasks, and both silent failures happened there |
+| DT-8 | digicode-text S008 (2026-08-27) | **DT-7 replay**, PT-4/PT-7/PT-10/82 family, **the-unchecked-zone-was-the-checking-work version** | 5 defects, all in the parent's own hand-work, and 4 of them inside the guards it was writing |
 
 Note: cases 1–6 are #1 / #2 / #3–#6 inside Part 2's 「第84回 1-6 件目」 section. Later case bodies referring to "case 1 snap judgment (whole conclusion without evidence)" mean 初期1 (第80回末), the snap/inferred conclusion.
 
@@ -1999,3 +2000,26 @@ stub に差し替えたら harness 自身が FAIL すること）が exit 1 を�
 - **Scope**: すべての delegation packet 執筆。すべての heredoc / 複合シェルコマンドによるファイル生成。委譲比率が高いセッションほど強く効く。
 - **Related**: PT-7 · PT-4 · case 82 · PT-28 · `22-model-orchestration.md` §Anti-patterns「Blaming the delegate for the packet's defects」。
 - **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、このセッションで parent が書いた他のファイル(`00_index.md` / `01_method-and-lanes.md` / `08_conclusion-and-next.md` / Downloads 2 件)の**実在と行数を `ls` と `wc -l` で確認**した。また `08` に書いた donor SHA・分母・URL のうち、**私が他レーンから転記した数値には出典レーン名を併記**し、私自身が測っていないことが読み手に分かる形にした。
+
+### case DT-8 — DT-7 の再演。parent の手元作業だけで 5 件の欠陥が出て、うち 4 件は自分が書いた検査器そのものだった(2026-08-27, S008)
+
+- **状況**: S008 は 5 レーンへ委譲した harness maintenance セッション。delegate 側の成果物(inventory / 反証 / 依存測定 / 復元テスト / 統合反証)には検査で捕まる欠陥が 1 件も無かった。一方、parent が自分の手で書いた部分から **5 件**の欠陥が出た。**そのうち 4 件は「検査器を書く」という作業そのものの中で起きている。**
+  1. 新規 selftest check を `B68` として追加 → **既存 B68 と id 衝突**。走らせるまで気づかなかった。
+  2. その check の negative control が、clip した対象(handover)ではなく **sorted 先頭の別ファイル(bugs index)を検査**していた。control が原理的に落ちない状態で「controls 2/3」と出た(**PT-4**: 自作の検査が黙って誤っている)。
+  3. B70 / B71 の**表示用分母を、check 本体とは別の grep で数えていた**。B71 は太字 id 行 `| **47** |` を数え落として 45 件を **30/30** と表示し、B70 は owner 数ではなく**言及行数**を数えて 2 を **4** と表示した(**PT-10 / rule 04 §A gauge reports its unit**: guard が、自分の述語が出していない数を印字した)。
+  4. `context-brief.sh` のコメントに「owner を allowlist へ足し忘れたら **B70** が loud にする」と書いた。**B70 は `context-brief.sh` を読まない。**存在しない保証を script コメントが主張した(**PT-7**: 開かずに書いた文が、まさに「開かずに書くな」と述べている形)。
+  5. 自作の control の RC を `bash script | tail -3; echo RC=$?` で読み、**tail の 0 を script の RC として報告**した(**case 82 / 110 / PT-25**: 記録済みのパイプ RC 罠を、記録した本人が同一セッションで踏んだ)。
+- **加えて手順ミスが 1 件**: 統合反証レーン(Lane E)が最終ツリーを測定している最中に、parent が 4 箇所を編集した。**PT-36**(evidence は FINAL tree)と同型で、E の測定値は取り直しになった。
+- **真因**: delegation が厳格になるほど、parent の手元に残るのは「小さくて、自分でやったほうが早い作業」だけになる。**その作業には capsule も bounded review も無い。**さらに悪いことに、S008 で parent の手元に残った作業は *検査器を書くこと* だった — つまり**無検査地帯が、検査を作る工程そのものを覆っていた**。5 件のうち 3 件は「検査器が、自分が測っていないものを green として報告した」という同一の形をしている。
+- **失敗パターン**: DT-7 の直接の再演(parent 手元作業の無検証地帯)+ PT-4 / PT-7 / PT-10 / case 82 の同時再発。
+- **防御**:
+  1. **新しい guard を書いたら、まず id 衝突を機械的に確認する。** `grep -oE '^echo "\[B[0-9]+\]'` は 1 コマンドで、書く前に走らせる。
+  2. **negative control は「自分が壊した対象そのもの」を検査していることを、control を書いた直後に確認する。** control が緑のまま must-flag を通過したら、それは「検出できた」ではなく「control が対象を外している」を先に疑う。
+  3. **guard が印字する分母は、その guard の述語から出す。** 別の grep で数え直した瞬間、2 つの述語がずれる余地が生まれ、ずれても両方 green のままになる。
+  4. **script のコメントに検査器の名前を書くときは、その検査器がその file を読むことを確認する。** 読まないなら「これを検査する機構は無い」と書く — 存在しない保証は、無い保証より悪い。
+  5. **自分の検証コマンドでも RC はパイプを通さない。** `cmd > out 2> err; RC=$?` を既定形にする。「delegate に課している規律を、parent の 3 行のワンライナーには課さない」が毎回の入口である。
+  6. **反証レーンを走らせている間はツリーを凍結する。** 走らせた本人が編集すると、その測定は最終ツリーのものではなくなる。
+- **Scope**: 委譲比率の高いセッション全般。とくに **parent の手元作業が「検査器・計器・fixture を書くこと」であるとき**に最も強く効く。
+- **Related**: DT-7(直接の親)· PT-4 · PT-7 · PT-10 · PT-28 · PT-36 · case 82 / 110 / PT-25 · `04-testing-strategy.md` §A gauge reports its unit · `22-model-orchestration.md`(feedback #8 が一般化した穴)。
+- **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、このセッションで parent が書いた残りの成果物(`16.md` の stub 表 / `batons.md` / `evidence-map.md` / `handover-diff.sh` の owner-set 走査)を同じ目で見直した結果、**Lane E が独立に検出した 7 件**と重なる 3 件(baton 53 stub の欠落 · baton 52 本文の stale · maintenance_index の壊れた table 行)を確認し、いずれも修正済み。**認知的な自己点検だけでは 0 件だった** — 捕まえたのは dispatch された独立レーンであり、これは DT-6 と同じ結論である。
+- **Forward application (same session)**: 本 case を書いた時点で、これから走らせる検証(最終 gate 実測 · commit 前 scan)に 1 行加えた — **「この検証は、いま書いた形に踏み込んでいないか」**。具体的には最終実測を全てパイプ無し `RC=$?` で取り、分母を各 script 自身の出力から引用する。

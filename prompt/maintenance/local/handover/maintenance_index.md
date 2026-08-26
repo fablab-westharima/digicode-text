@@ -3,8 +3,8 @@
 <!-- 更新頻度: 構造変更時のみ(ファイル追加のたびには更新しない。件数は目安)。
      ヘッダに更新履歴を積層する: 最終更新 / 直前更新 の2行を維持 -->
 
-**最終更新:** 2026-08-25 (テンプレート `5148e67` の bootstrap-defect 修正を再適用。件数の実体を撤去し数え方へ委譲 = L-5)
-**直前更新:** 2026-08-25 (S000 bootstrap — Project_Template `v2026-08-13-106-g088b1c3` から初期化)
+**最終更新:** 2026-08-27 (S008 — current state を 3 owner へ topic 分割: `16.md` を router 化し、`batons.md` / `evidence-map.md` を conditional owner として新設)
+**直前更新:** 2026-08-25 (テンプレート `5148e67` の bootstrap-defect 修正を再適用。件数の実体を撤去し数え方へ委譲 = L-5)
 
 ---
 
@@ -33,7 +33,7 @@
 | `local/README.md` | local 層の運用標準(命名規則・ライフサイクル)。**テンプレート標準につき構造を変えない** | 単一ファイル |
 | `local/rules/digicode-text/` | プロジェクト固有ルール | `bash scripts/baseline.sh`(rules 行の local 側) |
 | `local/docs/` | `routing-profile.md`(model / effort / target mapping の**唯一の owner**)/ `RULES_SNAPSHOT`(受領したテンプレート断面の受け手側記録) | `ls prompt/maintenance/local/docs \| wc -l` |
-| `local/handover/` | 16.md(現在地・上書き)/ sessions/(履歴・1session=1file)/ 改定log.md(索引)/ 本ファイル | `bash scripts/baseline.sh`(sessions 行) |
+| `local/handover/` | **current-state owner set 3 本**: `16.md`(router・上書き・hook が全文注入・**mandatory**)· `batons.md`(baton 本文・**conditional**)· `evidence-map.md`(evidence / provenance / loop / template feedback queue・**conditional**)。read class の owner は `CLAUDE.md` §0 / sessions/(履歴・1session=1file)/ 改定log.md(索引)/ 本ファイル | `bash scripts/baseline.sh`(sessions 行) |
 | `local/bugs/active/` + `closed/` | バグ + index.md ×2 | `bash scripts/baseline.sh`(bug index 行) |
 | `local/plans/active/` + `completed/` | 計画 | `bash scripts/baseline.sh`(plans 行) |
 | `local/investigations/` | 調査記録 | `ls prompt/maintenance/local/investigations \| wc -l` |

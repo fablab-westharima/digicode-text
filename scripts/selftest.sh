@@ -1299,14 +1299,22 @@ fi
 # case below is that shape. The alpha-id case is the other half: rows whose id is not purely numeric
 # used to be unparsed, so a project that numbered its batons H1/PF3 had no removal detection at all.
 echo "[8] handover-diff controls"
-b51_repo() {   # $1 = dir, $2 = prev body, $3 = curr body
-  local d="$1"
-  mkdir -p "$d/scripts" "$d/prompt/maintenance/local/handover"
+# The fixture builds the whole declared OWNER SET, not one file (2026-08-27, S008): handover-diff
+# now compares the UNION of 16.md + batons.md + evidence-map.md, and a fixture that creates only
+# 16.md exercises the missing-owner refusal instead of the removal audit. $4/$5 are the baton-body
+# owner's two versions (default: empty table) — that is what lets the controls below move a row
+# BETWEEN owners and check that a relocation is not reported as a loss.
+b51_repo() {   # $1 = dir, $2 = prev 16.md, $3 = curr 16.md, [$4 = prev batons.md, $5 = curr batons.md]
+  local d="$1" hv="prompt/maintenance/local/handover"
+  mkdir -p "$d/scripts" "$d/$hv"
   cp scripts/handover-diff.sh "$d/scripts/handover-diff.sh"
   ( cd "$d" && git init -q . && git config user.email t@example.invalid && git config user.name t )
-  printf '%s' "$2" > "$d/prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md"
+  printf '%s' "$2" > "$d/$hv/16_次セッション引き継ぎ指示書.md"
+  printf '%s' "${4:-$b51_bhdr}" > "$d/$hv/batons.md"
+  printf 'evidence map fixture\n' > "$d/$hv/evidence-map.md"
   ( cd "$d" && git add -A && git commit -qm v1 )
-  printf '%s' "$3" > "$d/prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md"
+  printf '%s' "$3" > "$d/$hv/16_次セッション引き継ぎ指示書.md"
+  printf '%s' "${5:-${4:-$b51_bhdr}}" > "$d/$hv/batons.md"
   ( cd "$d" && git add -A && git commit -qm v2 )
 }
 b51_hdr='# h
@@ -1314,6 +1322,13 @@ b51_hdr='# h
 ## §2. Remaining tasks
 
 | # | Task | Owner |
+|---|---|---|
+'
+b51_bhdr='# batons fixture
+
+## Baton bodies
+
+| # | Baton | Owner |
 |---|---|---|
 '
 b51_tmp="$(mktemp -d)"; b51_bad=""
@@ -1327,7 +1342,7 @@ b51_repo "$b51_tmp/pos" \
 b51_out="$(cd "$b51_tmp/pos" && bash scripts/handover-diff.sh 2>&1)"; b51_rc=$?
 [ "$b51_rc" -eq 0 ] || b51_bad="$b51_bad positive-rc=$b51_rc"
 printf '%s' "$b51_out" | grep -q 'GONE (1)' || b51_bad="$b51_bad positive-not-detected"
-printf '%s' "$b51_out" | grep -q 'entries parsed: 2 before' || b51_bad="$b51_bad positive-denominator"
+printf '%s' "$b51_out" | grep -q 'owner set: 2 before' || b51_bad="$b51_bad positive-denominator"
 printf '%s' "$b51_out" | grep -q 'relocated' || b51_bad="$b51_bad positive-classes"
 # 2. zero-denominator — the previous version parses to nothing, so no removal could ever be seen.
 b51_repo "$b51_tmp/zero" \
@@ -1357,8 +1372,43 @@ b51_repo "$b51_tmp/alpha" \
 b51_out="$(cd "$b51_tmp/alpha" && bash scripts/handover-diff.sh 2>&1)"; b51_rc=$?
 [ "$b51_rc" -eq 0 ] || b51_bad="$b51_bad alpha-rc=$b51_rc"
 printf '%s' "$b51_out" | grep -q 'GONE (1)' || b51_bad="$b51_bad alpha-id-row-not-parsed"
+# 4. RELOCATION IS NOT A LOSS. A row that moves from the router to the body owner must not be
+#    reported GONE — that false positive is what a one-file audit produced on the day of the split,
+#    and treating it as noise is how a real loss would later be waved through.
+b51_repo "$b51_tmp/reloc" \
+  "$b51_hdr| 7 | rotate the publishing credential and record the ruling | User |
+" \
+  "$b51_hdr| 7 | short stub only | User |
+" \
+  "$b51_bhdr" \
+  "$b51_bhdr| 7 | rotate the publishing credential and record the ruling | User |
+"
+b51_out="$(cd "$b51_tmp/reloc" && bash scripts/handover-diff.sh 2>&1)"; b51_rc=$?
+[ "$b51_rc" -eq 0 ] || b51_bad="$b51_bad reloc-rc=$b51_rc"
+printf '%s' "$b51_out" | grep -q 'GONE (0)' || b51_bad="$b51_bad reloc-reported-as-loss"
+# 5. A BODY DELETED FROM THE BODY OWNER IS STILL A LOSS, even though the router keeps a stub. The
+#    stub must not be able to stand in for the body it summarises.
+b51_repo "$b51_tmp/bodyloss" \
+  "$b51_hdr| 7 | short stub only | User |
+" \
+  "$b51_hdr| 7 | short stub only | User |
+" \
+  "$b51_bhdr| 7 | rotate the publishing credential and record the ruling | User |
+" \
+  "$b51_bhdr"
+b51_out="$(cd "$b51_tmp/bodyloss" && bash scripts/handover-diff.sh 2>&1)"; b51_rc=$?
+[ "$b51_rc" -eq 0 ] || b51_bad="$b51_bad bodyloss-rc=$b51_rc"
+printf '%s' "$b51_out" | grep -q 'GONE (1)' || b51_bad="$b51_bad bodyloss-not-detected"
+# 6. A DECLARED OWNER THAT IS ABSENT refuses at 2 — it never prints a clean sweep it cannot perform.
+b51_repo "$b51_tmp/missing" "$b51_hdr| 1 | a | User |
+" "$b51_hdr| 1 | a | User |
+"
+rm -f "$b51_tmp/missing/prompt/maintenance/local/handover/batons.md"
+b51_out="$(cd "$b51_tmp/missing" && bash scripts/handover-diff.sh 2>&1)"; b51_rc=$?
+[ "$b51_rc" -eq 2 ] || b51_bad="$b51_bad missingowner-rc=$b51_rc(expected 2)"
+printf '%s' "$b51_out" | grep -q 'GONE (0)' && b51_bad="$b51_bad missingowner-claimed-clean-sweep"
 if [ -z "$b51_bad" ]; then
-  ok "B51 handover-diff: positive GONE 1/2 with the 4 classification names; zero-denominator previous version RC=2 INSTRUMENT_ERROR and no clean-sweep claim; alpha-prefixed id row detected"
+  ok "B51 handover-diff: positive GONE 1/2 with the 4 classification names; zero-denominator previous version RC=2 INSTRUMENT_ERROR and no clean-sweep claim; alpha-prefixed id row detected; owner-set controls: relocation router->body NOT a loss, body deleted under a surviving stub IS a loss, absent declared owner refuses at 2"
   rm -rf "$b51_tmp"
 else
   ng "B51 handover-diff controls failed:$b51_bad (repos kept at $b51_tmp)"
@@ -2143,6 +2193,292 @@ else
   else
     ng "B67 placement contract failed:$b67_bad"
   fi
+fi
+
+# ---------------------------------------------------------------------------------------
+# B69 — a hook-injected mandatory owner is injected WHOLE.
+#
+# B9 (above) asks whether every hook-injected PATH is counted by read-load.sh. It stayed green
+# for the entire life of a defect that B69 exists to catch: measured 2026-08-27 (S008), the hook
+# ran `clipped(handover, 200)` against a 279-line handover, dropped 79 lines — the S006/S007
+# rulings including "Opus 5 を solo で運用しない", the whole template-feedback queue and the whole
+# baseline section — and in the same payload instructed the reader "Treat it as read."  The path
+# was injected, so B9 passed; the bytes were not, and nothing measured that.
+#
+# WHAT B69 CANNOT SEE, stated rather than implied (measured 2026-08-27 by the S008 reconstruction
+# lane's control C6): it compares the injection against THE FILE ON DISK, so a router that was itself
+# truncated is injected faithfully and B69 stays green. That loss is caught elsewhere — B55 loses a
+# responsibility and B58 drops below 8/8 — and naming the division here is the point: a check whose
+# limits are unwritten gets read as covering the whole failure it is named after.
+#
+# So this check measures BYTES, behaviourally: run the hook, take what it actually emitted, and
+# require the complete file to be inside it. A truncation marker does not satisfy it — the defect
+# printed one. The controls prove the check can go red: a clipping hook must FAIL, and a hook that
+# emits nothing must be an instrument error rather than a quiet pass.
+echo "[B69] hook injects each mandatory owner whole"
+b69_bad=""; b69_ctl=0
+b69_payload() {   # $1 = tree root; prints the additionalContext the hook actually emits
+  ( cd "$1" 2>/dev/null && CLAUDE_PROJECT_DIR="$PWD" bash .claude/hooks/session-start.sh 2>/dev/null ) \
+    | python3 -c 'import json,sys
+try: print(json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"])
+except Exception: sys.exit(9)'
+}
+b69_complete() { # $1 = tree root, $2 = repo-relative file -> 0 whole, 1 partial, 2 instrument error
+  python3 - "$1" "$2" <<'B69PY'
+import json, os, pathlib, subprocess, sys
+root, rel = pathlib.Path(sys.argv[1]).resolve(), sys.argv[2]
+f = root / rel
+if not f.is_file(): sys.exit(2)
+env = dict(os.environ, CLAUDE_PROJECT_DIR=str(root))
+r = subprocess.run(['bash', str(root/'.claude/hooks/session-start.sh')],
+                   capture_output=True, text=True, cwd=str(root), env=env)
+if r.returncode != 0 or not r.stdout.strip(): sys.exit(2)
+try: ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+except Exception: sys.exit(2)
+if not ctx: sys.exit(2)
+sys.exit(0 if f.read_text(encoding='utf-8').strip() in ctx else 1)
+B69PY
+}
+if [ ! -f .claude/hooks/session-start.sh ]; then
+  ng "B69: no SessionStart hook — B69 measured nothing"
+else
+  # The mandatory owners the hook claims to inject: the paths it names, that exist.
+  b69_paths="$(grep -oE '"\$ROOT/[^"]+"' .claude/hooks/session-start.sh 2>/dev/null \
+               | tr -d '"' | sed 's|^\$ROOT/||' | sort -u)"
+  b69_n=0; b69_whole=0
+  for p in $b69_paths; do
+    [ -f "$p" ] || continue
+    b69_n=$((b69_n+1))
+    b69_complete "$PWD" "$p"; b69_rc=$?
+    case "$b69_rc" in
+      0) b69_whole=$((b69_whole+1)) ;;
+      1) b69_bad="$b69_bad partial:$p" ;;
+      *) b69_bad="$b69_bad unmeasurable:$p" ;;
+    esac
+  done
+  [ "$b69_n" -eq 0 ] && b69_bad="$b69_bad no-injected-file-found"
+  # The payload must not simultaneously claim completeness and carry a truncation marker.
+  b69_ctx="$(b69_payload "$PWD")"
+  printf '%s' "$b69_ctx" | grep -qiE 'truncated at [0-9]+ lines' \
+    && b69_bad="$b69_bad payload-still-carries-a-truncation-marker"
+
+  # --- controls, on a COPY: a check that has only run against a healthy tree is unverified ---
+  b69_d="$(mktemp -d)"
+  mkdir -p "$b69_d/.claude/hooks" "$b69_d/$(dirname "$(printf '%s' "$b69_paths" | head -1)")" 2>/dev/null
+  ( tar cf - .claude prompt CLAUDE.md 2>/dev/null ) | ( cd "$b69_d" && tar xf - 2>/dev/null )
+  # must-flag 1: a hook that clips the owner is PARTIAL, not whole
+  python3 - "$b69_d" <<'B69CLIP'
+import pathlib, sys
+h = pathlib.Path(sys.argv[1])/'.claude/hooks/session-start.sh'
+s = h.read_text()
+s = s.replace('handover, h_lines = read_full(os.environ["HANDOVER"])',
+              'handover, h_lines = read_full(os.environ["HANDOVER"])\n'
+              'handover = "\\n".join(handover.splitlines()[:20])')
+h.write_text(s)
+B69CLIP
+  # Test the file the control actually damaged. Picking the alphabetically-first injected path
+  # instead makes the control unfalsifiable — measured while writing this check (PT-4 family).
+  b69_first="$(printf '%s' "$b69_paths" | grep '16_' | head -1)"
+  [ -n "$b69_first" ] || b69_first="$(printf '%s' "$b69_paths" | head -1)"
+  b69_complete "$b69_d" "$b69_first"; [ $? -eq 1 ] && b69_ctl=$((b69_ctl+1)) \
+    || b69_bad="$b69_bad ctl-clipping-hook-was-not-flagged"
+  # must-flag 2: a hook that emits nothing is an INSTRUMENT ERROR, never a pass
+  printf '#!/bin/bash\nexit 0\n' > "$b69_d/.claude/hooks/session-start.sh"
+  b69_complete "$b69_d" "$b69_first"; [ $? -eq 2 ] && b69_ctl=$((b69_ctl+1)) \
+    || b69_bad="$b69_bad ctl-silent-hook-did-not-refuse"
+  # must-NOT-flag: the real hook against the copied tree is whole (the control can pass)
+  cp .claude/hooks/session-start.sh "$b69_d/.claude/hooks/session-start.sh"
+  b69_complete "$b69_d" "$b69_first"; [ $? -eq 0 ] && b69_ctl=$((b69_ctl+1)) \
+    || b69_bad="$b69_bad ctl-healthy-copy-was-flagged"
+  rm -rf "$b69_d"
+
+  if [ -z "$b69_bad" ]; then
+    ok "B69 hook injects each mandatory owner whole: ${b69_whole}/${b69_n} complete, 0 truncation markers in the payload (controls: clipping hook flagged, silent hook refuses at 2, healthy copy passes — ${b69_ctl}/3)"
+  else
+    ng "B69 hook completeness failed:$b69_bad (whole ${b69_whole}/${b69_n}, controls ${b69_ctl}/3)"
+  fi
+fi
+
+# ---------------------------------------------------------------------------------------
+# B70 — the current-state owner set agrees with itself: one generation, and every declared
+#       owner is reachable from the contract that declares it.
+#
+# The split's own warning, written down before it was performed (local/README.md §OPTIONAL
+# CAPABILITY): "分割後は各 file が内部的に整合して見えるぶん、file の「あいだ」で落ちた事実が静かになる".
+# A single file that is stale is caught by comparison; three files that are each internally
+# consistent are caught by nothing unless something checks ACROSS them. That is this check.
+#
+# WHAT B70 CANNOT SEE (measured 2026-08-27 by the S008 integration-falsification lane): it tests that
+# an owner's path appears as a SUBSTRING of the hook script. A path sitting in a comment, or in a
+# disabled branch, satisfies it just as well as a live manifest entry — it reads text, not the program.
+# It also never reads scripts/context-brief.sh, so an owner missing from the brief's allowlist is
+# invisible here; baton 53 carries that obligation and nothing executable does.
+#
+# It asserts three things and mutates each one to prove it can see it:
+#   1. every declared owner carries the router's GEN (obligation ③);
+#   2. every conditional owner named in CLAUDE.md §0 exists on disk;
+#   3. the SessionStart hook's conditional manifest names exactly those owners — a conditional
+#      owner nobody is told about is a fact with no reader, which is the "no owner" failure class.
+echo "[B70] current-state owner set agrees with itself"
+b70_router=prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md
+b70_bad=""; b70_ctl=0
+b70_gen_of() { grep -oE 'GEN: S[0-9]+-close' "$1" 2>/dev/null | head -1; }
+b70_check() {  # $1 = tree root -> 0 agree, 1 disagree, 2 instrument error
+  python3 - "$1" <<'B70PY'
+import pathlib, re, sys
+root = pathlib.Path(sys.argv[1])
+router = root/'prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md'
+claude = root/'CLAUDE.md'
+hook   = root/'.claude/hooks/session-start.sh'
+if not (router.is_file() and claude.is_file() and hook.is_file()): sys.exit(2)
+def gen(p):
+    m = re.search(r'GEN: S\d+-close', p.read_text(encoding='utf-8'))
+    return m.group(0) if m else None
+g = gen(router)
+if not g: sys.exit(2)
+ctext, htext = claude.read_text(encoding='utf-8'), hook.read_text(encoding='utf-8')
+# owners declared by the contract: the conditional-owner table rows in CLAUDE.md §0
+declared = set(re.findall(r'`(prompt/maintenance/local/handover/[a-z-]+\.md)`', ctext)) | \
+           set('prompt/maintenance/local/handover/'+m for m in re.findall(r'`local/handover/([a-z-]+\.md)`', ctext))
+if not declared: sys.exit(2)          # measured nothing is not a pass
+bad = []
+for rel in sorted(declared):
+    f = root/rel
+    if not f.is_file(): bad.append('missing:'+rel); continue
+    if gen(f) != g:     bad.append('gen-mismatch:'+rel)
+    if rel not in htext: bad.append('not-in-hook-manifest:'+rel)
+print(("COUNT=%d " % len(declared)) + " ".join(bad))
+sys.exit(1 if bad else 0)
+B70PY
+}
+if [ ! -f "$b70_router" ]; then
+  ng "B70: router not found — B70 measured nothing"
+else
+  b70_out="$(b70_check "$PWD")"; b70_rc=$?
+  [ "$b70_rc" -eq 0 ] || b70_bad="$b70_bad live:${b70_rc}:${b70_out}"
+  # From the check, not from a second grep: the separate grep counted MENTIONING LINES, not owners,
+  # and reported 2 owners as 4 (rule 04 §A gauge reports its unit — same defect as B71's, one check apart).
+  b70_n="$(printf '%s' "$b70_out" | sed -n 's/.*COUNT=\([0-9]*\).*/\1/p')"
+  [ -n "$b70_n" ] || b70_n="UNMEASURED"
+
+  # --- controls on a COPY ---
+  b70_d="$(mktemp -d)"
+  ( tar cf - .claude prompt CLAUDE.md 2>/dev/null ) | ( cd "$b70_d" && tar xf - 2>/dev/null )
+  b70_check "$b70_d" >/dev/null; [ $? -eq 0 ] && b70_ctl=$((b70_ctl+1)) || b70_bad="$b70_bad ctl-healthy-copy-flagged"
+  # must-flag 1: one owner's generation drifts
+  sed -i.bak 's/GEN: S\([0-9]*\)-close/GEN: S999-close/' "$b70_d/prompt/maintenance/local/handover/batons.md"
+  b70_check "$b70_d" >/dev/null; [ $? -eq 1 ] && b70_ctl=$((b70_ctl+1)) || b70_bad="$b70_bad ctl-gen-drift-not-flagged"
+  cp prompt/maintenance/local/handover/batons.md "$b70_d/prompt/maintenance/local/handover/batons.md"
+  # must-flag 2: a declared owner is deleted (the "owner path broken" mutation)
+  rm -f "$b70_d/prompt/maintenance/local/handover/evidence-map.md"
+  b70_check "$b70_d" >/dev/null; [ $? -eq 1 ] && b70_ctl=$((b70_ctl+1)) || b70_bad="$b70_bad ctl-missing-owner-not-flagged"
+  cp prompt/maintenance/local/handover/evidence-map.md "$b70_d/prompt/maintenance/local/handover/evidence-map.md"
+  # must-flag 3: the hook stops telling anyone the conditional owner exists
+  sed -i.bak 's|prompt/maintenance/local/handover/evidence-map.md|prompt/maintenance/local/handover/gone.md|' "$b70_d/.claude/hooks/session-start.sh"
+  b70_check "$b70_d" >/dev/null; [ $? -eq 1 ] && b70_ctl=$((b70_ctl+1)) || b70_bad="$b70_bad ctl-hook-manifest-drift-not-flagged"
+  # instrument error: no contract to read
+  : > "$b70_d/CLAUDE.md"
+  b70_check "$b70_d" >/dev/null; [ $? -eq 2 ] && b70_ctl=$((b70_ctl+1)) || b70_bad="$b70_bad ctl-absent-contract-did-not-refuse"
+  rm -rf "$b70_d"
+
+  if [ -z "$b70_bad" ]; then
+    ok "B70 owner set agrees with itself: ${b70_n} conditional owners share the router's GEN, exist on disk and are named in the hook manifest (controls ${b70_ctl}/5: healthy passes, GEN drift / deleted owner / hook-manifest drift each flagged, absent contract refuses at 2)"
+  else
+    ng "B70 owner set disagreement:$b70_bad (controls ${b70_ctl}/5)"
+  fi
+fi
+
+# ---------------------------------------------------------------------------------------
+# B71 — every baton stub in the router resolves to a body, and every body has a stub.
+#
+# This is the check the split's safety rests on. Measured 2026-08-27 (S008,
+# investigations/2026-08-27_handover-architecture/03_…md): of 45 batons, 0 need their full body
+# unconditionally, 31 are safe as a conditional read ONLY BECAUSE the router keeps a one-line stub,
+# WHAT B71 CANNOT SEE (measured 2026-08-27, same lane): it compares ID SETS. It cannot tell whether a
+# stub still carries the prohibition it exists to carry — the lane replaced baton 44's "requires named
+# Human GO; run no real-use test without it" with the words "See baton 44." and B71 stayed green at
+# 46/46. Semantic sufficiency of a stub is reviewed by a human or a lane, never by this check, and
+# saying so here is the only thing that stops the green from being read as more than it is.
+#
+# and 14 are reachable by trigger alone. So a deleted stub is not a formatting change — it silently
+# converts a limitation on a Human ruling into something the next session will not see, while the
+# body sits in place looking perfectly healthy. A body with no stub is the mirror: unreachable.
+echo "[B71] baton stub <-> body correspondence"
+b71_bad=""; b71_ctl=0
+b71_check() {  # $1 = tree root -> 0 ok, 1 mismatch, 2 instrument error
+  python3 - "$1" <<'B71PY'
+import pathlib, re, sys
+root = pathlib.Path(sys.argv[1])
+router = root/'prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md'
+bodies = root/'prompt/maintenance/local/handover/batons.md'
+if not (router.is_file() and bodies.is_file()): sys.exit(2)
+ROW = re.compile(r'^\|\s*\*{0,2}(\d+)\*{0,2}\s*\|')
+def ids(path, section=None):
+    out, sec = [], None
+    for line in path.read_text(encoding='utf-8').splitlines():
+        m = re.match(r'^## (§[0-9])', line)
+        if m: sec = m.group(1); continue
+        if section and sec != section: continue
+        r = ROW.match(line)
+        if r: out.append(r.group(1))
+    return out
+stubs, bods = ids(router, '§2'), ids(bodies)
+if not stubs or not bods: sys.exit(2)      # measured nothing is not a pass
+sset, bset = set(stubs), set(bods)
+bad = []
+if len(stubs) != len(sset): bad.append('duplicate-stub-ids')
+if len(bods)  != len(bset): bad.append('duplicate-body-ids')
+for i in sorted(sset - bset): bad.append('stub-without-body:'+i)
+for i in sorted(bset - sset): bad.append('body-without-stub:'+i)
+print(("COUNT=%d/%d " % (len(sset), len(bset))) + " ".join(bad))
+sys.exit(1 if bad else 0)
+B71PY
+}
+b71_out="$(b71_check "$PWD")"; b71_rc=$?
+# The denominator comes from the check itself. It used to be a separate grep with a slightly
+# different row pattern, which did not match a bold id (`| **47** |`) and reported 45 rows as 30 —
+# a guard printing a number its own predicate did not produce (rule 04 §A gauge reports its unit).
+b71_n="$(printf '%s' "$b71_out" | sed -n 's/.*COUNT=\([0-9]*\/[0-9]*\).*/\1/p')"
+[ -n "$b71_n" ] || b71_n="UNMEASURED"
+[ "$b71_rc" -eq 0 ] || b71_bad="$b71_bad live:${b71_rc}:${b71_out}"
+b71_d="$(mktemp -d)"
+( tar cf - prompt 2>/dev/null ) | ( cd "$b71_d" && tar xf - 2>/dev/null )
+b71_check "$b71_d" >/dev/null; [ $? -eq 0 ] && b71_ctl=$((b71_ctl+1)) || b71_bad="$b71_bad ctl-healthy-copy-flagged"
+# must-flag 1: a stub is deleted from the router while its body survives — the silent one
+python3 - "$b71_d" <<'B71M1'
+import pathlib, re, sys
+f = pathlib.Path(sys.argv[1])/'prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md'
+out, sec, dropped = [], None, False
+for line in f.read_text(encoding='utf-8').splitlines(True):
+    m = re.match(r'^## (§[0-9])', line)
+    if m: sec = m.group(1)
+    if sec == '§2' and not dropped and re.match(r'^\|\s*\*{0,2}\d+\*{0,2}\s*\|', line):
+        dropped = True; continue
+    out.append(line)
+f.write_text("".join(out), encoding='utf-8')
+B71M1
+b71_check "$b71_d" >/dev/null; [ $? -eq 1 ] && b71_ctl=$((b71_ctl+1)) || b71_bad="$b71_bad ctl-deleted-stub-not-flagged"
+cp prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md "$b71_d/prompt/maintenance/local/handover/"
+# must-flag 2: a body is deleted while its stub survives — the mirror
+python3 - "$b71_d" <<'B71M2'
+import pathlib, re, sys
+f = pathlib.Path(sys.argv[1])/'prompt/maintenance/local/handover/batons.md'
+out, dropped = [], False
+for line in f.read_text(encoding='utf-8').splitlines(True):
+    if not dropped and re.match(r'^\|\s*\*{0,2}\d+\*{0,2}\s*\|', line):
+        dropped = True; continue
+    out.append(line)
+f.write_text("".join(out), encoding='utf-8')
+B71M2
+b71_check "$b71_d" >/dev/null; [ $? -eq 1 ] && b71_ctl=$((b71_ctl+1)) || b71_bad="$b71_bad ctl-deleted-body-not-flagged"
+# instrument error: the body owner is gone entirely
+rm -f "$b71_d/prompt/maintenance/local/handover/batons.md"
+b71_check "$b71_d" >/dev/null; [ $? -eq 2 ] && b71_ctl=$((b71_ctl+1)) || b71_bad="$b71_bad ctl-absent-body-owner-did-not-refuse"
+rm -rf "$b71_d"
+if [ -z "$b71_bad" ]; then
+  ok "B71 baton stub <-> body: ${b71_n} (stubs/bodies) — every body has a router stub and every stub resolves to a body, no duplicate ids (controls ${b71_ctl}/4: healthy passes, deleted stub flagged, deleted body flagged, absent body owner refuses at 2)"
+else
+  ng "B71 stub/body correspondence failed:$b71_bad (controls ${b71_ctl}/4)"
 fi
 
 echo

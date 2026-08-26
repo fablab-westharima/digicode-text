@@ -1,7 +1,9 @@
 #!/bin/bash
 # Sanctioned, allowlisted Route B export surface for an actor with no repository access.
 # Testing-only path overrides: CONTEXT_BRIEF_CLAUDEMD, CONTEXT_BRIEF_HANDOVER, CONTEXT_BRIEF_BASELINE.
-# This script reads only CLAUDE.md, handover §1-§3, scripts/baseline.sh (or, when no generator
+# This script reads only CLAUDE.md, the declared current-state OWNER SET (handover §1-§3 + the
+# baton-body owner + the evidence/provenance/loop map — see CURRENT-STATE OWNER SET below),
+# scripts/baseline.sh (or, when no generator
 # exists, the handover §5 baseline-table rows — item and value cells only; the measurement-command
 # column never leaves the repository, because consumer §5 commands name hosts and access paths),
 # requested common-rule TL;DRs, repository metadata, and the transcript-directory file count. It
@@ -12,6 +14,24 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLAUDEMD="${CONTEXT_BRIEF_CLAUDEMD:-$ROOT/CLAUDE.md}"
 HANDOVER="${CONTEXT_BRIEF_HANDOVER:-$ROOT/prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md}"
+# ── CURRENT-STATE OWNER SET (2026-08-27, S008) ──────────────────────────────────────────────────
+# At S008 current state stopped being one file: 16.md is the router and carries every baton STUB,
+# the baton BODIES moved to batons.md, and the evidence / provenance / loop map moved to
+# evidence-map.md. The recipient of this brief has NO repository access, so a brief carrying only
+# the router would be a brief that got smaller by losing current truth — the exact failure the
+# handover architecture work was forbidden to produce. **Completeness is this file's job; size is
+# read-load.sh's.** So every owner is exported, and the brief is NOT expected to shrink because of
+# the split. Measured 2026-08-27: it went 77,190 -> 90,100 bytes across this change, because it now
+# carries the loop position and the template-feedback queue it had been silently omitting.
+#
+# **If an owner is added to the handover and not added here, this brief silently ships an incomplete
+# current state, and NOTHING CHECKS THAT.** B70 compares generations and owner reachability across
+# CLAUDE.md and the hook; it never reads this file. An earlier version of this very comment claimed
+# B70 covered it — a script comment asserting a guard that does not exist is worse than no comment,
+# because the next author stops looking. The obligation is carried by baton 53 and by nothing
+# executable. `BRIEF-MISSING` only counts owners that ARE listed here and could not be read.
+BATONS="${CONTEXT_BRIEF_BATONS:-$ROOT/prompt/maintenance/local/handover/batons.md}"
+EVIDENCE_MAP="${CONTEXT_BRIEF_EVIDENCE_MAP:-$ROOT/prompt/maintenance/local/handover/evidence-map.md}"
 # Cap: 96 KiB (98304). Raised from 64 KiB (65536) on 2026-08-27 by an explicit Human GO, on measured
 # grounds, not to make one document fit: at the S007 close the brief was 65,141 bytes against a 65,536
 # cap — 395 bytes of headroom — so the next close was going to cross it whoever wrote it, and the two
@@ -87,7 +107,16 @@ extract_section() {
 extract_section '## 4.' "$CLAUDEMD" "PURPOSE" "$TMP/purpose"
 extract_section '## §3' "$HANDOVER" "SETTLED DECISIONS" "$TMP/settled"
 extract_section '## §1' "$HANDOVER" "CURRENT STATE §1" "$TMP/state1"
-extract_section '## §2' "$HANDOVER" "CURRENT STATE §2" "$TMP/state2"
+# §2 is exported from the BODY owner, not from the router. The router's §2 carries one-line stubs
+# whose only job is to keep a repo-reading session safe without opening the bodies; a recipient who
+# receives the bodies gains nothing from the summaries and pays for them twice. Measured 2026-08-27:
+# exporting both put the brief at 93,937 bytes (95.6% of cap) with ~13 KB of it being the same 45
+# batons said twice. Exporting the bodies alone loses no fact — every Status / Trigger / Owner / Sev
+# cell is verbatim in the body row. If the body owner is missing, extract_section emits NOT OBTAINED
+# and BRIEF-MISSING rises, so this is fail-closed rather than a silent §2-shaped hole.
+extract_section '## Baton bodies' "$BATONS" "CURRENT STATE §2 (baton bodies — the router's stubs are repo-side routing, not exported)" "$TMP/state2"
+extract_section '## §A' "$EVIDENCE_MAP" "CURRENT STATE evidence/provenance map" "$TMP/state3a"
+extract_section '## §B' "$EVIDENCE_MAP" "CURRENT STATE loop position + template feedback" "$TMP/state3b"
 
 BASELINE_GEN="${CONTEXT_BRIEF_BASELINE:-$ROOT/scripts/baseline.sh}"
 if [ -f "$BASELINE_GEN" ]; then
@@ -214,7 +243,7 @@ command -v gitleaks >/dev/null 2>&1 || secret_warning="WARNING: secret scan unav
   printf '\nTASK\n'
   if [ -n "$task" ]; then printf '%s\n' "$task"; else printf '%s\n' 'TASK: NOT PROVIDED — the human fills this before handoff.'; fi
   printf '\nSETTLED DECISIONS\n'; cat "$TMP/settled"
-  printf '\nCURRENT STATE\n'; cat "$TMP/state1"; cat "$TMP/state2"
+  printf '\nCURRENT STATE\n'; cat "$TMP/state1"; cat "$TMP/state2"; cat "$TMP/state3a"; cat "$TMP/state3b"
   printf '\nBASELINE\n'; cat "$TMP/baseline"
   printf '\nAVAILABLE DATA CORPORA\nRepository: %s\n%s\n' "$repo_path" "$transcript_line"
   printf '%s\n' 'Enumerate additions here — an externally-briefed reasoner scopes to what it is told exists.'
