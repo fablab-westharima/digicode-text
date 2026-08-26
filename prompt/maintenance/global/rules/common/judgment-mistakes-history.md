@@ -187,6 +187,8 @@ Read the Part 2 body only for cases whose pattern is suspected. **A number not p
 | DT-6 | digicode-text S007 (2026-08-26/27) | DT-4 **replay, integration-phase version** + case 18 meta-trap | the synthesis outran its own evidence 13 times inside a document that names the trap; only a dispatched falsification lane caught it |
 | DT-7 | digicode-text S007 (2026-08-26) | PT-7 + PT-4/82 family, **parent's-leftover-work version** | strict delegation left the parent only "small" tasks, and both silent failures happened there |
 | DT-8 | digicode-text S008 (2026-08-27) | **DT-7 replay**, PT-4/PT-7/PT-10/82 family, **the-unchecked-zone-was-the-checking-work version** | 5 defects, all in the parent's own hand-work, and 4 of them inside the guards it was writing |
+| DT-9 | digicode-text S009 (2026-08-27) | **DT-6 replay, integration-phase**, + DT-7/DT-8 family | the integration made 12 claims its own evidence did not support and over-generalised 20 more; self-check caught 0, a dispatched lane caught all of them |
+| DT-10 | digicode-text S006→S009 (2026-08-27) | A + B family, **divergence-read-as-defect version** | two config values disagreed, so four sessions called it a mismatch to fix; nobody asked the owner whether it was intended, and it was |
 
 Note: cases 1–6 are #1 / #2 / #3–#6 inside Part 2's 「第84回 1-6 件目」 section. Later case bodies referring to "case 1 snap judgment (whole conclusion without evidence)" mean 初期1 (第80回末), the snap/inferred conclusion.
 
@@ -2023,3 +2025,47 @@ stub に差し替えたら harness 自身が FAIL すること）が exit 1 を�
 - **Related**: DT-7(直接の親)· PT-4 · PT-7 · PT-10 · PT-28 · PT-36 · case 82 / 110 / PT-25 · `04-testing-strategy.md` §A gauge reports its unit · `22-model-orchestration.md`(feedback #8 が一般化した穴)。
 - **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、このセッションで parent が書いた残りの成果物(`16.md` の stub 表 / `batons.md` / `evidence-map.md` / `handover-diff.sh` の owner-set 走査)を同じ目で見直した結果、**Lane E が独立に検出した 7 件**と重なる 3 件(baton 53 stub の欠落 · baton 52 本文の stale · maintenance_index の壊れた table 行)を確認し、いずれも修正済み。**認知的な自己点検だけでは 0 件だった** — 捕まえたのは dispatch された独立レーンであり、これは DT-6 と同じ結論である。
 - **Forward application (same session)**: 本 case を書いた時点で、これから走らせる検証(最終 gate 実測 · commit 前 scan)に 1 行加えた — **「この検証は、いま書いた形に踏み込んでいないか」**。具体的には最終実測を全てパイプ無し `RC=$?` で取り、分母を各 script 自身の出力から引用する。
+
+### case DT-9 — 統合が再び自分の evidence を超えた。91 件中 12 件が evidence に反する/根拠が無い、20 件が分母を超えた一般化。自己点検は 0 件(2026-08-27, S009)
+
+- **状況**: S009 は Adaptive fan-out で 6 レーン(Codex)を使った harness maintenance セッション。第一波 3 · 第二波 2 · 統合反証 1。parent は各 capsule を bounded review したうえで統合文書 `07_revised-conclusion.md` を書き、それを **Human へ出す前に** FALSIFICATION レーンへ渡した。レーンは統合の**事実主張 91 件を全件追跡**し、**CONTRADICTED 6 / UNSUPPORTED 6 / OVERSTATED 20 / SUPPORTED 59** と判定して「**Human へそのまま出すのは不安全**」と結論した。
+- **壊れた 6 件のうち、load-bearing なもの**:
+  1. **条件節の脱落**: 一次証拠は「*useful threshold が substantial reduction であれば* 6 fixture 中 5 件で『小さくなった』は成立しない」と書いていた。統合はその条件を落とし「**削減は 1 件だけ**」と書いた。**同じ表に 4/6 が byte 減と書いてある。**
+  2. **因果の取り違え**: 製品 3 fixture が同一 byte(−5.16%)なのは、probe が **意図的に広く手書きした route membership** の性質である、と一次証拠が明記している。統合はそれを「**current truth の依存構造**」に帰属させた。既存 artifact から probe 自身が不要と認めた block を引くだけで −13.88%、独立導出の item 集合なら −20.38% に動く。**原因を取り違えたまま headline にした。**
+  3. **「ここにしか無い」の誤り**: S007 の evidence 読解順序が「evidence-map.md にしか無い」と書いたが、**router `16.md:46-48` に同じ順序が重複して存在する**。catalog の穴という主張自体は残るが、例示が誤りだった。
+  4. **「delegate 成果物の欠陥 0」**: そう書いた同じセッションで、あるレーンが別レーンの分類集合を 7 件で反証し、別のレーンは自らの scope 逸脱を自己申告していた。**cross-delegate の「欠陥 0」監査は存在しない。**parent の自己糾弾(§6)を書く流れで、**対比を強くするために反対側を 0 と書いた**のがこの誤りの形である。
+  5. **「size と独立に効く 3 つのレバー」**: そのうち 1 つ(重複除去)は **size レバーそのもの**だった。
+  6. **corpus の外挿**: 「S000–S009 の全作業が medium」と書いたが、実測は **1 時点の 8 file corpus**であり、過去 session の launch 引数は未取得、baton の主張も S000–S008 までだった。
+- **真因**: **evidence を統合する行為には、限定を外す方向へ構造的な圧力がかかる。** 統合の任務は「読める 1 本の話にすること」であり、条件節・分母・「この probe policy に条件づけられている」という但し書きは、**話を読みにくくする側にしか働かない**。だから落ちる。しかも落ちたことは統合者からは見えない — 自分が書いた文は、自分の中では根拠つきで読めるからである。**S007 で 13 件、S009 で 12+20 件。同じ形が 2 度目である。**
+  さらに 4 は独自の形を持つ: **自己糾弾は正直さの表明に見えるため、その中の未検証の主張が検査を素通りする。**「私の側は 5/5 失敗、相手側は 0」という対称の作り方自体が、測っていない片側を生んだ。
+- **失敗パターン**: DT-6 の直接の再演(統合が自分の evidence を超える)+ case 18 メタトラップ(トラップを名指しした文書の中で同じトラップを踏む — `07` は冒頭に「統合と一次証拠が食い違ったら一次証拠が正しい」と書いている)+ Pattern C(分母を言わずに全体を語る)。
+- **同時に起きた 2 件目(parent 手元作業)**: rule 22 §Delegation packet と packet template 契約 2 は critical stop condition の **逐語継承・AI 要約禁止**を定めるが、本セッションで parent が書いた 3 packet の該当 5 行は **5/5 が言い換え、verbatim 0/5** だった。禁止の存在は保たれていたが契約遵守は 0。**packet 契約の遵守を測る executable guard は存在しない**(ただし「guard が無いことが原因だ」という因果自体は検証していない — これも統合が根拠なく書いた 1 件である)。
+- **防御**:
+  1. **統合文書は、Human へ出す前に必ず独立レーンの FALSIFICATION を通す。** S007・S009 とも、認知的自己点検が捕まえたのは **0 件**。捕まえたのは毎回 dispatch された独立レーンだけである。**これは好みではなく、2 回の実測で同じ結論が出ている唯一の防御である。**
+  2. **falsification packet は「全件追跡表」を要求する。** サンプリングでは出ない。S007 は 13 件、S009 は 91 件中 32 件を、全件表が掘り出した。
+  3. **一次証拠から数値を引くときは、その文の条件節ごと引く。** 「X であれば Y」を「Y」と書き写した瞬間に、それは自分の主張になる。とくに「substantial」「meaningful」「大半」のような**閾値語を、誰も定義していないまま結論に使わない**。
+  4. **測定値の原因を書くときは、その原因が instrument policy でないことを確認する。** 「A と B が同じ値だった」は、多くの場合 **subject の性質ではなく計器の設定**の性質である。
+  5. **自己糾弾を書くときこそ、反対側の主張に分母を要求する。** 「私の側は N/N 失敗、相手側は 0」と書きかけたら、その 0 を誰がどう測ったかを先に書く。書けないなら 0 と書かない。
+  6. **未検証の設計案を「正しい」と呼ばない。** 統合者には設計を採択する権限が無い(rule 24 §Human authority)。候補は候補として並べ、検証状態を各行に書く。
+- **Scope**: 複数レーンの evidence を 1 本の結論へ統合する全セッション。**委譲比率が高いほど強く効く** — parent の手元に残る作業が「統合」そのものになるため、DT-7 / DT-8 の無検査地帯と完全に重なる。
+- **Related**: DT-6(直接の親)· DT-7 · DT-8 · case 18(メタトラップ)· Pattern C · `22-model-orchestration.md` §Review protocol「An LGTM from a review lane is a failed round」· `evidence-map.md` の template feedback #7(統合文書への falsification 義務が rule 22 に無い)。
+- **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、統合を `09_corrected-conclusion.md` として書き直し、**壊れた 6 件を §0 の訂正表として文書の先頭に置いた**(訂正を末尾に置くと、読者は訂正前の主張だけを持ち帰る)。また `07` を削除せず残し、**`08` を `07` より先に読む**という読解順序を明記した — S007 の `08`/`09` と同じ規律である。あわせて §7 の全行から harness の「正しい」判断を外し、proposal と Human 権限の区別を戻した。
+- **Forward application (same session)**: 本 case の時点以降に書く Human 向け報告(terminal 要約 · `~/Downloads/` の詳細報告書)について、**「一次証拠の条件節を落としていないか」「分母を書いたか」「これは proposal か結論か」の 3 点を、書き終えたあとではなく各節を書く前に確認する**ことを acceptance に足した。
+
+### case DT-10 — 2 つの設定値が食い違っていたので「不整合」と呼び、4 セッション追いかけた。所有者に「意図的ですか」と訊いた者が 1 人もいなかった(2026-08-27, S006→S009)
+
+- **状況**: `~/.claude/settings.json` に top-level `effortLevel: "xhigh"` と `modelSettings["claude-opus-5"].effortLevel: "medium"` が併存していた。S006 がこれを発見し、**「declared/expected = xhigh、effective = medium、したがって mismatch」**と記録した。S008 が transcript 47/47 で再確認し、S009 は **8 file / 2,095 assistant records / 1,020 unique requestId** まで分母を広げ、実装バイナリから優先順位の機構(`modelSettings` は canonical 名 keyed · `[1m]` は比較前に除去 · 同一 layer で per-model が top-level に優先)まで確定させ、**「Human が変えるべき箇所は `medium` → `xhigh` の 1 箇所」**という決定パッケージを提出した。
+  Human の回答は 1 行で前提を崩した — **「Opus 5 は medium 固定です。それが意図した設定です。」** 理由は運用評価であり、high 以上では Deep Thinking が深くなりすぎ、探索が広がり scope が周辺へ伸び、統合が過剰に複雑になり、結論を強く作りすぎ、判断が遅くなる、というものだった。
+- **真因**: **2 つの値が食い違っているという観測から、「一方が誤りである」という判定へ、誰も渡っていないのに渡ってしまった。** `xhigh` は宣言、`medium` は実効 — この語彙を作った時点で結論は決まっている。実際には**両方とも「現在の設定」**であって、どちらが意図されたものかは **設定の所有者(Human)しか知らない事実**である。ここで必要だったのは測定でも実装読解でもなく、**「この差は意図的ですか」という 1 行の質問**だった。
+  悪化させた要因が 3 つある。① **測定が増えるほど確信が上がった** — 分母を 47 → 2,095 まで広げたが、広げたのは「実効値は medium か」であって「medium は誤りか」ではない。**測っていない命題の確信が、測っている命題の分母で上がった。**② baton 43 として current truth に載せたことで、**「未解決の欠陥」という属性が毎セッション再確認の対象として固定された。**③ 3 セッションが同じ枠を継承した — S008 も S009 も「mismatch は解消したか」を問い、「mismatch という枠は正しいか」を問わなかった(**case 18 メタトラップの世代間版**)。
+- **失敗パターン**: Pattern A(観測が出た瞬間に判定を確定)+ Pattern B(自己確証された scope — 「これは defect である」という前提のもとで証拠だけを積んだ)+ **rule 12 §Observation-to-measurement の逆走**(所有者へ返すべき問いを、自分で測って埋めた)。
+- **防御**:
+  1. **設定・構成・運用パラメータの「食い違い」を見つけたら、defect と呼ぶ前に所有者へ 1 行で確認する。** 「A と B が違います。これは意図的ですか」。この 1 行は、実装読解より安く、分母を広げるより速い。
+  2. **`declared` / `expected` / `effective` という語を、自分で決めていない値へ使わない。** 「expected」と書いた瞬間、誰が expect したのかという問いが消える。**両方を `configured` と呼べば、判定は保留のまま観測だけが残る。**
+  3. **分母を広げても、測っていない命題の確信は上げない。** 「実効値は medium(2,095/2,095)」は強い測定だが、「medium は誤り」については **n=0** である。両者を同じ段落に置かない。
+  4. **current truth に「未解決の欠陥」として載せる前に、それが欠陥だと誰が決めたのかを書く。** baton 43 には「Human が mismatch と裁定した」という記述が一度も無かった — **harness が観測から作った枠が、3 セッション authority として振る舞った。**
+  5. **前セッションが使った枠(vocabulary)を継承するときは、枠そのものを 1 度疑う。** 「解消したか」ではなく「この問いは正しいか」。これは case 18 の世代間版であり、cold start では特に効かない(枠は handover に載って到着する)。
+- **Scope**: 環境設定 · 運用パラメータ · roster · threshold · policy 値など、**所有者が AI ではない値**の全般。とくに **AI 側が測定能力を持つとき**に強く効く — 測れてしまうので、訊かずに済ませられる。
+- **Related**: Pattern A · Pattern B · case 18(メタトラップ、その世代間版)· PT-1(二次情報から rule を書き、その上で user の `settings.json` を編集した)· case 43 / rule 12 §Observation-to-measurement(所有者の観測を自分の説明で閉じない — 本 case はその鏡像で、**所有者へ返すべき問いを自分の測定で閉じた**)· DT-9(同一セッションで統合が evidence を超えた件)。
+- **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、本セッションが出した他の「これは欠陥だ」という判定を同じ目で見直した。**`context-brief.sh` の fail-open 面 3 件**(`CONTEXT_BRIEF_*` の path containment 無し · gitleaks 不在時の続行 · `--out` の cp RC 未捕捉)は、**いずれも「意図された設計か」を所有者へ確認していない**。したがって close report では **defect ではなく「所有者未確認の観測」**として記録し、`ADJACENT_DEFECT` の断定を外した。**baton 25 の「導出記録が無い」の反証**は、逆方向(current truth が事実に反していた)であり、Human が §9 で受理済みなので該当しない。
+- **Forward application (same session)**: close report と `~/Downloads/` の詳細報告について、**「これを欠陥と呼んでよいか。所有者は誰か。訊いたか」**を各 finding に対して書く前に確認することを acceptance に足した。

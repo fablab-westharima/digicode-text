@@ -9,7 +9,7 @@
      16.md の route map にある 1 行 stub は、このファイルを読まない session でも
      禁止・限定・順序を取り違えないための最小記述である。stub を削らないこと。 -->
 
-> **GEN: S008-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
+> **GEN: S009-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
 
 ## §A. Evidence and provenance map
 
@@ -28,6 +28,7 @@
 | S006 Full Orchestration Re-Audit | `local/investigations/2026-08-26_orchestration-re-audit/` (8 files; `08_conclusion-and-next.md`) | `plans/completed/07_…` |
 | **S007 Practical IoT Competitive & DigiCode Capability Revalidation** | **`local/investigations/2026-08-26_practical-iot-revalidation/` (10 files; `00_index.md` → `08_conclusion-and-next.md`、🔴 `08` を読む前に `09_integration-falsification.md` を読むこと)** | `plans/completed/08_…` |
 | **S008 Handover / Context-Brief / Read-Load Architecture Maintenance** | **`local/investigations/2026-08-27_handover-architecture/` (5 files; `01`=inventory · `02`=split 反証 · `03`=baton↔ruling 依存 · `04`=独立復元 + negative control · `05`=統合反証)** | `plans/completed/09_…` |
+| **S009 Task-Scoped Context Brief / Read Architecture Maintenance** | **`local/investigations/2026-08-27_task-scoped-brief/` (10 files + `probe/`; 🔴 `08`(統合反証)を `07`(統合 v2)より先に読み、現行結論は `09` である)** | `plans/completed/10_…` |
 
 **Donor SHAs all objectives are pinned to** — S007 が `git rev-parse HEAD` で **3/3 一致を再確認済み**:
 
@@ -67,7 +68,11 @@ evidence**. **Do not copy a measurement into this file.**
 | `investigations/2026-08-26_local-helper-feasibility/` | HTTPS→localhost、Helper の防御モデル、board pack 実サイズ、VPS 実価格 | `00_index.md` → `08_options-findings-and-next.md` |
 | `investigations/2026-08-26_product-value-revalidation/` | 2026 年の既存環境比較、offline bundle 反証、Go 判定と 1 文定義 | `00_index.md` → `08_conclusion-and-next.md` |
 | `investigations/2026-08-26_orchestration-re-audit/` | S001–S005 の独立再監査、裁定と evidence の分離、器材欠陥追跡 | `00_index.md` → `08_conclusion-and-next.md` |
+| **`investigations/2026-08-27_task-scoped-brief/`** | 🔴 **現行 context delivery の実測(brief の section 別 byte · source owner · hook 注入量)· 96 item の全件分類と 5 failure mode · read allowance 導出モデルと Opus effort の機構/実効値 · 実 packet 3 件との重複測定 · measurement-only prototype と 6 fixture 復元 + 8 negative control · 統合への全件反証 · top-level `xhigh` の provenance** | **`01` → `02` → `03` → `04` → `06` → 🔴 `08` → `09`(`09` が現行結論。`05` と `07` は superseded で、`08` の攻撃対象として保存されている)** |
 | **`investigations/2026-08-26_practical-iot-revalidation/`** | 🔴 **donor の auto Web UI 実装 · donor の実用 IoT capability · 競合母集団 48 行と探索ログ · 日本市場と学術 3 本 · 料金/無料枠/実用コスト · 競合機能の一次情報 191 URL · 反証 T1–T5 · 統合 A–H · 統合への最終反証** | **`00_index.md` → `09_integration-falsification.md` → `08_conclusion-and-next.md`(この順序で読む)** |
+
+🔴 **S009 の evidence も読む順序がある。** `05`(統合 v1)と `07`(統合 v2)は **superseded** であり、`08` が 91 claim を全件追跡して
+**CONTRADICTED 6 / UNSUPPORTED 6 / OVERSTATED 20** を検出した。**現行の統合結論は `09` である。**`07` を先に読むと訂正前の主張を持ち帰る。
 
 🔴 **S007 の evidence を読む順序は逆である。** `08`(統合)は `09`(統合への反証)に **13 件訂正されている**。
 `09` を先に読まないと、訂正前の主張を current truth として持ち帰ることになる。訂正内容は `08` §5 が owner。
@@ -78,8 +83,11 @@ evidence**. **Do not copy a measurement into this file.**
 <!-- 出典: 16.md §4 から逐語移設。2026-08-27 S008. -->
 
 
-**① harvest:** the project owns eight cases — **DT-1** · **DT-2** · **DT-3** · **DT-4** · **DT-5** ·
-**DT-6** · **DT-7** · **DT-8** (`global/rules/common/judgment-mistakes-history.md`).
+**① harvest:** the project owns ten cases — **DT-1** … **DT-10** (`global/rules/common/judgment-mistakes-history.md`).
+**S009 filed two: DT-9**(統合が再び自分の evidence を超えた — 事実主張 91 件中 CONTRADICTED 6 / UNSUPPORTED 6 / OVERSTATED 20。
+**認知的自己点検の検出は 0 件**で、捕まえたのは dispatch された独立レーンだけ。**S007 の DT-6 と同じ結論が 2 度目**)·
+**DT-10**(2 つの設定値が食い違っていたので「不整合」と呼び 4 セッション追いかけたが、**所有者に「意図的ですか」と訊いた者が 1 人もいなかった**。
+分母を 47 → 2,095 records まで広げたが、広げたのは「実効値は medium か」であって「medium は誤りか」については **n=0** のままだった)。
 **S008 filed one: DT-8** — DT-7 の直接の再演。5 レーンへ委譲したセッションで、delegate 成果物の欠陥は 0、
 **parent の手元作業から 5 件**が出て、うち 4 件は *parent が書いていた検査器そのもの* の中にあった
 (id 衝突 · control が別ファイルを検査 · 分母を別 grep で数えて誤表示 × 2 · 存在しない guard の主張 · 自作 control の
@@ -116,6 +124,10 @@ evidence**. **Do not copy a measurement into this file.**
 | **11** | 🟡 **`handover-diff.sh` と `local/README.md` §OPTIONAL CAPABILITY の間に実装ギャップがある**(S008 実測) | README は topic 分割時の義務 ①②③ を課すが、**template の `handover-diff.sh` は単一ファイル固定**であり、義務②(全 topic file を走査)を果たせる実装が無い。分割した consumer は「relocation が GONE として大量報告される」→「ノイズ扱いする」→「実際の loss も見逃す」という経路に入る。本 repo の owner-set 走査版と、その検出力 control(移設は損失でない / stub が残っても本文削除は損失 / 宣言 owner 欠落は exit 2)が実装参考になる |
 
 | **12** | 🔴 **rule 13 は「handover を disk から再読込せよ」と命じるが、hook が同じ file を注入する構成を知らない**(S008 実測) | template の rule 13 §Step 2 は hook 機構より前に書かれており、hook 注入と mandatory disk read が併存すると **同一内容を二重に払う**。本 repo の実測では 21,913 est tok / 全体の 33%。consumer 側が `CLAUDE.md` §0 で specialise すると、今度は **rule と project instruction が正面衝突した状態**が残る。必要なのは rule 13 側に 「注入で取得済みの owner は再読込しない。GEN が食い違うときは disk が正」という一文であり、これは hook を持つ 全 consumer に効く。**Human 承認済み(2026-08-27)** |
+
+| **13** | 🔴 **統合文書への falsification 義務が rule 22 に無い(既存 #7 の再確認・強化)** — **Human 未承認(2026-08-27 S009 で新規記録)** | S007 で 13 件、S009 で 12 件。**どちらも統合者の自己点検が捕まえた件数は 0**。2 セッション独立に同じ結果が出ており、**evidence を統合する行為には限定を外す構造的圧力がかかる**という一般的性質。consumer 全体に効く |
+| **14** | 🟡 **delegation packet の contract 遵守(critical stop の逐語継承)を測る executable guard が無い** — **Human 未承認(2026-08-27 S009 で新規記録)** | rule 22 §Delegation packet と template 契約 2 が逐語継承を要求するのに、遵守を検査する機構が template 側に無い。本 repo では **5/5 不履行**が実測された(分母は「選ばれた inherited-stop の物理行」) |
+| **15** | 🟡 **`context-brief.sh` に fail-open 面が 3 つある** — **Human 未承認(2026-08-27 S009 で新規記録)** | `CONTEXT_BRIEF_*` の path containment 無し · gitleaks 不在時は WARNING を足して続行 · `--out` の `cp` RC 未捕捉。template 由来の script であり export 面の安全性は全 consumer に効く。**🔴 ただし case DT-10 に従い、これらが「意図された設計か」は所有者へ未確認である — defect と断定していない** |
 
 **同じ visit で共有する構造観察が 2 件ある**(本 repo が直せる defect ではない)。内容の owner は `sessions/S004_…md` §2。
 
