@@ -184,6 +184,8 @@ Read the Part 2 body only for cases whose pattern is suspected. **A number not p
 | DT-3 | digicode-text S006 (2026-08-26) | PT-11/PT-14/PT-36 family, **trigger-never-fired version** | a mandatory different-vendor consult applied for five sessions and never fired; the cause sat outside the rules |
 | DT-4 | digicode-text S006 (2026-08-26), auditing S005 | case 59 family, **search-already-succeeded version** | the Go verdict's first ground was contradicted by the same investigation's self-declared heaviest finding |
 | DT-5 | digicode-text S006 (2026-08-26) | PT-21/PT-36 family, **delegation-removed-the-by-product version** | a fully delegated objective wrote nothing to disk; delegation removed the persistence solo work provides incidentally |
+| DT-6 | digicode-text S007 (2026-08-26/27) | DT-4 **replay, integration-phase version** + case 18 meta-trap | the synthesis outran its own evidence 13 times inside a document that names the trap; only a dispatched falsification lane caught it |
+| DT-7 | digicode-text S007 (2026-08-26) | PT-7 + PT-4/82 family, **parent's-leftover-work version** | strict delegation left the parent only "small" tasks, and both silent failures happened there |
 
 Note: cases 1–6 are #1 / #2 / #3–#6 inside Part 2's 「第84回 1-6 件目」 section. Later case bodies referring to "case 1 snap judgment (whole conclusion without evidence)" mean 初期1 (第80回末), the snap/inferred conclusion.
 
@@ -1958,3 +1960,42 @@ stub に差し替えたら harness 自身が FAIL すること）が exit 1 を�
 - **Related**: PT-21 · PT-36 · `13-session-recovery.md` §Step 4.6 · `reference/context-handoff.md` · `22-model-orchestration.md` §Bounded deliverable review (what the parent may read) — **which has no counterpart saying where it must be written**.
 - **Template feedback candidate**: rule 22 defines the `RESULT CAPSULE` contract and never says the capsule is persisted. Every consumer that delegates an investigation inherits this hole.
 - **Retroactive application, same session (case-filing protocol)**: the eight files under `investigations/2026-08-26_orchestration-re-audit/` were written **before** this case was filed and before the handover was touched, so the close proceeds against evidence that is already on disk rather than against the transcript. Re-checked the other artifacts this session produced for the same shape: the `~/Downloads` report and the artifact are both labelled in `00_index.md` as derived, with the investigation directory named as the owner on conflict — so no fact in this session now has its only copy outside git.
+
+### case DT-6 — 結論が自分の evidence を超え、13 件を同一セッションの反証レーンが差し戻した(2026-08-26/27, S007)
+
+- **Class**: **case DT-4 の再演**(結論が evidence を超える)+ **case 18 meta-trap**(罠を知っていて踏む)+ **case 59 family**(非飽和母集団からの absence)。隣接: PT-15(測ったものと主張したものの乖離)、pattern C(標本を全体として語る)。
+- **Situation**: S007 の統合者(parent)は、6 レーンの evidence を統合して `08_conclusion-and-next.md` を書いた。その統合を攻撃対象として dispatch した `FALSIFICATION` レーン(D7)は、**load-bearing claim 37 件を trace して SUPPORTED 20 / OVERSTATED 8 / UNSOURCED 7 / UNDERSTATED 1 / CONTRADICTED 1、errors 13 件**を返した。重いものは 4 件:
+  1. **E01** — 反証レーン(D6)が出した「Particle は 972 library index を公開する」を、統合者が **「verified な環境の証拠」**として提示した。D7 が `curl … libraryIndex.json | jq` を実行して RC=0 で実測した結果は **`verified:true` が 10/972 = 1.03%**。機構は実在するが**カバレッジは 1%** だった。
+  2. **E03** — MDPI 論文の「コンパイル失敗の最頻原因は存在しないライブラリの hallucination と誤った API 使用」という引用は**正しく転記されていた**。しかし統合者はそこから **「失敗はロジックではなく環境・ライブラリの正しさだった」**へ一般化した。**論文はシナリオ 6/7 について正反対を書いている** — 「エラーは source code の機能不備・通信関数の誤用・cloud 設定規則の不備に起因し、*不適切なライブラリ選択ではない — 全てのライブラリは適切だった*」。つまり**最頻原因の話を複雑度崩壊(3/27)へ拡張したのが誤り**である。
+  3. **E06** — 統合者は競合機能表で Arduino の AI を **App Lab の BYOK だけ**に縮めた。**Arduino Cloud AI Assistant(2025-04 公開)は Cloud Editor 内に存在し**、board/project コンテキスト・sketch 生成・**コンパイルエラー修正**・**Arduino 自身の documentation / libraries / examples の参照**を行う。**残存差別化候補に最も近い既存製品を表から落としていた**ため、白地の広さを過大評価した。
+  4. **E13** — 判定を `PRODUCT VALUE PARTIALLY RESOLVED` と書いた。D7 の指摘は「これは hedge であり evidence state の記述として不正確」。正しくは **`legacy rationale mostly REFUTED / problem existence SUPPORTED / proposed product value NOT RESOLVED`**。
+- **Discovery**: **統合者の自己点検では 1 件も出なかった。** 13 件すべて、統合を攻撃対象として明示的に dispatch した別 lineage の `FALSIFICATION` レーンが検出した。統合者はその直前に、D6 が検出した自分の中間報告の誤り 3 件を `08` §0-2 に自分で書いている — **つまり「自分は今まさにこの罠の中にいる」と明記した文書の中で、同じ罠を 13 回踏んでいた。**
+- **Root cause**: **evidence を統合する行為は、限定を外す方向に構造的な圧力がかかる。** 統合の目的は「散らばった観測を 1 つの読める像にする」ことであり、限定・分母・`NOT OBTAINED`・非飽和母集団という但し書きは、像を読みにくくする方向に働く。個々の evidence レーンは限定を正しく書いており(D5 は「調査した 6 社の docs 内で」と明記していた)、**壊れたのは常に統合の側だった。**
+- **🔴 The property worth the case number**: **DT-4 が処方した defense(「Human が裁定する結論には、提出前に different-lineage の falsification を通す」)を、この project が初めて実際に実行したセッションであり、その defense が実際に 13 件を捕まえた。** 同時に、**認知的な defense は 1 件も捕まえなかった** — 統合者は当日の朝に DT-4 の本文を読み、自分の誤り 3 件を明記した節を書き、それでも同じ形を繰り返した。**「知っていること」は防御ではない。dispatch された独立レーンという構造だけが防御だった。** case 18 の meta-trap(罠を認識してから同じ推奨を維持する)の、統合フェーズ版である。
+- **Defense**:
+  1. **統合文書は、提出前に必ず別 lineage の `FALSIFICATION` レーンへ「この文書自体」を攻撃対象として渡す。** packet には claim-trace(claim / 出典として主張された場所 / 実際に source が言っていること / `SUPPORTED`/`OVERSTATED`/`UNSOURCED`/`CONTRADICTED`)を acceptance criteria として書く。**「他レーンのレポートを攻撃してよい」と明示する** — これが無いと反証レーンは統合だけを見て evidence を開かない。
+  2. **統合が引用する load-bearing な外部数値は、統合者ではなく反証レーン側が再取得する。** 本件では `972` が **2 レーンを経由して意味が変わった**(D6「972 件の index」→ 統合「972 件の verified」)。**数値は伝言の各段で意味が漂流する。**
+  3. **論文・一次資料の「最頻原因」を「唯一の原因」や「全体の原因」へ広げない。** 引用が正しいことは、その引用に載せた推論が正しいことを一切保証しない(DT-4 defense 3 の再掲だが、**今回破られたのはラベルではなく推論の射程**だった)。
+  4. **競合の absence を語るときは「本調査で一次確認した集合では」を文の中に入れる。** 「市場に無い」と「私が見つけていない」は、非飽和母集団では同じ文になる。
+  5. **判定語は閉じた集合から選び、hedge を作らない。** 「部分的に解決」は、未測定を肯定側に温存する語として機能する。
+- **Impact separation**: Human 裁定は覆っていない。訂正されたのは**裁定を支える根拠の強さ**であり、その分離表は `investigations/2026-08-26_practical-iot-revalidation/08_conclusion-and-next.md` §5 / §G-2 が owner。Human は 2026-08-27 に **`PRODUCT VALUE NOT RESOLVED`(D7 訂正版)を S007 の成果として受理**した。
+- **Scope**: 複数レーンの evidence を 1 つの結論へ統合するすべての objective。Human 裁定へ供給されるすべての文書。数値が 2 段以上の actor を経由するすべての報告。
+- **Related**: DT-4 · DT-3 · case 18 · case 59 · PT-15 · `22-model-orchestration.md` §Lane definitions(`FALSIFICATION`)· `04-testing-strategy.md` §absence criteria。
+- **Retroactive application, same session (case-filing protocol)**: 13 件のうち本文に残っていた誤りを**その場で訂正した**(訂正節が 150 行先にあると読者は本文を額面どおり読むため)。さらに **本 case を書いている最中の自分の主張**にも適用し、「D7 が 13 件捕まえた」という記述の分母(claim-trace 37 件)を capsule から転記せず report 本文で確認した。**訂正前の表現は削除せず §5 に 13 行の表として保存**してある — 訂正だけを残すと、何が起きたかが次のセッションから見えなくなるため。
+
+### case DT-7 — parent 側の小さな器材が同一セッションで 2 回、黙って誤った(2026-08-26, S007)
+
+- **Class**: **PT-7 family**(識別子を開かずに運ぶ)+ **PT-4 / case 82 family**(自作の器材が黙って誤り、成功メッセージが起きていない状態を主張する)。
+- **Situation**: 2 件、いずれも parent 自身の手元で起きた。
+  1. **識別子の無検証転記** — 探索レーン(D3)が「位置特定した」学術論文 ID `arXiv 2508.00083` を、parent が**中身を一度も開かずに**次の packet(D3b)へ「組み込み系の第 3 の情報源」として書いた。D3b が一次情報で確認したところ、実際は *"A Survey on Code Generation with LLM-based Agents"* という**組み込みを 1 行も含まない一般サーベイ**だった。packet の欠陥は delegate の責任ではなく **packet 作者(parent)の責任**である(rule 22 §Anti-patterns が名指しする形)。
+  2. **偽の成功メッセージ** — `cd <dir> && cat > 00_index.md <<'EOF' … EOF` の `cd` が失敗して `&&` が短絡し、**ファイルは作られなかった**。ところが同じコマンド列の続きにあった `echo written; ls` が実行され、**「written」と表示された**。`ls` の出力に当該ファイルが無いことに気づいて発覚し、絶対パスで書き直して `ls` で実在を確認した。
+- **Root cause**: どちらも **「確認のコストが極端に低い場面ほど、確認が省かれる」**という同じ形である。論文 ID は 1 回 fetch すれば分かり、ファイル生成は `ls` 1 回で分かる。**低コストであることが、確認を省く理由として機能した。**
+- **🔴 The property worth the case number**: **委譲を厳格に運用しているセッションほど、parent の手元に残るのは「小さな作業」だけになり、そこが無検証地帯になる。** 本セッションは delegated scope の境界を守り、shadow execution 0 件で運用された。その結果 parent が自分の手で行ったのは packet 執筆・ファイル生成・統合という**「検証の対象だと思われていない作業」**ばかりで、2 件ともそこで起きた。**orchestration の規律は delegate 側の品質を上げるが、parent 側の小器材には何の防御も供給しない。**
+- **Defense**:
+  1. **packet に書く識別子(論文 ID・URL・path・commit SHA・製品名)は、書く前に 1 度開く。** 開けないなら「未検証の識別子」と packet 内に明記して渡す。
+  2. **`echo` は状態の主張であって観測ではない。** 書き込みの成功は書き込みコマンドの RC か、直後の `ls` / `test -f` で確認する。`&&` 連鎖の中の後続コマンドは、前段の失敗を隠す。
+  3. **`cd` を含む複合コマンドを避け、絶対パスで書く。** `cd` の失敗は最も静かな失敗である。
+  4. **委譲セッションの close では、parent が自分の手で触ったものを別枠で点検する。** delegate の成果は capsule と bounded review で検査されるが、**parent の作業には対応する検査工程が無い。**
+- **Scope**: すべての delegation packet 執筆。すべての heredoc / 複合シェルコマンドによるファイル生成。委譲比率が高いセッションほど強く効く。
+- **Related**: PT-7 · PT-4 · case 82 · PT-28 · `22-model-orchestration.md` §Anti-patterns「Blaming the delegate for the packet's defects」。
+- **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、このセッションで parent が書いた他のファイル(`00_index.md` / `01_method-and-lanes.md` / `08_conclusion-and-next.md` / Downloads 2 件)の**実在と行数を `ls` と `wc -l` で確認**した。また `08` に書いた donor SHA・分母・URL のうち、**私が他レーンから転記した数値には出典レーン名を併記**し、私自身が測っていないことが読み手に分かる形にした。

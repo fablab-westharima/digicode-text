@@ -12,7 +12,16 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLAUDEMD="${CONTEXT_BRIEF_CLAUDEMD:-$ROOT/CLAUDE.md}"
 HANDOVER="${CONTEXT_BRIEF_HANDOVER:-$ROOT/prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md}"
-MAX_BYTES="${BRIEF_MAX_BYTES:-65536}"
+# Cap: 96 KiB (98304). Raised from 64 KiB (65536) on 2026-08-27 by an explicit Human GO, on measured
+# grounds, not to make one document fit: at the S007 close the brief was 65,141 bytes against a 65,536
+# cap — 395 bytes of headroom — so the next close was going to cross it whoever wrote it, and the two
+# repairs that do not need a threshold change are both forbidden here (deleting current truth to move
+# a size signal, and restructuring the handover mid-close). 96 KiB is PROVISIONAL. It is not a ruling
+# that the cap may be raised again whenever it is reached: the standing repair is the handover /
+# context-brief / read-load topic split held as a separate maintenance objective candidate (16.md §1
+# menu, baton 25). Raising this value again needs its own Human GO (16.md §1: changing a gate's class
+# or threshold).
+MAX_BYTES="${BRIEF_MAX_BYTES:-98304}"
 task=""
 recipient=""
 rules=""

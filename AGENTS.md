@@ -9,10 +9,18 @@
      Generated for: digicode-text
      Generated at:  2026-08-25 (S000 bootstrap) from prompt/maintenance/global/templates/AGENTS-template.md
      Generator sync point: Project_Template 088b1c3 (v2026-08-13-106-g088b1c3)
-     Last sync: 2026-08-25 — generated at bootstrap; no feeder rule has changed in this repository
-     since. The generator's own feeder-judgment log is deliberately NOT copied here: it records the
-     template's authoring decisions, not this project's, and a copy of it would read as this
-     project's history.
+     Last sync: 2026-08-26 (S007) — NO feeder rule (03/04/05/07/17/22) has changed in this
+     repository; the trigger this time was the other set in rule 22 §AGENTS.md maintenance, "a new
+     area that is off-limits to a delegate" changing. The donor-repository line was written at
+     bootstrap when no donor objective had been declared, and by S007 it forbade, in every lane, the
+     exact work the Human's declared PRIMARY_OBJECTIVE requires. Replaced with the objective-scoped
+     READ ONLY gate plus the absolute governance boundary the S006 donor packet actually ran under;
+     two bootstrap-frozen statements ("no application code" / "donor audit not yet authorised") were
+     brought to current. Nothing else regenerated — no feeder rule moved, so no other section is
+     stale. Human GO 2026-08-26 (decision A).
+     Previous: 2026-08-25 — generated at bootstrap. The generator's own feeder-judgment log is
+     deliberately NOT copied here: it records the template's authoring decisions, not this project's,
+     and a copy of it would read as this project's history.
 
      Record the feeder-rule judgment here each time one changes (rule 22 §AGENTS.md maintenance),
      including "reviewed, judged not worth the delegate's instruction budget" — selftest B6 asks the
@@ -24,7 +32,7 @@
 
 A Web application for microcontroller development that handles ordinary **text code**, not a block editor. It is being built by selectively porting technical assets from **DigiCode** as a donor repository.
 
-**As of this generation there is no application code in this repository.** The technology stack, the deployment target and the DigiCode compatibility range are undecided and are the user's to decide after a donor audit that has not yet been authorised. If a prompt asks you to assume any of them, ask — do not infer them from DigiCode, from this harness, or from what a Web project usually looks like.
+**There is still no application code in this repository.** The technology stack, the deployment target and the DigiCode compatibility range remain undecided and are the user's to decide. Several donor-audit and investigation objectives have since been authorised and closed, so their **evidence** lives under `prompt/maintenance/local/investigations/` — but an audit that supplies material for those decisions does not settle them. If a prompt asks you to assume the stack, the deployment target or the compatibility range, ask — do not infer them from DigiCode, from this harness, or from what a Web project usually looks like.
 
 What exists today is the governance harness: `prompt/maintenance/` (rules, handover, cases), `scripts/` (selftest, baseline, read-load, mutation harness, placement and routing scans) and `.claude/` (cold-start hook, pre-commit secret gate, `/close`).
 
@@ -189,7 +197,8 @@ Every lane: **what you actually ran, and what you observed** — never what you 
 - Deleting code beyond the specified scope; leaving TODOs or half-finished work in the diff.
 - Adding dependencies not named in the prompt.
 - Touching secrets / credentials / `.env` values.
-- Reading, cloning or importing anything from the **DigiCode donor repository** — it is gated on a user objective that has not been declared. This holds for every lane, including `INVESTIGATION`.
+- Reading the **DigiCode donor repository** outside the PRIMARY_OBJECTIVE the Human has declared. Donor access is **READ ONLY and objective-scoped**: the gate is the current GO/STOP boundary in `prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md` §1, and the packet says which donor paths your objective covers. Never clone, merge, subtree, rewrite or fork donor history into this repository, and never make a production change on the donor side (its code, its compiler, its Docker images, Cloudflare, DNS, deploy, production Board/Library additions).
+- **Absolute donor boundary, in every lane, whatever the packet says:** do not open, read, quote or summarise anything under the donor's `prompt/` directory, its `CLAUDE.md`, its `AGENTS.md`, or any of its governance documents (rules, handover, sessions, judgment-mistakes history, orchestration bodies). If a search would enter those paths, exclude them and say so in your report. Importing the donor's legacy governance in any form is forbidden by a settled decision.
 - Writing any secret, credential, token, key, personal information or private URL into this repository. It is **PUBLIC** and its governance layer is git-tracked; the defence is that such values are never written here, not that they are redacted afterwards.
 - Touching `LICENSE` (AGPL-3.0) or anything that changes the repository's visibility.
 - Editing the `Project_Template` repository. Template defects are reported, not fixed from here.
