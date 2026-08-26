@@ -99,6 +99,17 @@ in the product. A template's generic provisional value never outranks this proje
 (2026-08-26 user ruling). A build without LSP is **never** to be described as a reduced or
 incomplete version. The grounds, and what the Web version must stand up on its own, are in `16.md` §3.
 
+**The core value is the managed environment, not the editor** (2026-08-26 user ruling, on accepting the
+Product Value Revalidation). digicode-text does **not** exist to be a browser Arduino/C++ editor, to beat
+VS Code on editing, or because AI can write code — near-equivalents of each already ship elsewhere. It
+exists to **keep a verified MCU environment (Board · Toolchain · Framework · Device/Sensor Library ·
+Dependency · Version · Compatibility) continuously managed on DigiCode's side, and to have the Compiler
+and the AI read that same single source of truth** — so that users never build or update the environment
+themselves through a Board Manager, a Library Manager, a Package Manager or GitHub. This is the primary
+evaluation axis for every design judgment from here on. The one-sentence product definition, the
+Verified / Custom two-layer candidate, the "never go back to whole-matrix guarantees" ruling and the
+"do not assume Registry upkeep is a human-powered activity" ruling all live in `16.md` §3.
+
 **Everything below this line is PROVISIONAL and is settled by the user after the donor audit**
 (2026-08-25 user ruling). It is written out rather than left blank because an anchor that is empty
 still reads as present — but it is not a licence to treat it as settled. The four things explicitly
