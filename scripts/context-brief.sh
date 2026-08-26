@@ -21,8 +21,10 @@ HANDOVER="${CONTEXT_BRIEF_HANDOVER:-$ROOT/prompt/maintenance/local/handover/16_�
 # the router would be a brief that got smaller by losing current truth — the exact failure the
 # handover architecture work was forbidden to produce. **Completeness is this file's job; size is
 # read-load.sh's.** So every owner is exported, and the brief is NOT expected to shrink because of
-# the split. Measured 2026-08-27: it went 77,190 -> 90,100 bytes across this change, because it now
-# carries the loop position and the template-feedback queue it had been silently omitting.
+# the split: measured 2026-08-27, it GREW across this change, because it now carries the loop
+# position and the template-feedback queue it had been silently omitting. **No byte figure is written
+# here on purpose** — this script's own output is the measurement, a comment has no update trigger,
+# and the first draft of this very comment carried a number that was stale before the session ended.
 #
 # **If an owner is added to the handover and not added here, this brief silently ships an incomplete
 # current state, and NOTHING CHECKS THAT.** B70 compares generations and owner reachability across
@@ -32,16 +34,35 @@ HANDOVER="${CONTEXT_BRIEF_HANDOVER:-$ROOT/prompt/maintenance/local/handover/16_�
 # executable. `BRIEF-MISSING` only counts owners that ARE listed here and could not be read.
 BATONS="${CONTEXT_BRIEF_BATONS:-$ROOT/prompt/maintenance/local/handover/batons.md}"
 EVIDENCE_MAP="${CONTEXT_BRIEF_EVIDENCE_MAP:-$ROOT/prompt/maintenance/local/handover/evidence-map.md}"
-# Cap: 96 KiB (98304). Raised from 64 KiB (65536) on 2026-08-27 by an explicit Human GO, on measured
-# grounds, not to make one document fit: at the S007 close the brief was 65,141 bytes against a 65,536
-# cap — 395 bytes of headroom — so the next close was going to cross it whoever wrote it, and the two
-# repairs that do not need a threshold change are both forbidden here (deleting current truth to move
-# a size signal, and restructuring the handover mid-close). 96 KiB is PROVISIONAL. It is not a ruling
-# that the cap may be raised again whenever it is reached: the standing repair is the handover /
-# context-brief / read-load topic split held as a separate maintenance objective candidate (16.md §1
-# menu, baton 25). Raising this value again needs its own Human GO (16.md §1: changing a gate's class
-# or threshold).
-MAX_BYTES="${BRIEF_MAX_BYTES:-98304}"
+# ── CAP: 128 KiB (131072). A BRIDGE, AND THE LAST ONE OF ITS KIND. ─────────────────────────────
+# Raised 96 KiB -> 128 KiB on 2026-08-27 (S008 close) by an explicit Human GO, to land the S008
+# integration-falsification fixes over a green gate. The previous raise, 64 KiB -> 96 KiB, was one
+# day earlier at the S007 close. Read that sequence before touching this number again:
+#
+#   S007 close   brief 65,141 B / cap 65,536   ->  raised to 98,304
+#   S008 close   brief 98,939 B / cap 98,304   ->  raised to 131,072
+#
+# Two raises in two closes is the finding, not the fix. **S008 measured WHY, and the reason is
+# structural:** this exporter's job is COMPLETENESS for an actor with no repository access, so every
+# current-state owner's body has to be in it. The S008 topic split therefore could not shrink it —
+# it made the brief LARGER, because the split's conditional owners hold current truth the brief had
+# previously been omitting (the loop position and the template-feedback queue). **While a complete
+# current state is exported as one payload, the brief grows with current truth, and no threshold
+# value is a resting place.**
+#
+# So the Human ruling attached to this raise is explicit (2026-08-27):
+#   - 128 KiB is a BRIDGE, not a solution, and not a precedent.
+#   - **If the brief reaches 128 KiB, DO NOT raise this again.** No 192, no 256. Stop and ask.
+#   - Do not delete current truth, a checker blind spot, a baton, a Human ruling, an owner contract
+#     or a feedback-queue row to fit under it. That trade is forbidden by CLAUDE.md §1 and by the
+#     ruling in 16.md §3, and it is the exact failure this cap is supposed to make visible.
+#   - The permanent repair is a separate objective, held on the menu as **Task-Scoped Context Brief /
+#     Read Architecture Maintenance** — how to export only the current truth an objective needs,
+#     safely. It is NOT implemented opportunistically from here: it needs a task->owner router with
+#     wrong-owner and no-owner controls, and S008 measured that none of those exist (16.md §3).
+#
+# Changing this value is a gate-threshold change and needs its own Human GO (16.md §1 GO/STOP).
+MAX_BYTES="${BRIEF_MAX_BYTES:-131072}"
 task=""
 recipient=""
 rules=""

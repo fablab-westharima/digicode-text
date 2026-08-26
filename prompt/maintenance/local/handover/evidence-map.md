@@ -9,13 +9,13 @@
      16.md の route map にある 1 行 stub は、このファイルを読まない session でも
      禁止・限定・順序を取り違えないための最小記述である。stub を削らないこと。 -->
 
-> **GEN: S007-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
+> **GEN: S008-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
 
 ## §A. Evidence and provenance map
 
 <!-- 出典: 16.md §1(S007 close 時点)から逐語移設。2026-08-27 S008. -->
 
-**What the seven closed objectives produced**
+**What the eight closed objectives produced**
 
 | objective | evidence | plan |
 |---|---|---|
@@ -27,6 +27,7 @@
 | S005 Product Value Revalidation | `local/investigations/2026-08-26_product-value-revalidation/` (9 files; `08_…` for Go 判定) | `plans/completed/06_…` |
 | S006 Full Orchestration Re-Audit | `local/investigations/2026-08-26_orchestration-re-audit/` (8 files; `08_conclusion-and-next.md`) | `plans/completed/07_…` |
 | **S007 Practical IoT Competitive & DigiCode Capability Revalidation** | **`local/investigations/2026-08-26_practical-iot-revalidation/` (10 files; `00_index.md` → `08_conclusion-and-next.md`、🔴 `08` を読む前に `09_integration-falsification.md` を読むこと)** | `plans/completed/08_…` |
+| **S008 Handover / Context-Brief / Read-Load Architecture Maintenance** | **`local/investigations/2026-08-27_handover-architecture/` (5 files; `01`=inventory · `02`=split 反証 · `03`=baton↔ruling 依存 · `04`=独立復元 + negative control · `05`=統合反証)** | `plans/completed/09_…` |
 
 **Donor SHAs all objectives are pinned to** — S007 が `git rev-parse HEAD` で **3/3 一致を再確認済み**:
 
@@ -93,10 +94,11 @@ evidence**. **Do not copy a measurement into this file.**
 **🔴 Template feedback queue — waiting for a deployment visit.
 `Project_Template` is NOT modified from this repository (16.md §3):**
 
-**Approval state (2026-08-27, S008 開始時 Human 指示 §12):** **#7 と #8 は Human が正式に承認した。**
-承認は「queue へ記録してよい」までであり、**本 repo から template を変更してよいという意味ではない**
-(§12 が明示)。#1–#6 は従来どおり queue に維持。**#9–#11 は S008 が発見した新規候補で、まだ未承認である**
-— 承認済みと未承認を同じ強度で提示しないこと。
+**Approval state — 全 12 件が Human 承認済み(2026-08-27):** #7 / #8 は S008 開始時の Human 指示 §12 で、
+**#9 / #10 / #11 / #12 は S008 受理時の Human 指示 §9 で承認された。**#1–#6 は従来どおり。
+**承認は「queue へ記録してよい」までであり、本 repo から `Project_Template` を変更してよいという意味ではない**
+(2026-08-27 Human 指示 §9 が既存裁定の維持を明示)。実際の還流は deployment visit で、`origin: digicode-text S{NNN}`
+を付して行う。
 
 | # | item | why it is project-independent |
 |---|---|---|
@@ -113,7 +115,7 @@ evidence**. **Do not copy a measurement into this file.**
 | **10** | 🔴 **`read-load.sh` が hook 注入分を二重計上せず、実 context コストを過小報告する**(S008 実測) | hook が注入したファイルを `CLAUDE.md` §0 が mandatory read にも列挙していると、注意深い reader は同じ内容を 2 回払う。本 repo の実測では報告値 65,868 tok に対し実コスト 87,781 tok(**+33%**)。これは PT-10(proxy を量そのものとして報告)と同族で、**BUDGET_STATUS を構造シグナルとして使う設計の前提そのものを損なう**。修正は「hook 注入が mandatory read を満たす」と §0 に明記すること |
 | **11** | 🟡 **`handover-diff.sh` と `local/README.md` §OPTIONAL CAPABILITY の間に実装ギャップがある**(S008 実測) | README は topic 分割時の義務 ①②③ を課すが、**template の `handover-diff.sh` は単一ファイル固定**であり、義務②(全 topic file を走査)を果たせる実装が無い。分割した consumer は「relocation が GONE として大量報告される」→「ノイズ扱いする」→「実際の loss も見逃す」という経路に入る。本 repo の owner-set 走査版と、その検出力 control(移設は損失でない / stub が残っても本文削除は損失 / 宣言 owner 欠落は exit 2)が実装参考になる |
 
-| **12** | 🔴 **rule 13 は「handover を disk から再読込せよ」と命じるが、hook が同じ file を注入する構成を知らない**(S008 実測) | template の rule 13 §Step 2 は hook 機構より前に書かれており、hook 注入と mandatory disk read が併存すると **同一内容を二重に払う**。本 repo の実測では 21,913 est tok / 全体の 33%。consumer 側が `CLAUDE.md` §0 で specialise すると、今度は **rule と project instruction が正面衝突した状態**が残る。必要なのは rule 13 側に 「注入で取得済みの owner は再読込しない。GEN が食い違うときは disk が正」という一文であり、これは hook を持つ 全 consumer に効く。**未承認候補** |
+| **12** | 🔴 **rule 13 は「handover を disk から再読込せよ」と命じるが、hook が同じ file を注入する構成を知らない**(S008 実測) | template の rule 13 §Step 2 は hook 機構より前に書かれており、hook 注入と mandatory disk read が併存すると **同一内容を二重に払う**。本 repo の実測では 21,913 est tok / 全体の 33%。consumer 側が `CLAUDE.md` §0 で specialise すると、今度は **rule と project instruction が正面衝突した状態**が残る。必要なのは rule 13 側に 「注入で取得済みの owner は再読込しない。GEN が食い違うときは disk が正」という一文であり、これは hook を持つ 全 consumer に効く。**Human 承認済み(2026-08-27)** |
 
 **同じ visit で共有する構造観察が 2 件ある**(本 repo が直せる defect ではない)。内容の owner は `sessions/S004_…md` §2。
 

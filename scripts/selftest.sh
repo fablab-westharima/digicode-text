@@ -2259,6 +2259,27 @@ else
   [ "$b69_n" -eq 0 ] && b69_bad="$b69_bad no-injected-file-found"
   # The payload must not simultaneously claim completeness and carry a truncation marker.
   b69_ctx="$(b69_payload "$PWD")"
+
+  # ...and the hook has to actually BE the registered SessionStart command. Measured 2026-08-27 by
+  # the S008 integration-falsification lane: pointing settings.json's SessionStart at a different
+  # script left this check green while no handover reached any session at all — B69 was executing
+  # the file directly and never asking whether anything runs it. A guard that tests an artifact
+  # nobody invokes is measuring a script, not a cold start.
+  if [ -f .claude/settings.json ]; then
+    b69_reg="$(python3 - <<'B69REG'
+import json, pathlib, sys
+try: d = json.loads(pathlib.Path('.claude/settings.json').read_text(encoding='utf-8'))
+except Exception: print("UNPARSEABLE"); sys.exit(0)
+ss = d.get('hooks', {}).get('SessionStart')
+if not ss: print("UNREGISTERED"); sys.exit(0)
+cmds = [h.get('command','') for g in ss for h in g.get('hooks', [])]
+print("OK" if any('session-start.sh' in c for c in cmds) else "POINTS-ELSEWHERE")
+B69REG
+)"
+    [ "$b69_reg" = "OK" ] || b69_bad="$b69_bad settings-SessionStart=$b69_reg"
+  else
+    b69_bad="$b69_bad no-settings-json"
+  fi
   printf '%s' "$b69_ctx" | grep -qiE 'truncated at [0-9]+ lines' \
     && b69_bad="$b69_bad payload-still-carries-a-truncation-marker"
 
@@ -2293,7 +2314,7 @@ B69CLIP
   rm -rf "$b69_d"
 
   if [ -z "$b69_bad" ]; then
-    ok "B69 hook injects each mandatory owner whole: ${b69_whole}/${b69_n} complete, 0 truncation markers in the payload (controls: clipping hook flagged, silent hook refuses at 2, healthy copy passes — ${b69_ctl}/3)"
+    ok "B69 hook injects each mandatory owner whole: ${b69_whole}/${b69_n} complete, 0 truncation markers in the payload (controls: clipping hook flagged, silent hook refuses at 2, healthy copy passes — ${b69_ctl}/3), and settings.json registers this very script as the SessionStart command"
   else
     ng "B69 hook completeness failed:$b69_bad (whole ${b69_whole}/${b69_n}, controls ${b69_ctl}/3)"
   fi

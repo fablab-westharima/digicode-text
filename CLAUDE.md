@@ -22,7 +22,7 @@ When resuming a session, read these in order:
 
 | conditional owner | holds | open it when |
 |---|---|---|
-| `local/handover/batons.md` | the **body and grounds** of all 45 batons; the router holds their stub + Status + Trigger + Owner + Sev | you are acting on a baton whose trigger has fired, and the stub is not enough |
+| `local/handover/batons.md` | the **body and grounds** of every baton; the router holds each one's stub + Status + Trigger + Owner + Sev (the live count comes from `bash scripts/selftest.sh` B71, never from this row) | you are acting on a baton whose trigger has fired, and the stub is not enough |
 | `local/handover/evidence-map.md` | closed-objective outputs · donor SHA pins · ecosystem boundary · external-source paths · the evidence-owner table and its read order · loop position · the **`Project_Template` feedback queue** | you need a measurement's provenance, an evidence file, a donor pin, a closed objective's output, or the feedback queue |
 
 **Deleting a stub from the router silently un-does this** — the body stays where it is, so nothing looks missing, and the next session acts on a ruling without the limitation that qualifies it. Selftest **B71** is what makes that loud (it checks stub↔body correspondence in both directions; **B70** is the neighbouring check, on generation and owner reachability). `handover-diff.sh` does **not** see a deleted stub — the surviving body keeps the union entry — which is exactly why B71 exists and why this sentence names it rather than the removal audit.
