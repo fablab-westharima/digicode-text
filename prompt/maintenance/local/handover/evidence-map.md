@@ -9,13 +9,13 @@
      16.md の route map にある 1 行 stub は、このファイルを読まない session でも
      禁止・限定・順序を取り違えないための最小記述である。stub を削らないこと。 -->
 
-> **GEN: S009-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
+> **GEN: S010-close** — 16.md の GEN と一致していなければ、どちらかが stale。16.md が router。
 
 ## §A. Evidence and provenance map
 
 <!-- 出典: 16.md §1(S007 close 時点)から逐語移設。2026-08-27 S008. -->
 
-**What the eight closed objectives produced**
+**What the nine closed objectives produced**
 
 | objective | evidence | plan |
 |---|---|---|
@@ -29,6 +29,7 @@
 | **S007 Practical IoT Competitive & DigiCode Capability Revalidation** | **`local/investigations/2026-08-26_practical-iot-revalidation/` (10 files; `00_index.md` → `08_conclusion-and-next.md`、🔴 `08` を読む前に `09_integration-falsification.md` を読むこと)** | `plans/completed/08_…` |
 | **S008 Handover / Context-Brief / Read-Load Architecture Maintenance** | **`local/investigations/2026-08-27_handover-architecture/` (5 files; `01`=inventory · `02`=split 反証 · `03`=baton↔ruling 依存 · `04`=独立復元 + negative control · `05`=統合反証)** | `plans/completed/09_…` |
 | **S009 Task-Scoped Context Brief / Read Architecture Maintenance** | **`local/investigations/2026-08-27_task-scoped-brief/` (10 files + `probe/`; 🔴 `08`(統合反証)を `07`(統合 v2)より先に読み、現行結論は `09` である)** | `plans/completed/10_…` |
+| **S010 Managed Environment & Device Knowledge Architecture Design** | **`local/investigations/2026-08-27_managed-environment-architecture/` (6 files + `00_index.md`; 🔴 読解順序は `00` → `01`/`02`/`03` → **`05`(統合反証)** → **`06`(現行設計)**。`04` は訂正前で SUPERSEDED — 単独で読むと 36 件の訂正前主張を持ち帰る)** | `plans/active/11_…`(設計 objective は完了、実装は未着手) |
 
 **Donor SHAs all objectives are pinned to** — S007 が `git rev-parse HEAD` で **3/3 一致を再確認済み**:
 
@@ -51,7 +52,9 @@
 | S005 (2) | `~/Downloads/Claude Code 新規セッション開始プロンプト — DigiCode Text 有効性再確認と製品軸の再定義.md` · `~/Downloads/Claude Codeへの指示 — Product Value Revalidation受理・closeと次Objective準備.md` |
 | S006 (1) | `~/Downloads/Claude Code 新規セッション開始プロンプト — Full Orchestration Re-Audit.md` |
 | **S007 (2)** | **`~/Downloads/Claude Code 新規セッション開始プロンプト — Practical IoT Competitive  DigiCode Capability Revalidation.md`(実ファイル名は `&` を含む)· `~/Downloads/Claude Codeへの指示 — S007正式受理・Human補足裁定反映・Session Close.md`** |
-| Human 向け詳細報告書(派生、git 外) | S006: `~/Downloads/DigiCode_Text_Full_Orchestration_Re-Audit_報告書_2026-08-26.md` · **S007: `~/Downloads/DigiCode_Text_S007_Practical_IoT_Competitive_調査報告書_2026-08-26.md` + `~/Downloads/DigiCode_Text_S007_Cold_Start_調査報告書_2026-08-26.md`** — **owner は `investigations/`。矛盾時は investigations が正しい** |
+| **S008 (1)** | `~/Downloads/Claude Codeへの指示 — S008.md` 相当(S008 セッションの Human 指示。実ファイル名は当該セッション記録が owner) |
+| **S010 (1)** | **`~/Downloads/Claude Code 新規セッション開始プロンプト — Managed Environment & Device Knowledge Architecture Design.md`**(実ファイル名は `&` を含む) |
+| Human 向け詳細報告書(派生、git 外) | S006: `~/Downloads/DigiCode_Text_Full_Orchestration_Re-Audit_報告書_2026-08-26.md` · **S007: `~/Downloads/DigiCode_Text_S007_Practical_IoT_Competitive_調査報告書_2026-08-26.md` + `~/Downloads/DigiCode_Text_S007_Cold_Start_調査報告書_2026-08-26.md`** · **S010: `~/Downloads/DigiCode_Text_Managed_Environment_Device_Knowledge_Architecture_Design_Report_2026-08-27.md`(内容は `investigations/…/06_corrected-architecture.md` と同一)** — **owner は `investigations/`。矛盾時は investigations が正しい** |
 | donor + related local clones | `investigations/2026-08-26_donor-audit/02_ecosystem-inventory.md` owns that table |
 
 **Re-reading them is usually unnecessary** — every ruling is distilled into §3 and the batons. Open them for the user's own wording or a decision's provenance. **They stay outside git until baton 16 is ruled on.**
@@ -125,9 +128,14 @@ evidence**. **Do not copy a measurement into this file.**
 
 | **12** | 🔴 **rule 13 は「handover を disk から再読込せよ」と命じるが、hook が同じ file を注入する構成を知らない**(S008 実測) | template の rule 13 §Step 2 は hook 機構より前に書かれており、hook 注入と mandatory disk read が併存すると **同一内容を二重に払う**。本 repo の実測では 21,913 est tok / 全体の 33%。consumer 側が `CLAUDE.md` §0 で specialise すると、今度は **rule と project instruction が正面衝突した状態**が残る。必要なのは rule 13 側に 「注入で取得済みの owner は再読込しない。GEN が食い違うときは disk が正」という一文であり、これは hook を持つ 全 consumer に効く。**Human 承認済み(2026-08-27)** |
 
-| **13** | 🔴 **統合文書への falsification 義務が rule 22 に無い(既存 #7 の再確認・強化)** — **Human 未承認(2026-08-27 S009 で新規記録)** | S007 で 13 件、S009 で 12 件。**どちらも統合者の自己点検が捕まえた件数は 0**。2 セッション独立に同じ結果が出ており、**evidence を統合する行為には限定を外す構造的圧力がかかる**という一般的性質。consumer 全体に効く |
+| **13** | 🔴 **統合文書への falsification 義務が rule 22 に無い(既存 #7 の再確認・強化)** — **Human 未承認(2026-08-27 S009 で新規記録)** | S007 で 13 件、S009 で 12 件、**S010 で 71 主張中 36 件 = 50.7%**(case DT-11)。**3 回とも統合者の自己点検が捕まえた件数は 0**。**さらに S010 では DT-9 が処方した forward application を実際に適用したうえで 36 件を通しており、その対策自体が無効と測定された。**3 セッション独立に同じ結果が出ており、**evidence を統合する行為には限定を外す構造的圧力がかかる**という一般的性質。consumer 全体に効く |
 | **14** | 🟡 **delegation packet の contract 遵守(critical stop の逐語継承)を測る executable guard が無い** — **Human 未承認(2026-08-27 S009 で新規記録)** | rule 22 §Delegation packet と template 契約 2 が逐語継承を要求するのに、遵守を検査する機構が template 側に無い。本 repo では **5/5 不履行**が実測された(分母は「選ばれた inherited-stop の物理行」) |
 | **15** | 🟡 **`context-brief.sh` に fail-open 面が 3 つある** — **Human 未承認(2026-08-27 S009 で新規記録)** | `CONTEXT_BRIEF_*` の path containment 無し · gitleaks 不在時は WARNING を足して続行 · `--out` の `cp` RC 未捕捉。template 由来の script であり export 面の安全性は全 consumer に効く。**🔴 ただし case DT-10 に従い、これらが「意図された設計か」は所有者へ未確認である — defect と断定していない** |
+
+| **16** | 🔴 **context growth は事前に予測されていたのに、cap 到達を close まで検出できなかった** — **Human 指示により記録(2026-08-27 S010)** | S009 close が「brief は current truth に比例して増え、どの threshold も安住の地ではない」と構造的理由まで記録していたにもかかわらず、**予測の発火前に働く trigger が存在しなかった**。baton 52 の trigger は「cap に接近したとき」だが、接近を測る定期実行が無いため、実際に検出されたのは次の close の gate だった。**予測を記録することと、予測に反応する機構を持つことは別である** — hook / selftest / baseline のどれを持つ consumer にも効く一般的な穴 |
+| **17** | 🟡 **context brief cap と read-load `REVIEW_REQUIRED` がほぼ同時に突破した** — **Human 指示により記録(2026-08-27 S010)** | 同一 close で `context-brief` が 131,542 / 131,072 に到達し、`read-load` が 69,418 tok で `WARNING` → `REVIEW_REQUIRED` を超えた。**2 つの独立な計器が同じ原因(current truth の増加)で同時に閾値へ達する**なら、両者は独立した安全網ではなく **1 つの量の 2 つの表示**である可能性がある。template は両方を別々の signal として配っている |
+| **18** | 🟡 **最終 STOP gate は正しく働いたが、閾値到達前の予防的 growth control / trigger が不足している可能性** — **Human 指示により記録(2026-08-27 S010)** | S010 では最後の gate(B21/B68)が確かに止めた。**止まったこと自体は成功だが、止まる以外の選択肢が無い状態まで到達を許した。**「最後に止める」機構と「早期に増加を抑える」機構は別物であり、template は前者しか持っていない |
+| **19** | 🔴 **Objective / Scope / Stop Discipline が「最後に止める」だけでなく「不要な派生を早期に抑える」よう十分機能しているかの後日監査** — **Human 指示により記録(2026-08-27 S010)** | S009 で観測した派生作業の自己増殖・過剰 fan-out と、上記 #16–#18 を合わせた監査項目。rule 17(狭める側)と rule 24(広げる側)は判断の瞬間を扱うが、**時間をかけて蓄積する量(current truth · read load · brief size · 派生 objective)に対する早期制御は、どちらの rule の対象にもなっていない**。`Project_Template` 側で後日監査する |
 
 **同じ visit で共有する構造観察が 2 件ある**(本 repo が直せる defect ではない)。内容の owner は `sessions/S004_…md` §2。
 

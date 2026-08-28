@@ -189,6 +189,7 @@ Read the Part 2 body only for cases whose pattern is suspected. **A number not p
 | DT-8 | digicode-text S008 (2026-08-27) | **DT-7 replay**, PT-4/PT-7/PT-10/82 family, **the-unchecked-zone-was-the-checking-work version** | 5 defects, all in the parent's own hand-work, and 4 of them inside the guards it was writing |
 | DT-9 | digicode-text S009 (2026-08-27) | **DT-6 replay, integration-phase**, + DT-7/DT-8 family | the integration made 12 claims its own evidence did not support and over-generalised 20 more; self-check caught 0, a dispatched lane caught all of them |
 | DT-10 | digicode-text S006→S009 (2026-08-27) | A + B family, **divergence-read-as-defect version** | two config values disagreed, so four sessions called it a mismatch to fix; nobody asked the owner whether it was intended, and it was |
+| DT-11 | digicode-text S010 (2026-08-27) | **DT-6/DT-9 third replay, self-check-proven-inert version** | a document quoting both prior cases and carrying their self-check broke 36 of 71 claims; DT-9's own prescribed defense was applied and measured ineffective |
 
 Note: cases 1–6 are #1 / #2 / #3–#6 inside Part 2's 「第84回 1-6 件目」 section. Later case bodies referring to "case 1 snap judgment (whole conclusion without evidence)" mean 初期1 (第80回末), the snap/inferred conclusion.
 
@@ -2069,3 +2070,22 @@ stub に差し替えたら harness 自身が FAIL すること）が exit 1 を�
 - **Related**: Pattern A · Pattern B · case 18(メタトラップ、その世代間版)· PT-1(二次情報から rule を書き、その上で user の `settings.json` を編集した)· case 43 / rule 12 §Observation-to-measurement(所有者の観測を自分の説明で閉じない — 本 case はその鏡像で、**所有者へ返すべき問いを自分の測定で閉じた**)· DT-9(同一セッションで統合が evidence を超えた件)。
 - **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、本セッションが出した他の「これは欠陥だ」という判定を同じ目で見直した。**`context-brief.sh` の fail-open 面 3 件**(`CONTEXT_BRIEF_*` の path containment 無し · gitleaks 不在時の続行 · `--out` の cp RC 未捕捉)は、**いずれも「意図された設計か」を所有者へ確認していない**。したがって close report では **defect ではなく「所有者未確認の観測」**として記録し、`ADJACENT_DEFECT` の断定を外した。**baton 25 の「導出記録が無い」の反証**は、逆方向(current truth が事実に反していた)であり、Human が §9 で受理済みなので該当しない。
 - **Forward application (same session)**: close report と `~/Downloads/` の詳細報告について、**「これを欠陥と呼んでよいか。所有者は誰か。訊いたか」**を各 finding に対して書く前に確認することを acceptance に足した。
+
+### case DT-11 — 統合が 3 回連続で同じ形に壊れた。DT-6 と DT-9 を冒頭に引用し、self-check を書いた文書が、71 主張中 36 件を壊した(2026-08-27, S010)
+
+- **状況**: PRIMARY_OBJECTIVE `Managed Environment & Device Knowledge Architecture Design` で、Codex 独立 3 レーン(L1 donor 実測 / L2b 先行実装一次資料 / L3 中心仮説反証)を回し、Opus が統合案 `04_integrated-architecture.md` を書いた。この文書は **冒頭に「統合はこの project が 2 度壊した対象である(DT-6 = 13 件 / DT-9 = 12 件、いずれも self-check は 0 件)」と自分で書き**、末尾に judgment-mistakes の self-check 節(Pattern A/B/C/D + evidence label)を備え、**各主張に L1/L2b/L3 の出典を付けていた**。
+  その文書を Codex の FALSIFICATION レーン(L4)へ渡した結果 — **検証可能な原子的主張 71 件のうち 36 件(50.7%)が OVERSTATED 14 / UNSUPPORTED 18 / CONTRADICTED 4**。内訳の代表例: ①「1 件追加ごとに 9 つの共有面を編集する」— L1 は 3 件中どれもそうでないと実測し、後続バッチ費用は `NOT OBTAINED` だった ②「Option C は共有面編集を 0 にする」— L4 が Option C 自身に **15 の共有面**を列挙 ③「evidence cost はまったく下がらない」— L3 は「下がることを立証しない」と書いただけで、**不変であるとは測っていない**(反転) ④「one record; six consumers」— **同じ文書自身が 6 種類の record を要求している**(自己矛盾) ⑤ R-7「証拠を無効化せずに schema を変えられる」と D.3「semantic migration は既定で証拠を無効化する」が**同一文書内で矛盾** ⑥ Particle 10/977 を「全部 Verified は到達不能である証明」と書いた — 出典は自ら「docs ページ数の proxy であり registry count ではない」と限界を明記していた ⑦ ERA の attestation が `era_hash` を受け取って `era_hash` を返すだけで、**入力をエコーする Compiler が acceptance test を通る**(L4 が指定リスト外から出した最強の攻撃)。
+- **真因**: **self-check が計器として機能していないことが、3 回の独立測定で確定した。**DT-6 で self-check 0 件、DT-9 で self-check 0 件、DT-11 で self-check 0 件。**しかも DT-9 の防御策(forward application = 「各節を書く前に、条件節を落としていないか・分母を書いたか・proposal か結論か、を確認する」)は本セッションで実際に適用されており、それでも 36 件を通した。**すなわち **DT-9 が処方した対策そのものが、無効であると測定された**。
+  機構は 3 つある。① **自分が書いた文の出典を自分で照合する作業には、失敗の余地が構造的に無い** — 書いた瞬間に「L1 が示した」と思って書いているので、照合しても同じ判断が返る。self-check は独立した観測ではなく、**同じ推論の再生**である。② **証拠を要約する行為が、条件節を落とす方向へ一方向に働く。**L3 の "can reduce marginal UI/generator authoring work" は、要約されると "per-device cost falls" になる。**要約は情報を落とすが、落ちるのは常に限定詞の側であって主張の側ではない。**③ **設計文書は「主張」と「設計」を同じ地の文で書くため、未構築のものが既成事実の語彙を借りる。**「Option C は R-1 を満たす」は、validator も実装も無い時点では**意図の宣言**だが、文としては測定報告と区別がつかない。
+- **失敗パターン**: DT-6 / DT-9 の 3 度目の再演。Pattern A(主張が出た瞬間に確定)+ Pattern B(自己確証された scope — 自分の統合を自分で検査した)+ case 18 メタトラップ(トラップを名指しした文書が同じトラップに落ちる)の**世代を跨いだ確定版**。
+- **防御**:
+  1. **重要判断へ向かう統合文書は、self-check を通ったことを根拠にしてはならない。**self-check は書いてよいが、**それは通過証明ではない**。通過証明は独立レーンの反証だけである。**3/3 の測定でそう出ている。**
+  2. **統合文書に FALSIFICATION レーンを 1 本当てることを、重大 Human 判断の既定手順にする。**S007・S009・S010 の 3 回とも、捕まえたのは常に独立レーンであり、常に統合者ではない。**これは費用ではなく、統合という工程の必要部品である。**
+  3. **要約するときは、限定詞を先に写す。**一次証拠から結論を持ち出すときは、`can` / `may` / `の場合に限り` / 分母 / 確度ラベルを**主張より先に**書く。落ちるのは常にそちら側だからである。
+  4. **未構築のものについて「満たす」「する」と書かない。**設計claim には**必ず反証テストを併記する**(「20 profile を追加して共有面編集回数を数える。1 件でも超えれば偽」)。テストを書けない設計claim は、書いてはいけない主張である。
+  5. **訂正前の文書を消さず、順序を明記する。**`04`(訂正前)を残し、冒頭に SUPERSEDED バナー、index に `05` → `06` の読解順序を書いた。S007 の `08`/`09` と同じ規律(DT-6)。
+  6. **反転に注意する。**「X が下がることを立証しない」→「X は下がらない」は**論理的に別命題**である。原典が否定したのは*立証*であって*事実*ではない。この 1 件は DT-11 の中で最も静かに通り抜けた種類の誤りだった。
+- **Scope**: 複数レーンの evidence を 1 本の結論へ統合する全セッション。**とくに設計文書** — 測定報告と設計提案が同じ地の文に混在するため、既成事実の語彙が未構築のものへ流れ込む。
+- **Related**: DT-6(初出)· DT-9(直接の親、その forward application が本 case で無効と測定された)· DT-7 / DT-8(parent の手元作業が無検査地帯)· case 18 · Pattern A / B · `22-model-orchestration.md` §Review protocol · `evidence-map.md` の template feedback #7(統合文書への falsification 義務が rule 22 に無い — 本 case で **3/3** になった)。
+- **Retroactive application, same session (case-filing protocol)**: 本 case の filing 後、**L4 の 36 件すべてを `06_corrected-architecture.md` へ反映**し、訂正箇所には「⚠️ 訂正(L4 F-xx)」を本文中に埋めた(末尾にまとめない — 読者は訂正前の主張だけを持ち帰る)。あわせて **Human へ返すべきだった選択(L3 が明示した「狭い仮説を採るか、比較測定に投資するか」)を統合が勝手に決めていた**ことを D-1 として Human 決定事項へ戻した。terminal 報告も「仮説は現在の形では成立しない」から書き始める形に直した。
+- **Forward application (same session)**: close 手続きで書く全 state claim(「pushed」「clean」「green」)について、**その検証コマンドを同じ行に持たない主張は `[未verify]` と書く**を acceptance に足した。DT-9 の forward application(書く前に 3 点確認)は**本 case で無効と測定されたため、繰り返さない** — 代わりに「独立に検証できる形へ落とす」を採る。
