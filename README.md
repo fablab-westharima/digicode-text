@@ -23,40 +23,13 @@
 
 ---
 
-## 構成
+## Maintenance notes
 
-```
-digicode-text/
-├── CLAUDE.md                 Claude Code セッション向けの索引(現在地は保持しない)
-├── AGENTS.md                 委譲エージェント向け指示(プロジェクト固有・持ち出し禁止)
-├── LICENSE                   AGPL-3.0
-├── scripts/                  ハーネス計器(selftest / baseline / read-load / mutation / 各種 scan)
-├── .claude/                  SessionStart hook(コールドスタート自動注入)/ pre-commit secret gate / /close
-└── prompt/maintenance/
-    ├── global/               テンプレート由来・プロジェクト非依存(rules/ templates/)
-    └── local/                このプロジェクト固有
-        ├── handover/         16.md = 現在地(唯一の owner)/ sessions/ = 不変の履歴 / 改定log
-        ├── rules/digicode-text/
-        ├── docs/             routing-profile.md(model / effort mapping の唯一の owner)
-        ├── bugs/  plans/  investigations/  legacy/
-```
+Project固有のClaude Code instructionは `CLAUDE.md` にあります。
 
-**現在地は `prompt/maintenance/local/handover/16_次セッション引き継ぎ指示書.md` にある。**この README を含め、他のどのファイルも現在地の owner ではない。
+調査・設計・session history等のproject evidenceは `prompt/maintenance/local/` に保存しています。navigationは `prompt/maintenance/local/README.md` を参照してください。
 
----
-
-## 開発者・エージェント向け
-
-セッション開始時は `CLAUDE.md` §0 のコールドスタート手順に従う(SessionStart hook が引き継ぎ書を自動注入する)。読む範囲は `bash scripts/read-load.sh` が出力する。
-
-ハーネスの健全性:
-
-```bash
-bash scripts/read-load.sh                # 必読集合とその範囲・コスト
-bash scripts/baseline.sh                 # baseline 表
-bash scripts/selftest.sh; RC=$?          # ハーネス不変条件(RC は単独行で取得。pipe を通さない)
-bash scripts/placement-scan.sh; RC=$?    # rule 15 ファイル配置契約
-```
+`prompt/maintenance/local/legacy/` 以下は退役済み構造のhistorical archiveであり、current instructionやcurrent Objectiveではありません。
 
 ## セキュリティ方針 🔴
 
