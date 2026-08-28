@@ -3,6 +3,7 @@
 このファイルは主要なproject evidenceへのnavigationだけを持ちます。
 
 current instruction、current Objective、Human ruling、orchestration ruleのownerではありません。
+確定したHuman裁定のownerは `human-decisions.md` です。
 測定値や結論本文はここへ複製せず、各investigationを一次参照してください。
 
 ## Product / technical evidence
@@ -57,8 +58,9 @@ current instruction、current Objective、Human ruling、orchestration ruleのow
 
 `04`は訂正前のSUPERSEDED版です。
 
-S010のHuman acceptanceは未取得です。
-設計結果をproduction implementation GOとして扱わないでください。
+🔴 **2026-08-29: S010はHumanにより分割受理され、BLOCKEDは解除されました。**
+反証系結論と実測値は受理、**Option Cの採用は受理されずPoCの作業仮説へ位置づけ変更**、D-1〜D-8は決定済み。
+裁定本文のownerは `human-decisions.md` です。**Option Cを採用済み設計として扱わないでください。**
 
 ## Session history
 

@@ -31,7 +31,12 @@ S010 Managed Environment & Device Knowledge Architecture Design の設計evidenc
 
 に保存されています。
 
-Human acceptanceは取得されていません。
-旧Plan 11はlegacyへ退役済みです。
+🔴 **2026-08-29: HumanによりS010は分割受理され、BLOCKEDは解除されました。**
 
-将来このテーマを再開する場合は、legacy planをそのまま再実行せず、その時点のHuman指示から新しいObjectiveを確定してください。
+* 反証系の結論(中心仮説のREFUTED、S007の旧根拠反証)と実測値は**受理**
+* **Option Cの採用は受理されていません** — Option Cは**PoCの作業仮説**であり、R-1/R-2/R-7はPoCが実地検証する
+* D-1〜D-8は決定済み、次段階はPoC(実装段階)
+
+裁定本文のownerは `docs/human-decisions.md` です。旧Plan 11はlegacyへ退役済みで、そのまま再実行しません。
+
+PoCへ進む場合も、scopeと着手にはHuman GOが必要です。
