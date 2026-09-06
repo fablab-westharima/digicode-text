@@ -2,3 +2,5 @@
 scheduled_tasks.lock
 __pycache__/
 *.pyc
+compiler/pio-rp2040/.pio/
+node_modules/

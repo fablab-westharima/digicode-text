@@ -1,39 +1,30 @@
 # digicode-text
 
-ブラウザ上で **通常のテキストコード** を編集し、マイコン向けのビルドから書き込みまでを行う Web アプリケーション。ブロックエディタではない。
+ブラウザで **通常のテキストコード**(`main.cpp`)を編集し、専用 compiler でマイコン向けに build し、実機へ書き込む Web アプリケーション。ブロックエディタではない。既存 DigiCode(Blockly 版)とは独立した新規プロジェクトで、fork ではない。license は AGPL-3.0。
 
-**現状: bootstrap 直後。アプリケーションコードはまだ 1 行も存在しない。**
+## 今動くもの(slice 1、2026-09-06)
 
-このリポジトリには現在、開発を運用するための **ガバナンス・ハーネス**(ルール体系・引き継ぎ書・自己検証スクリプト)だけが入っている。製品仕様・技術スタック・デプロイ先・DigiCode 互換範囲はいずれも未確定で、**DigiCode donor audit の後にユーザーが確定する**。
+- `compiler/pio-rp2040/` — project 専用の PlatformIO project。XIAO RP2040(community platform + earlephilhower core)と Raspberry Pi Pico(公式 platform)で "hello" を Serial に出す `main.cpp` が build でき、`firmware.uf2` が生成される。global な lib_deps は無い。
+- `compiler/server.mjs` — 依存ゼロの Node サーバ。`POST /compile` に `{env, source}` を送ると `.uf2` を返す(compile 失敗は 422 + log)。`GET /` で `web/index.html` を配信。
+- `web/index.html` — textarea + Build + `.uf2` ダウンロード + Web Serial monitor(Raspberry Pi VID 0x2e8a でフィルタ)。
 
----
+### 動かし方
 
-## このプロジェクトの位置づけ
+```
+# 前提: Node 20 以上、PlatformIO Core(~/.local/bin/pio)
+node compiler/server.mjs          # http://127.0.0.1:3000
+```
 
-- **`Project_Template` から bootstrap された独立した新規プロジェクト**である。他プロジェクトの fork ではなく、git history はこのリポジトリ自身の Initial commit から始まる。
-- **DigiCode は将来の donor(供与元)リポジトリ**として READ ONLY で監査し、必要な技術資産だけを選択移植する予定。移植の際は donor repository / donor commit SHA / donor path / import date / imported asset / excluded legacy governance を migration evidence として記録する。
-- DigiCode の**旧ガバナンス**(旧 `CLAUDE.md` / rules / handover / sessions / 判断ミス履歴 / orchestration 実体)および **DigiCode の git history そのもの**は、いかなる形でも取り込まない。
+ブラウザで開き、Build を押すと `.uf2` がダウンロードできる。書き込みは BOOTSEL で挿した `RPI-RP2` ドライブへコピーする。
 
-| 項目 | 値 |
-|---|---|
-| bootstrap 元 | `fablab-westharima/Project_Template` |
-| テンプレート断面 | `088b1c3` (`v2026-08-13-106-g088b1c3`) |
-| bootstrap 日 | 2026-08-25 |
-| ライセンス | AGPL-3.0(このリポジトリ自身の Initial commit 由来) |
+## まだ無いもの
 
----
+実機書き込みの確認、ESP32 / esptool-js、library、device、Docker 化、認証、複数ユーザー対応。
 
-## Maintenance notes
+## 進め方と過去の記録
 
-Project固有のClaude Code instructionは `CLAUDE.md` にあります。
+進め方は `CLAUDE.md`。2026-08 の調査・設計・裁定は `prompt/maintenance/local/legacy/` にメモとして残している。
 
-調査・設計・session history等のproject evidenceは `prompt/maintenance/local/` に保存しています。navigationは `prompt/maintenance/local/README.md` を参照してください。
+## セキュリティ方針
 
-`prompt/maintenance/local/legacy/` 以下は退役済み構造のhistorical archiveであり、current instructionやcurrent Objectiveではありません。
-
-## セキュリティ方針 🔴
-
-このリポジトリは **PUBLIC** であり、`prompt/` と `CLAUDE.md` を **git 追跡している**(運用履歴を正式なプロジェクト履歴として残すため)。したがって:
-
-- **secret / credential / token / 鍵 / 個人情報 / 非公開 URL をこのリポジトリに書かない。**「あとで伏字にする」ではなく「最初から書かない」。
-- commit / push のたびに staged secret scan が走る(`.claude/hooks/pre-commit-gate.sh`)。ドキュメントのみの commit でも例外にしない。
+repo は PUBLIC。secret / credential / token / 個人情報 / 非公開 URL を書かない。commit 時に gitleaks の staged scan が走る(`.claude/hooks/pre-commit-gate.sh`)。
