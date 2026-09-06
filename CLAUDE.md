@@ -1,19 +1,43 @@
-# DigiCode Text — Claude Code Bootstrap
+# DigiCode Text — Claude Code 指示
 
-## DigiCode Text 固有の最低限事項
+## この project は何か
+- ブラウザで main.cpp を編集し、専用 compiler で MCU 向けに build し、実機へ書き込む Web アプリ。
+- 既存 DigiCode(Blockly 版、以下 Classic)とは独立した新規 project。fork ではない。
+- repo は PUBLIC、license は AGPL-3.0。secret / credential / 個人情報を repo に書かない。
 
-* DigiCode Text は既存DigiCodeとは独立したプロジェクトであり、forkではない。DigiCode側のgovernance / prompt / orchestrationを継承しない。
-* DigiCodeを参照する必要がある場合は、objectiveに必要な技術的evidenceだけをread-onlyで扱う。donor側を変更・統合・subtree化・fork化しない。
-* 中核価値は、Board / Toolchain / Framework / Device Library / Dependency / Version / Compatibilityをmanaged environmentとして管理し、CompilerとAIが同じ正本を利用できること。
-* AIは製品の主要機能であり、LSPの成立そのものを製品成立条件としない。
-* 「初心者」は「子供向け」「機能を減らす」の意味ではない。専門領域を持つ組込初心者を含み、「簡単」は必要機能を削ることではなく扱いやすくすることを指す。
-* 専用Compilerを持つ方針。donor由来技術を利用する場合も、donorの既存前提を無条件に継承しない。
-* RegistryはVerified / Customの二層を基本とし、CustomからVerifiedへの昇格経路を持つ。closed ecosystemや全組合せ保証、人力更新だけを前提にしない。
-* Webを主製品として扱い、Desktop展開も視野に入れる。具体的stack、deployment target、互換範囲はHumanが確定するまで未決定として扱う。
-* server-side LSPを必須backendとしない。Monacoは現時点の第一候補だが、過去候補を確定仕様として扱わない。
-* repoはpublic、licenseはAGPL-3.0。secret / credentialをrepository、commit、report等へ含めない。
-* 製品について未測定のものを測定済みと扱わない。実機flash、hardware write、production contact、installer build等の未実施事実を勝手に埋めない。
-* 過去の製品判断・調査・S010成果は `prompt/maintenance/local/` 配下に保存されている。必要なwork unitで必要な資料だけ読む。
-* S010のmanaged-environment設計を参照する場合は、少なくとも `05_integration-falsification.md` と `06_corrected-architecture.md` の順序・上書き関係を確認し、`04_integrated-architecture.md` を最新結論として扱わない。
-* 確定したHuman裁定のownerは `prompt/maintenance/local/docs/human-decisions.md`。製品判断で迷った場合はまずこれを読む。過去のinvestigation / session logはimmutableなevidenceであり、裁定のownerではない。
-* S010は2026-08-29にHumanが分割受理し、BLOCKEDは解除済み。反証結論と実測値は受理、**Option Cの採用は受理されておらずPoCの作業仮説**、D-1〜D-8は決定済み。**Option Cを採用済み設計として扱わない。** checkpoint `a6212af` は当時の保存commitであり、この受理を意味しない。
+## 進め方
+- 進捗の単位は「動くもの」だけ。報告は「何を試し、何が動き、何が動かなかったか」で書く。文書は進捗ではない。
+- 判断は作ってから。scope・schema・受入基準は動くものを見てから決める。それまでの判断は仮置きで、撤回に手続きは要らない。
+- 1 周 = Human GO → 作る → 動作報告 → Human が触って次を決める。1 周が 1 週間を超えたら切り方を疑う。
+- Human review の後、次の周を勝手に始めない。
+- 検証は実行で行う。動くものに対して壊れるか試す。独立レビューは重要なコードにかけ、文書にはかけない。
+- コードの commit より文書の commit が多くなったら、やり方が戻っている。
+- 報告書は repo ではなく `~/digicode-text-notes/` に置く。repo には動くコードと最小の README だけを commit する。
+
+## Classic から持ち越す教訓(この 3 つだけ)
+1. 依存は project 単位で分離する。global な lib_deps で 16/20 board が死んだ。
+2. 「対応済み」は実際に compile が通ってから言う。AI の自己申告を受入根拠にしない。
+3. donor の実コードは読んでから判断する。空想で設計しない。
+
+## donor の扱い
+- donor(DigiCode / digicode-compile-api / DigiCode-Helper)は現在の checkout を read-only で読み、必要なコードは流用してよい。
+- donor 側を変更・統合・subtree 化・fork 化しない。donor の governance / prompt は読まない・継承しない。
+- donor の前提(Blockly fragment 注入、global lib_deps、固定 template)を無条件に持ち込まない。
+
+## 今の目標
+- 縦串 1 本: ブラウザで main.cpp 編集 → 専用 compiler で RP2040 向け build → `.uf2` を BOOTSEL ドライブへコピー → Web Serial monitor に "hello" が出る。
+- board は手持ちの XIAO RP2040(または Pico)1 枚、library 0、device 0、UI は最低限。
+- これが動いたら次を Human が決める。Modbus、board 追加、Device Profile、Docker 化、esptool-js はその後。
+
+## 実機・USB の扱い
+- USB デバイスとシリアルポートへの操作(open / write / reset / monitor / upload / 列挙)は、Human がその回の GO で明示的に許可した場合だけ行う。接続中の機器は別 project で稼働していることがある。
+- 書き込みは Human が「稼働中ボードを外した」と宣言した後の別 GO でのみ行う。
+
+## やらないこと
+- 動くものが無いうちに設計書・計画・憲章・監査体系を書いて進捗の代わりにする。
+- production、credential、外部サービスへの write など非可逆操作を Human GO なしに行う。
+- 実機・センサの選定を先回りして行う。必要が出た時にやる。
+
+## 過去の記録
+- 2026-08 の調査・設計・裁定は `prompt/maintenance/local/legacy/paper-phase-2026-08/` に残す。gate ではなく、動くものができた後に測るかもしれないことのメモ。
+- 迷ったら過去文書ではなく、今動いているものと Human の直近の指示を優先する。
