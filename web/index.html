@@ -1,104 +1,53 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<title>DigiCode Text — slice 1</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 16px; max-width: 1000px; }
-  textarea { width: 100%; height: 320px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
-  pre { background: #111; color: #ddd; padding: 8px; height: 220px; overflow: auto; font-size: 12px; white-space: pre-wrap; }
-  button { margin-right: 8px; padding: 6px 12px; }
-  .row { margin: 8px 0; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>html, body { background: #111821; color: #dbe5ef; }</style>
+<title>DigiCode Text</title>
+<link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-<h1>DigiCode Text — slice 1</h1>
-
-<div class="row">
-  <label>board
-    <select id="env">
+<main class="workspace">
+<header class="toolbar">
+  <div class="brand"><span class="brand-mark" aria-hidden="true">&lt;/&gt;</span><h1>DigiCode <span>Text</span></h1></div>
+  <div class="build-tools">
+    <label class="board-picker"><span>BOARD</span><select id="env" aria-label="ボード">
       <option value="xiao_rp2040">XIAO RP2040</option>
       <option value="pico">Raspberry Pi Pico</option>
-    </select>
-  </label>
-</div>
-
-<textarea id="src">#include &lt;Arduino.h&gt;
-
-void setup() {
-  Serial.begin(115200);
-}
-
-void loop() {
-  Serial.println("hello");
-  delay(1000);
-}
-</textarea>
-
-<div class="row">
-  <button id="build">Build</button>
-  <a id="download" hidden download>Download .uf2</a>
-  <button id="monitor">Serial monitor (Web Serial)</button>
-  <button id="stop" hidden>Stop monitor</button>
-  <span id="status"></span>
-</div>
-
-<pre id="log"></pre>
-
-<script>
-const $ = (id) => document.getElementById(id);
-const log = (s) => { $('log').textContent += s + '\n'; $('log').scrollTop = $('log').scrollHeight; };
-
-$('build').onclick = async () => {
-  $('build').disabled = true; $('download').hidden = true; $('status').textContent = 'building…';
-  $('log').textContent = '';
-  const t0 = performance.now();
-  try {
-    const res = await fetch('/compile', {
-      method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ env: $('env').value, source: $('src').value }),
-    });
-    const secs = ((performance.now() - t0) / 1000).toFixed(1);
-    if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = $('download');
-      a.href = url; a.download = `firmware-${$('env').value}.uf2`; a.hidden = false;
-      $('status').textContent = `OK ${blob.size} bytes in ${secs}s`;
-      log(`build OK: ${blob.size} bytes (${res.headers.get('x-compile-duration-ms')} ms on server)`);
-    } else {
-      const j = await res.json().catch(() => ({}));
-      $('status').textContent = `FAILED (${res.status}) in ${secs}s`;
-      log(j.log ?? j.error ?? 'unknown error');
-    }
-  } catch (e) {
-    $('status').textContent = 'request failed'; log(String(e));
-  } finally { $('build').disabled = false; }
-};
-
-// Web Serial monitor. Not exercised in this slice (no device may be touched yet).
-let port, reader, keepReading = false;
-$('monitor').onclick = async () => {
-  if (!('serial' in navigator)) { log('Web Serial is not available in this browser'); return; }
-  try {
-    port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x2e8a }] }); // Raspberry Pi VID
-    await port.open({ baudRate: 115200 });
-    $('monitor').hidden = true; $('stop').hidden = false; keepReading = true;
-    const decoder = new TextDecoderStream();
-    port.readable.pipeTo(decoder.writable);
-    reader = decoder.readable.getReader();
-    while (keepReading) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (value) $('log').textContent += value, $('log').scrollTop = $('log').scrollHeight;
-    }
-  } catch (e) { log('serial: ' + e); }
-};
-$('stop').onclick = async () => {
-  keepReading = false;
-  try { await reader?.cancel(); await port?.close(); } catch {}
-  $('monitor').hidden = false; $('stop').hidden = true;
-};
-</script>
+    </select></label>
+    <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
+    <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
+  </div>
+</header>
+<section class="editor-pane" aria-label="コード編集">
+  <div class="file-header"><div class="file-name"><span class="file-icon" aria-hidden="true">C++</span><span id="editor-label">main.cpp</span></div><span id="save-status" role="status">このブラウザに自動保存：読み込み中…</span></div>
+  <div id="editor" aria-labelledby="editor-label"></div>
+</section>
+<section id="panel" class="panel" data-open="false" aria-label="出力パネル">
+  <div id="panel-resize" role="separator" tabindex="0" aria-label="出力パネルの高さ（上下矢印で調整）" aria-orientation="horizontal" aria-controls="panel-body" aria-valuemin="100" aria-valuemax="500" aria-valuenow="240" hidden></div>
+  <div class="panel-header">
+    <div role="tablist" aria-label="出力の種類">
+      <button id="build-tab" role="tab" aria-controls="build-output" aria-selected="true">ビルド結果 <span id="build-phase" data-state="ready">待機</span></button>
+      <button id="serial-tab" role="tab" aria-controls="serial-output" aria-selected="false" tabindex="-1">シリアル <span class="serial-dot" aria-hidden="true"></span></button>
+    </div>
+    <button id="panel-toggle" class="quiet" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開閉">開く ⌃</button>
+  </div>
+  <div id="panel-body" hidden>
+    <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
+      <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
+      <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
+    </div>
+    <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>
+      <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="copy-serial" class="quiet">コピー</button></div></div>
+      <p id="serial-empty" class="empty-message">シリアルモニタは未接続です。接続ボタンからポートを選択できます。</p>
+      <pre id="serial-log" tabindex="0" aria-label="シリアルログ"></pre>
+    </div>
+  </div>
+</section>
+<footer class="status-bar"><span>DigiCode Text <span class="footer-divider">/</span> <span id="cursor-position">行 1、列 1</span></span><span id="ui-notice" role="status"></span><span>C++ <span class="footer-divider">·</span> UTF-8</span></footer>
+</main>
+<script type="module" src="/assets/app.js"></script>
 </body>
 </html>

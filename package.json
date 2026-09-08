@@ -1,0 +1,17 @@
+{
+  "name": "digicode-text",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "start": "node compiler/server.mjs",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "monaco-editor": "0.53.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "esbuild": "0.28.2"
+  }
+}

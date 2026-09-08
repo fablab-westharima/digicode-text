@@ -19,7 +19,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const PIO_PROJECT = path.join(here, 'pio-rp2040');
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 3100);
 const TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS ?? 600_000);
 const ENVS = new Set(['xiao_rp2040', 'pico']);
 const MAX_SOURCE = 256 * 1024;
@@ -73,6 +73,20 @@ function json(res, status, obj) {
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && req.url === '/health') return json(res, 200, { ok: true });
+    if (req.method === 'GET' && req.url.startsWith('/assets/')) {
+      const name = req.url.slice('/assets/'.length);
+      // Only generated flat assets are public; never expose the repo or node_modules.
+      if (!/^[a-zA-Z0-9_.-]+\.(js|css|ttf)$/.test(name)) return json(res, 404, { error: 'not found' });
+      try {
+        const asset = await readFile(path.join(WEB_DIR, 'dist', name));
+        const types = { '.js': 'text/javascript', '.css': 'text/css', '.ttf': 'font/ttf' };
+        res.writeHead(200, { 'content-type': types[path.extname(name)], 'cache-control': 'no-cache' });
+        return res.end(asset);
+      } catch (err) {
+        if (err.code === 'ENOENT') return json(res, 404, { error: 'asset missing; run npm run build:web' });
+        throw err;
+      }
+    }
     if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html')) {
       const html = await readFile(path.join(WEB_DIR, 'index.html'));
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
