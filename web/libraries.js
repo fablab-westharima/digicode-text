@@ -1,4 +1,5 @@
 import { nearbyNames } from './library-suggestions.js';
+import { descriptionText } from './library-description.js';
 import { validateLibraries } from '../shared/libraries.js';
 const $ = id => document.getElementById(id);
 function element(tag, text, className) {
@@ -86,7 +87,7 @@ export function setupLibraries(store, change) {
       const button = element('button', added ? '追加済み · 版を変更' : 'バージョンを選択');
       const area = element('div', '', 'library-detail');
       button.onclick = () => details(p, area, button);
-      heading.append(info, button); row.append(heading, element('p', p.description, 'library-description'), area); results.append(row);
+      heading.append(info, button); row.append(heading, element('p', descriptionText(p.description), 'library-description'), area); results.append(row);
     }
   }
   function showPage(nextPage) {

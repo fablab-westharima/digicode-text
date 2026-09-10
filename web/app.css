@@ -126,7 +126,7 @@ h2 { font-size: 18px; margin: 0 0 16px; }
 .library-title, .library-info { min-width: 0; overflow-wrap: anywhere; }
 .library-info small { display: block; margin-top: 5px; color: var(--muted); }
 .library-result { padding: 16px 0; border-bottom: 1px solid var(--border); }
-.library-description { color: var(--muted); line-height: 1.65; overflow-wrap: anywhere; margin-bottom: 0; }
+.library-description { color: var(--muted); line-height: 1.65; overflow-wrap: anywhere; white-space: pre-line; margin-bottom: 0; }
 .library-controls { display: flex; gap: 8px; margin-top: 8px; }
 #library-query { min-width: 0; flex: 1; padding: 8px 10px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
 #library-status { color: var(--muted); line-height: 1.7; margin: 12px 0 0; }
