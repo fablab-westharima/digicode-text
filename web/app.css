@@ -112,17 +112,26 @@ h2 { font-size: 18px; margin: 0 0 16px; }
 
 #libraries-open { flex-shrink: 0; }
 #libraries-dialog { width: min(820px, calc(100% - 24px)); overflow-y: auto; }
-#libraries-dialog h3 { margin-top: 24px; font-size: 14px; }
+#libraries-dialog .dialog-heading h2 { margin: 0; }
+#libraries-dialog .current-project { margin: 10px 0 14px; }
+#library-search-form { position: sticky; top: -24px; z-index: 1; padding: 10px 0; background: var(--surface); }
+.library-origin { margin-left: 10px; font-size: 10px; color: var(--muted); }
+.library-added-section { margin-top: 8px; }
+#libraries-dialog h3 { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); }
+.library-footnote { margin: 14px 0 0; font-size: 11px; }
+@media (max-width: 600px) { #library-search-form { top: -18px; } }
 #library-added, #library-results { list-style: none; padding: 0; margin: 0; }
 .library-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-#library-added .library-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
+#library-added .library-row { padding: 6px 0; border-bottom: 1px solid var(--border); }
 .library-title, .library-info { min-width: 0; overflow-wrap: anywhere; }
 .library-info small { display: block; margin-top: 5px; color: var(--muted); }
 .library-result { padding: 16px 0; border-bottom: 1px solid var(--border); }
 .library-description { color: var(--muted); line-height: 1.65; overflow-wrap: anywhere; margin-bottom: 0; }
 .library-controls { display: flex; gap: 8px; margin-top: 8px; }
 #library-query { min-width: 0; flex: 1; padding: 8px 10px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
-#library-status { color: var(--accent); line-height: 1.7; }
+#library-status { color: var(--muted); line-height: 1.7; margin: 12px 0 0; }
+#library-status[data-state="loading"] { color: var(--accent); }
+#library-status[data-state="error"] { color: var(--error); }
 .library-error { color: var(--error); }
 @media (max-width: 520px) {
  .library-row { align-items: flex-start; flex-wrap: wrap; }

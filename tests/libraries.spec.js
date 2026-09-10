@@ -47,7 +47,7 @@ test('library CRUD, revision, reload, duplicate independence, switch, JSON and l
     await expect(page.locator('#project-notice')).not.toContainText('読み込みました'); expect((await saved(page)).id).toBe(id);
   }
 });
-test('search failure, no results, stale response, typing has no requests, focus and widths', async ({ page }, info) => {
+test('search failure, no results, stale response, typing automatically searches, focus and widths', async ({ page }, info) => {
   await ready(page); let release, calls = 0;
   await page.route('**/libraries/search?*', async route => {
     calls++; const q = new URL(route.request().url()).searchParams.get('q');
@@ -55,7 +55,7 @@ test('search failure, no results, stale response, typing has no requests, focus 
     await route.fulfill(q === 'fail' ? { status: 502, json: { error: 'Registry接続失敗' } } : { json: { items: q === 'none' ? [] : [{ ...item, description: q }], total: q === 'none' ? 0 : 1 } });
   });
   await page.click('#libraries-open'); await expect(page.locator('#library-query')).toBeFocused();
-  await page.fill('#library-query', 'typing'); expect(calls).toBe(0);
+  await page.fill('#library-query', 'typing'); await expect(page.locator('#library-results')).toContainText('typing'); expect(calls).toBe(1);
   for (const [q, expected] of [['fail', 'Registry接続失敗'], ['none', '該当する']]) {
     await page.fill('#library-query', q); await page.keyboard.press('Enter'); await expect(page.locator('#library-status')).toContainText(expected);
   }

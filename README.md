@@ -60,7 +60,7 @@ C3のビルドでは`portable_paths.py`でコンパイル時のパス置換を�
 
 ### プロジェクトごとのライブラリ管理
 
-上部「ライブラリ」から名前・キーワードを入力し、検索ボタンまたはEnterで検索する。提供者・正式名・Registry IDを確認し、「バージョンを選択」→具体的な版→「プロジェクトに追加」。追加済み一覧から削除でき、検索結果の「追加済み · 版を変更」から明示的に版を変更できる。設定追加はインストール完了を意味せず、実パッケージはBuild時に取得する。対応情報は登録メタデータであり動作保証ではない。`WiFi.h`などコア付属ライブラリは追加不要。
+上部「ライブラリ」から名前・キーワードを入力し、入力停止400ms後に自動検索する。Enterや検索ボタンで即時検索もできる。日本語IME変換中は送信せず、確定後に待機を開始する。提供者・正式名・Registry IDを確認し、「バージョンを選択」→具体的な版→「プロジェクトに追加」。追加済み一覧から削除でき、検索結果の「追加済み · 版を変更」から明示的に版を変更できる。設定追加はインストール完了を意味せず、実パッケージはBuild時に取得する。対応情報は登録メタデータであり動作保証ではない。`WiFi.h`などコア付属ライブラリは追加不要。
 
 対象はPlatformIO Registryのライブラリのみ。プロジェクトごとの`libraries`配列に`{id, owner, name, version}`を保存する（最大32件、具体的なSemVerのみ）。Git URL、パス、ZIP、任意スクリプト指定は受け付けない。ブラウザ保存キーとJSON版はv1のまま任意項目を追加し、項目のない旧プロジェクト/JSONは空配列として復元する。複製・JSON往復も独立した設定を保持。不正指定は拒否し、Build前にはサーバーからRegistryのID・正式名・版の実在も照合する。**ライブラリ管理非対応の旧アプリへ戻すと追加項目を保持できないため、新しいJSONは対応版で使用する。**
 
@@ -68,7 +68,7 @@ Build開始時にコード・board・プロジェクトID/revision・ライブ�
 
 直接依存は`owner/name@version`で固定する。推移的依存の解決はPlatformIOに従い、lockfileによる完全固定はしていない。既存のRP2040 platform/coreも今回固定を追加していないため、ビルド全体の完全再現性は保証しない。Registry接続が必要で、公開ライブラリが持つビルド処理はPlatformIOが実行する。コンパイルサービス自体はOSサンドボックスではなく、従来どおり信頼するローカル利用向け。
 
-Registry接続はPlatformIO Core 6.1.19の公開RegistryClientが使う`https://api.registry.platformio.org/v3/search`と`/v3/packages/{owner}/library/{name}`をサーバーから読み取る。CLIは人向け出力でJSON出力オプションがないため文字列解析はしない。検索は明示操作・10件単位のページ送り、入力変更/再検索/閉じる操作で古い応答を破棄する。外部API変更時は取得失敗として通知する。
+Registry接続はPlatformIO Core 6.1.19の公開RegistryClientが使う`https://api.registry.platformio.org/v3/search`と`/v3/packages/{owner}/library/{name}`をサーバーから読み取る。CLIは人向け出力でJSON出力オプションがないため文字列解析はしない。検索は400msの入力待機（明示操作で即時実行）・10件単位のページ送り、入力変更/再検索/閉じる操作で古い応答を破棄する。外部API変更時は取得失敗として通知する。
 
 参照：[公式の依存管理](https://docs.platformio.org/en/latest/librarymanager/dependencies.html)、[pkg search](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_search.html)、[pkg show](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_show.html)、[Core 6.1.19 RegistryClient](https://github.com/platformio/platformio-core/blob/v6.1.19/platformio/registry/client.py)。
 

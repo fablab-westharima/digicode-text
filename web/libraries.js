@@ -8,8 +8,23 @@ function element(tag, text, className) {
 export function setupLibraries(store, change) {
   const dialog = $('libraries-dialog'), input = $('library-query'), results = $('library-results');
   let generation = 0, controller, page = 1, query = '', items = [];
-  function cancel() { generation++; controller?.abort(); }
-  function message(text) { $('library-status').textContent = text; }
+  let timer, pending, composing = false, compositionEnded = -Infinity;
+  function cancel() {
+    clearTimeout(timer); timer = undefined;
+    generation++; controller?.abort(); pending = undefined;
+  }
+  function message(text, state = '') {
+    $('library-status').textContent = text; $('library-status').dataset.state = state;
+  }
+  function clearResults() {
+    items = []; renderResults(); results.setAttribute('aria-busy', 'false');
+    $('library-next').hidden = $('library-prev').hidden = true;
+  }
+  function inputChanged() {
+    cancel(); clearResults(); page = 1;
+    message(input.value.trim() ? '' : '名前・キーワードを入力');
+    if (!composing && input.value.trim() && dialog.open) timer = setTimeout(() => search(), 400);
+  }
   function apply(next, text) {
     try { change(validateLibraries(next)); renderAdded(); renderResults(); message(text + ' 実パッケージはBuild時に取得します。'); }
     catch (error) { message(error.message); }
@@ -17,7 +32,7 @@ export function setupLibraries(store, change) {
   function renderAdded() {
     $('library-target').textContent = store.current.name;
     const list = $('library-added'); list.replaceChildren();
-    if (!store.current.libraries.length) list.append(element('p', '外部ライブラリはありません', 'storage-hint'));
+    $('library-added-label').textContent = store.current.libraries.length ? '追加済み' : '追加済み：なし';
     for (const p of store.current.libraries) {
       const row = element('li', '', 'library-row');
       row.append(element('div', `${p.owner}/${p.name} · ${p.version}`, 'library-title'));
@@ -52,7 +67,7 @@ export function setupLibraries(store, change) {
         apply(existing ? store.current.libraries.map(x => x.id === p.id ? value : x) : [...store.current.libraries, value], existing ? 'バージョンを変更しました。' : 'プロジェクトに追加しました。');
         results.querySelector(`[data-library-id="${p.id}"] button`)?.focus();
       };
-      controls.append(select, add); area.append(controls); select.focus();
+      controls.append(select, add); area.append(controls); if (document.activeElement === button) select.focus();
     } catch (error) {
       if (current === generation && error.name !== 'AbortError') area.replaceChildren(element('p', error.message, 'library-error'));
     } finally { if (current === generation) button.disabled = false; }
@@ -72,34 +87,48 @@ export function setupLibraries(store, change) {
     }
   }
   async function search(nextPage = 1) {
-    cancel(); controller = new AbortController(); const current = generation;
-    query = input.value.trim(); page = nextPage; items = []; renderResults();
-    $('library-next').hidden = $('library-prev').hidden = true;
-    if (!query) { message('名前やキーワードを入力して検索してください'); return; }
-    message('検索中…'); results.setAttribute('aria-busy', 'true');
+    clearTimeout(timer); timer = undefined;
+    if (!dialog.open || composing) return;
+    const nextQuery = input.value.trim();
+    if (pending?.query === nextQuery && pending.page === nextPage) return;
+    cancel(); clearResults();
+    query = nextQuery; page = nextPage;
+    if (!query) { message('名前・キーワードを入力'); return; }
+    controller = new AbortController(); const current = generation;
+    pending = { query, page };
+    message('検索中…', 'loading'); results.setAttribute('aria-busy', 'true');
     try {
       const response = await fetch('/libraries/search?' + new URLSearchParams({ q: query, page }), { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '検索に失敗しました');
       if (current !== generation || !dialog.open) return;
       items = data.items; renderResults();
-      message(items.length ? `${data.total}件中 ${page}ページ目。提供者とバージョンを確認してください。` : '該当するライブラリはありません');
+      message(items.length ? `${data.total}件 · ${page}ページ目` : '該当するライブラリはありません');
       $('library-next').hidden = !data.more; $('library-prev').hidden = page <= 1;
-    } catch (error) { if (current === generation && error.name !== 'AbortError') message(error.message); }
-    finally { if (current === generation) results.setAttribute('aria-busy', 'false'); }
+    } catch (error) { if (current === generation && error.name !== 'AbortError') message(error.message, 'error'); }
+    finally { if (current === generation) { pending = undefined; results.setAttribute('aria-busy', 'false'); } }
   }
-  input.oninput = () => {
-    cancel(); items = []; renderResults(); results.setAttribute('aria-busy', 'false');
-    $('library-next').hidden = $('library-prev').hidden = true;
-    message('検索ボタンまたはEnterで検索してください');
+  input.oninput = event => {
+    if (event.isComposing) composing = true;
+    inputChanged();
   };
-  $('library-search-form').onsubmit = event => { event.preventDefault(); search(); };
+  input.addEventListener('compositionstart', () => { composing = true; inputChanged(); });
+  input.addEventListener('compositionend', () => {
+    composing = false; compositionEnded = performance.now(); inputChanged();
+  });
+  // Some IMEs end composition just before the confirming Enter keydown.
+  input.onkeydown = event => {
+    if (event.key === 'Enter' && (composing || event.isComposing || event.keyCode === 229 || performance.now() - compositionEnded < 50)) event.preventDefault();
+  };
+  $('library-search-form').onsubmit = event => {
+    event.preventDefault();
+    if (!composing) search();
+  };
   $('library-next').onclick = () => search(page + 1);
   $('library-prev').onclick = () => search(page - 1);
   $('libraries-open').onclick = () => {
-    cancel(); items = []; input.value = ''; renderAdded(); renderResults();
-    $('library-next').hidden = $('library-prev').hidden = true;
-    message('名前やキーワードを入力して検索してください'); dialog.showModal(); input.focus();
+    cancel(); composing = false; compositionEnded = -Infinity; page = 1; input.value = ''; renderAdded(); clearResults();
+    message('名前・キーワードを入力'); dialog.showModal(); input.focus();
   };
   $('libraries-close').onclick = () => dialog.close();
   dialog.addEventListener('close', () => { cancel(); $('libraries-open').focus(); });
