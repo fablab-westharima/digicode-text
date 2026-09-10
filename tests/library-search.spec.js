@@ -51,13 +51,19 @@ test('clear/close cancel timers and stale search/details even if abort is ignore
   await page.click('#libraries-close'); const state = await page.locator('#library-status').textContent(); releaseSearch(); await page.waitForTimeout(100); expect(await page.locator('#library-status').textContent()).toBe(state);
   await page.click('#libraries-open'); await expect(page.locator('#library-results')).toBeEmpty(); await expect(page.locator('#library-query')).toHaveValue('');
 });
-test('pagination retains query, new input resets page, failed request retries only explicitly', async ({ page }) => {
+test('candidate pagination is a fixed deduplicated snapshot; failures retry explicitly', async ({ page }) => {
   let calls = [], failed = false;
-  await page.route('**/libraries/search?*', r => { const p = new URL(r.request().url()).searchParams; const q = p.get('q'), n = Number(p.get('page')); calls.push([q,n]); if (q === 'retry' && !failed) { failed = true; return r.fulfill({ status: 502, json: { error: '取得失敗' } }); } return r.fulfill({ json: result(q,n) }); });
-  await ready(page); await page.fill('#library-query', '  first  '); await expect(page.locator('#library-results')).toContainText('first:1');
-  await page.click('#library-next'); await expect(page.locator('#library-results')).toContainText('first:2'); await page.click('#library-prev'); await expect(page.locator('#library-results')).toContainText('first:1');
-  await page.fill('#library-query', 'retry'); await expect(page.locator('#library-status')).toContainText('取得失敗'); await page.waitForTimeout(700); expect(calls.length).toBe(4);
-  await page.keyboard.press('Enter'); await expect(page.locator('#library-results')).toContainText('retry:1'); expect(calls.at(-1)).toEqual(['retry',1]);
+  await page.route('**/libraries/search?*', r => {
+    const q = new URL(r.request().url()).searchParams.get('q'); calls.push(q);
+    if(q === 'retry' && !failed) { failed = true; return r.fulfill({ status:502,json:{error:'取得失敗'} }); }
+    return r.fulfill({json:{items:Array.from({length:21},(_,i)=>({...item,id:i+1,name:`${q}-${i+1}`})),scope:'candidates',total:21}});
+  });
+  await ready(page); await page.fill('#library-query','first'); await expect(page.locator('#library-results li')).toHaveCount(10);
+  await page.click('#library-next'); await expect(page.locator('#library-results')).toContainText('first-11');
+  await page.click('#library-next'); await expect(page.locator('#library-results li')).toHaveCount(1); await expect(page.locator('#library-results')).toContainText('first-21');
+  await page.click('#library-prev'); await expect(page.locator('#library-results')).toContainText('first-11'); expect(calls).toEqual(['first']);
+  await page.fill('#library-query','retry'); await expect(page.locator('#library-status')).toContainText('取得失敗'); await page.waitForTimeout(600); expect(calls.length).toBe(2);
+  await page.keyboard.press('Enter'); await expect(page.locator('#library-results')).toContainText('retry-1'); await expect(page.locator('#library-prev')).toBeHidden();
 });
 test('Real Registry automatic search and compact responsive layout', async ({ page }, info) => {
   await ready(page); await page.screenshot({ path: info.outputPath('search-empty.png') }); await page.fill('#library-query', 'ArduinoJson');

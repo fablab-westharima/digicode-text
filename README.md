@@ -73,3 +73,9 @@ Registry接続はPlatformIO Core 6.1.19の公開RegistryClientが使う`https://
 参照：[公式の依存管理](https://docs.platformio.org/en/latest/librarymanager/dependencies.html)、[pkg search](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_search.html)、[pkg show](https://docs.platformio.org/en/latest/core/userguide/pkg/cmd_show.html)、[Core 6.1.19 RegistryClient](https://github.com/platformio/platformio-core/blob/v6.1.19/platformio/registry/client.py)。
 
 読み込み用サンプルは`examples/xiao-rp2040-arduinojson.digicode.json`と`examples/xiao-esp32c3-arduinojson.digicode.json`。`bblanchon/ArduinoJson@7.4.3`（Registry #64）のJSON生成・シリアライズを呼ぶ。両系列で実Chrome追加・Build・ダウンロード、削除後のヘッダー不足、同時要求した別プロジェクトへの依存混入防止を検証した。実機実行は未確認。検証コードは`tests/libraries.spec.js`。
+
+検索は入力を引用した通常検索、正式名検索、単語前方一致の`word*`検索（relevance/popularity）を各1ページ取得し、取得した実在の前方一致名から追加検索を最大1回行う。最大5要求・50候補をIDで重複排除し、取得範囲内で名前の完全一致→前方一致→途中一致→関連一致の順に表示する。画面の「取得候補」はRegistry総件数ではない。ページ送りは同じ取得結果を10件ずつ表示し、再取得しない。サーバーは60秒・最大64検索のキャッシュで同一要求をまとめる。一部検索の失敗も取得失敗として通知し、不完全な結果を0件扱いしない。
+
+`serv`からServoとESP32Servo、`arduinoj`からArduinoJson、`BusIO`からAdafruit BusIOの実取得を確認した。Registryのname指定は完全名用で、`name:*文字列*`は途中一致として動かない。今回の方法も任意の名前の途中断片を全Registryから網羅する検索ではなく、全文の単語前方一致と実候補からの拡張で取得できた範囲に限る。見つからない場合は名前の別の部分や長めの語を試す。引用符・バックスラッシュ・制御文字は解釈が曖昧になるため検索入力では明示拒否し、他の記号・複数語は通常/正式名検索で保持する。補助ワイルドカードだけは英数字/Unicode文字の単語から生成し、利用者の制御構文を実行しない。
+
+候補0件の場合の「もしかして」は、そのページセッションで取得した直近最大200 IDの名前だけを対象とする（編集距離2以内・最大3提案）。Registry全体のスペル検索ではない。提案のクリックで初めて検索語を変更する。ページ再読み込みでこの補助辞書は消え、永続収集・AI接続はしない。テストは`node --test compiler/library-search.test.mjs`と既存Playwrightスイート。

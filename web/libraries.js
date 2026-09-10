@@ -1,3 +1,4 @@
+import { nearbyNames } from './library-suggestions.js';
 import { validateLibraries } from '../shared/libraries.js';
 const $ = id => document.getElementById(id);
 function element(tag, text, className) {
@@ -8,6 +9,8 @@ function element(tag, text, className) {
 export function setupLibraries(store, change) {
   const dialog = $('libraries-dialog'), input = $('library-query'), results = $('library-results');
   let generation = 0, controller, page = 1, query = '', items = [];
+  let candidates = [];
+  const seen = new Map();
   let timer, pending, composing = false, compositionEnded = -Infinity;
   function cancel() {
     clearTimeout(timer); timer = undefined;
@@ -17,7 +20,7 @@ export function setupLibraries(store, change) {
     $('library-status').textContent = text; $('library-status').dataset.state = state;
   }
   function clearResults() {
-    items = []; renderResults(); results.setAttribute('aria-busy', 'false');
+    items = []; candidates = []; $('library-suggestions').replaceChildren(); renderResults(); results.setAttribute('aria-busy', 'false');
     $('library-next').hidden = $('library-prev').hidden = true;
   }
   function inputChanged() {
@@ -86,6 +89,23 @@ export function setupLibraries(store, change) {
       heading.append(info, button); row.append(heading, element('p', p.description, 'library-description'), area); results.append(row);
     }
   }
+  function showPage(nextPage) {
+    if (nextPage !== page) { cancel(); controller = new AbortController(); dialog.scrollTop = 0; }
+    page = nextPage; items = candidates.slice((page - 1) * 10, page * 10); renderResults();
+    message(candidates.length ? `取得候補 ${candidates.length}件 · ${page}/${Math.ceil(candidates.length / 10)}ページ（全件ではありません）` : '今回の候補取得では見つかりませんでした');
+    $('library-next').hidden = page * 10 >= candidates.length; $('library-prev').hidden = page <= 1;
+    if (!candidates.length) {
+      const suggestions = nearbyNames(query, seen.values());
+      if (suggestions.length) {
+        const box = $('library-suggestions'); box.append(element('p', 'もしかして（この画面で取得済みの名前）', 'storage-hint'));
+        for (const p of suggestions) {
+          const button = element('button', p.name); button.title = `${p.owner}/${p.name} · Registry #${p.id}`;
+          button.onclick = () => { input.value = p.name; search(); input.focus(); };
+          box.append(button);
+        }
+      }
+    }
+  }
   async function search(nextPage = 1) {
     clearTimeout(timer); timer = undefined;
     if (!dialog.open || composing) return;
@@ -102,9 +122,9 @@ export function setupLibraries(store, change) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '検索に失敗しました');
       if (current !== generation || !dialog.open) return;
-      items = data.items; renderResults();
-      message(items.length ? `${data.total}件 · ${page}ページ目` : '該当するライブラリはありません');
-      $('library-next').hidden = !data.more; $('library-prev').hidden = page <= 1;
+      candidates = data.items;
+      for (const p of candidates) { seen.delete(p.id); seen.set(p.id, p); if (seen.size > 200) seen.delete(seen.keys().next().value); }
+      showPage(1);
     } catch (error) { if (current === generation && error.name !== 'AbortError') message(error.message, 'error'); }
     finally { if (current === generation) { pending = undefined; results.setAttribute('aria-busy', 'false'); } }
   }
@@ -124,8 +144,8 @@ export function setupLibraries(store, change) {
     event.preventDefault();
     if (!composing) search();
   };
-  $('library-next').onclick = () => search(page + 1);
-  $('library-prev').onclick = () => search(page - 1);
+  $('library-next').onclick = () => showPage(page + 1);
+  $('library-prev').onclick = () => showPage(page - 1);
   $('libraries-open').onclick = () => {
     cancel(); composing = false; compositionEnded = -Infinity; page = 1; input.value = ''; renderAdded(); clearResults();
     message('名前・キーワードを入力'); dialog.showModal(); input.focus();

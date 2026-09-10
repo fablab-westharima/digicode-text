@@ -139,3 +139,7 @@ h2 { font-size: 18px; margin: 0 0 16px; }
  .library-controls select { width: auto; max-width: 100%; }
  .brand { flex-basis: 100%; }
 }
+
+#library-suggestions { display: flex; flex-wrap: wrap; gap: 8px; }
+#library-suggestions p { width: 100%; margin: 8px 0 0; }
+#library-suggestions button { max-width: 100%; height: auto; min-height: 34px; white-space: normal; overflow-wrap: anywhere; }

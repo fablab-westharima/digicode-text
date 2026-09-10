@@ -56,7 +56,7 @@ test('search failure, no results, stale response, typing automatically searches,
   });
   await page.click('#libraries-open'); await expect(page.locator('#library-query')).toBeFocused();
   await page.fill('#library-query', 'typing'); await expect(page.locator('#library-results')).toContainText('typing'); expect(calls).toBe(1);
-  for (const [q, expected] of [['fail', 'Registry接続失敗'], ['none', '該当する']]) {
+  for (const [q, expected] of [['fail', 'Registry接続失敗'], ['none', '見つかりません']]) {
     await page.fill('#library-query', q); await page.keyboard.press('Enter'); await expect(page.locator('#library-status')).toContainText(expected);
   }
   await page.fill('#library-query', 'old'); await page.keyboard.press('Enter'); await expect.poll(() => Boolean(release)).toBe(true);
