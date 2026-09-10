@@ -1,0 +1,7 @@
+{
+  "format": "digicode-text-project",
+  "version": 1,
+  "name": "XIAO ESP32C3 Wi-Fiサンプル",
+  "env": "xiao_esp32c3",
+  "source": "#include <Arduino.h>\n#include <WiFi.h>\n\n// Dummy values only. Compile verified; connection to a real network is untested.\nconst char* SSID = \"YOUR_TEST_SSID\";\nconst char* PASSWORD = \"YOUR_TEST_PASSWORD\";\nconst unsigned long CONNECT_TIMEOUT_MS = 15000;\nunsigned long lastReport = 0;\n\nvoid setup() {\n  Serial.begin(115200);\n  WiFi.mode(WIFI_STA);\n  WiFi.begin(SSID, PASSWORD);\n  Serial.println(\"Wi-Fi: connecting (15 second limit)\");\n  const unsigned long started = millis();\n  while (WiFi.status() != WL_CONNECTED && millis() - started < CONNECT_TIMEOUT_MS) {\n    delay(250);\n  }\n  if (WiFi.status() == WL_CONNECTED) {\n    Serial.print(\"Wi-Fi connected, IP: \");\n    Serial.println(WiFi.localIP());\n  } else {\n    Serial.println(\"Wi-Fi timeout; continuing without a connection\");\n    WiFi.disconnect();\n  }\n}\n\nvoid loop() {\n  if (millis() - lastReport >= 5000) {\n    lastReport = millis();\n    Serial.print(\"Wi-Fi status: \");\n    Serial.println(static_cast<int>(WiFi.status()));\n  }\n  delay(10);\n}\n"
+}

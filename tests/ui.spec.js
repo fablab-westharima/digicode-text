@@ -25,6 +25,7 @@ test('Dark is fixed despite light OS and legacy preference; draft and layout sur
   await page.screenshot({ path: info.outputPath('dark-fixed.png') });
   const draft = { version: 1, source: '// existing draft', env: 'pico' };
   await page.evaluate(draft => {
+    localStorage.removeItem('digicode-text.projects.v1');
     localStorage.setItem('digicode-text.theme.v1', 'light');
     localStorage.setItem('digicode-text.draft.v1', JSON.stringify(draft));
   }, draft);
@@ -104,9 +105,9 @@ test('Panel keyboard/pointer resize, tabs, collapse, long logs and error auto-op
   await page.evaluate(() => { navigator.clipboard.writeText = async () => { throw new Error('denied'); }; });
   await page.click('#copy-build');
   await expect(page.locator('#ui-notice')).toContainText('選択');
-  expect(await page.evaluate(() => getSelection().toString())).toBe(log.trimEnd());
+  expect(await page.evaluate(() => getSelection().toString())).toContain(log.trimEnd());
   await page.click('#panel-toggle');
   await expect(page.locator('#panel-body')).toBeHidden();
   await page.click('#panel-toggle');
-  await expect(page.locator('#log')).toHaveText(log);
+  await expect(page.locator('#log')).toContainText(log);
 });

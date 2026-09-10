@@ -12,17 +12,22 @@
 <main class="workspace">
 <header class="toolbar">
   <div class="brand"><span class="brand-mark" aria-hidden="true">&lt;/&gt;</span><h1>DigiCode <span>Text</span></h1></div>
+  <button id="projects-open" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
+  <span id="project-name" title="現在のプロジェクト"></span>
   <div class="build-tools">
     <label class="board-picker"><span>BOARD</span><select id="env" aria-label="ボード">
       <option value="xiao_rp2040">XIAO RP2040</option>
       <option value="pico">Raspberry Pi Pico</option>
+      <option value="xiao_esp32c3">XIAO ESP32C3</option>
     </select></label>
     <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
     <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
   </div>
 </header>
+<input id="project-file" type="file" accept=".json,application/json" hidden>
+<p id="project-notice" role="status"></p>
 <section class="editor-pane" aria-label="コード編集">
-  <div class="file-header"><div class="file-name"><span class="file-icon" aria-hidden="true">C++</span><span id="editor-label">main.cpp</span></div><span id="save-status" role="status">このブラウザに自動保存：読み込み中…</span></div>
+  <div class="file-header"><div class="file-name"><span class="file-icon" aria-hidden="true">C++</span><span id="editor-label">main.cpp</span></div><div class="save-indicator"><span id="save-status" role="status">このブラウザに自動保存：読み込み中…</span><button id="save-retry" class="quiet" hidden>再試行</button></div></div>
   <div id="editor" aria-labelledby="editor-label"></div>
 </section>
 <section id="panel" class="panel" data-open="false" aria-label="出力パネル">
@@ -48,6 +53,30 @@
 </section>
 <footer class="status-bar"><span>DigiCode Text <span class="footer-divider">/</span> <span id="cursor-position">行 1、列 1</span></span><span id="ui-notice" role="status"></span><span>C++ <span class="footer-divider">·</span> UTF-8</span></footer>
 </main>
+<div id="file-menu" role="menu" aria-label="ファイル" hidden>
+  <button id="project-new" role="menuitem" tabindex="-1">新規プロジェクト…</button>
+  <button id="project-open-list" role="menuitem" tabindex="-1">プロジェクトを開く…</button>
+  <hr role="separator">
+  <button id="project-rename" role="menuitem" tabindex="-1">名前を変更…</button>
+  <button id="project-duplicate" role="menuitem" tabindex="-1">複製…</button>
+  <hr role="separator">
+  <button id="project-import" role="menuitem" tabindex="-1">ファイルから読み込む…</button>
+  <button id="project-export" role="menuitem" tabindex="-1">ファイルへ書き出す</button>
+  <hr role="separator">
+  <button id="project-delete" role="menuitem" tabindex="-1" class="danger">プロジェクトを削除…</button>
+</div>
+<dialog id="projects-dialog" aria-labelledby="projects-title">
+  <div class="dialog-heading"><h2 id="projects-title">プロジェクトを開く</h2><button id="projects-close" class="quiet">閉じる</button></div>
+  <p class="storage-hint">このブラウザ内に保存します。同期・バックアップではありません。</p>
+  <p class="current-project">編集中：<strong id="project-target"></strong></p>
+  <p id="project-save-message" role="status"></p>
+  <div id="project-list" aria-label="保存したプロジェクト"></div>
+</dialog>
+<dialog id="name-dialog" aria-labelledby="name-title"><form id="name-form">
+  <h2 id="name-title"></h2><label for="name-input">名前（1〜80文字）</label>
+  <input id="name-input" autocomplete="off"><p id="name-error" role="alert"></p>
+  <div class="manage-actions"><button type="button" id="name-cancel">キャンセル</button><button type="submit" class="primary">確定</button></div>
+</form></dialog>
 <script type="module" src="/assets/app.js"></script>
 </body>
 </html>

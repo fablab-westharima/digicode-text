@@ -14,7 +14,7 @@ async function edit(page, source) {
   else await page.keyboard.press('Backspace');
 }
 async function saved(page) {
-  return page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+  return page.evaluate(() => { const data = JSON.parse(localStorage.getItem('digicode-text.projects.v1')); return data.projects.find(p => p.id === data.activeId); });
 }
 
 test('Monaco editing, indentation, undo/redo, resize, draft/board/empty restoration', async ({ page }) => {
@@ -72,7 +72,8 @@ for (const failure of ['invalid-json', 'invalid-schema', 'quota', 'read-denied']
       await route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ log: 'test compile error' }) });
     });
     await edit(page, '// build despite storage failure');
-    if (failure === 'quota' || failure === 'read-denied') await expect(page.locator('#save-status')).toContainText('保存できません');
+    if (failure === 'quota') await expect(page.locator('#save-status')).toContainText('保存できません');
+    if (failure === 'read-denied') await expect(page.locator('#save-status')).toContainText('上書きを停止');
     await page.click('#build');
     await expect(page.locator('#status')).toContainText('Build失敗（422）');
     expect(sent.source).toBe('// build despite storage failure');

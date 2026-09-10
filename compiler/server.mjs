@@ -1,6 +1,6 @@
 // DigiCode Text compiler — minimal first slice.
 // POST /compile  { env: "xiao_rp2040" | "pico", source: "<main.cpp>" }
-//   -> 200 application/octet-stream (firmware.uf2)   on success
+//   -> 200 UF2 for RP2040, ZIP flash set for XIAO ESP32C3 on success
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
 // GET  /health    -> { ok: true }
@@ -16,12 +16,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PIO_PROJECT = path.join(here, 'pio-rp2040');
+const RP2040_PROJECT = path.join(here, 'pio-rp2040');
+const BOARDS = new Map([
+  ['xiao_rp2040', { project: RP2040_PROJECT, extension: 'uf2', contentType: 'application/octet-stream' }],
+  ['pico', { project: RP2040_PROJECT, extension: 'uf2', contentType: 'application/octet-stream' }],
+  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), extension: 'zip', contentType: 'application/zip' }],
+]);
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);
 const TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS ?? 600_000);
-const ENVS = new Set(['xiao_rp2040', 'pico']);
+
 const MAX_SOURCE = 256 * 1024;
 
 let queue = Promise.resolve();
@@ -31,9 +36,9 @@ function serialised(fn) {
   return run;
 }
 
-function runPio(env) {
+function runPio(env, project) {
   return new Promise((resolve) => {
-    const child = spawn(PIO_BIN, ['run', '-e', env], { cwd: PIO_PROJECT });
+    const child = spawn(PIO_BIN, ['run', '-e', env], { cwd: project });
     let log = '';
     const onData = (d) => { log += d.toString(); if (log.length > 1_000_000) log = log.slice(-500_000); };
     child.stdout.on('data', onData);
@@ -46,13 +51,14 @@ function runPio(env) {
 
 async function compile(env, source) {
   return serialised(async () => {
-    await writeFile(path.join(PIO_PROJECT, 'src', 'main.cpp'), source, 'utf8');
+    const board = BOARDS.get(env);
+    await writeFile(path.join(board.project, 'src', 'main.cpp'), source, 'utf8');
     const started = Date.now();
-    const { code, log } = await runPio(env);
+    const { code, log } = await runPio(env, board.project);
     const durationMs = Date.now() - started;
     if (code !== 0) return { ok: false, log, durationMs };
-    const uf2 = await readFile(path.join(PIO_PROJECT, '.pio', 'build', env, 'firmware.uf2'));
-    return { ok: true, uf2, log, durationMs };
+    const artifact = await readFile(path.join(board.project, '.pio', 'build', env, `firmware.${board.extension}`));
+    return { ok: true, artifact, board, log, durationMs };
   });
 }
 
@@ -96,16 +102,16 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse(await readBody(req, MAX_SOURCE + 4096));
       const env = String(body.env ?? 'xiao_rp2040');
       const source = String(body.source ?? '');
-      if (!ENVS.has(env)) return json(res, 400, { error: `unknown env: ${env}` });
+      if (!BOARDS.has(env)) return json(res, 400, { error: `unknown env: ${env}` });
       if (!source.trim()) return json(res, 400, { error: 'source is empty' });
       const r = await compile(env, source);
       if (!r.ok) return json(res, 422, { error: 'compile failed', log: r.log.slice(-20_000), durationMs: r.durationMs });
       res.writeHead(200, {
-        'content-type': 'application/octet-stream',
-        'content-disposition': `attachment; filename="firmware-${env}.uf2"`,
+        'content-type': r.board.contentType,
+        'content-disposition': `attachment; filename="firmware-${env}.${r.board.extension}"`,
         'x-compile-duration-ms': String(r.durationMs),
       });
-      return res.end(r.uf2);
+      return res.end(r.artifact);
     }
     json(res, 404, { error: 'not found' });
   } catch (err) {
