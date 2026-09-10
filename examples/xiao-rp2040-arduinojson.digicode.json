@@ -1,0 +1,15 @@
+{
+  "format": "digicode-text-project",
+  "version": 1,
+  "name": "XIAO RP2040 ArduinoJson",
+  "source": "#include <Arduino.h>\n#include <ArduinoJson.h>\n\nvoid setup() {\n  Serial.begin(115200);\n}\n\nvoid loop() {\n  JsonDocument doc;\n  doc[\"message\"] = \"DigiCode library test\";\n  doc[\"value\"] = 42;\n  serializeJson(doc, Serial);\n  Serial.println();\n  delay(1000);\n}\n",
+  "env": "xiao_rp2040",
+  "libraries": [
+    {
+      "id": 64,
+      "owner": "bblanchon",
+      "name": "ArduinoJson",
+      "version": "7.4.3"
+    }
+  ]
+}

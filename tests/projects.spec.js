@@ -76,7 +76,7 @@ test('export/import roundtrip, validation, HTML inert', async ({ page }, info) =
   await ready(page); await edit(page, '// <script>alert(1)</script>'); await page.selectOption('#env', 'pico');
   await name(page, 'rename', '<img src=x onerror=alert(1)>'); await closeList(page);
   const first = (await data(page)).activeId; const value = await exportFile(page, info);
-  expect(Object.keys(value).sort()).toEqual(['env','format','name','source','version']);
+  expect(Object.keys(value).sort()).toEqual(['env','format','libraries','name','source','version']);
   await importFile(page, value); await expect(page.locator('#project-notice')).toContainText('読み込みました');
   expect((await data(page)).activeId).not.toBe(first); expect((await data(page)).projects).toHaveLength(2);
   expect(await exportFile(page, info)).toEqual(value);

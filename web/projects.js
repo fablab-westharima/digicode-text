@@ -1,3 +1,4 @@
+import { validateLibraries } from '../shared/libraries.js';
 export const PROJECT_KEY = 'digicode-text.projects.v1';
 export const DRAFT_KEY = 'digicode-text.draft.v1';
 export const MAX_FILE = 2 * 1024 * 1024;
@@ -8,6 +9,7 @@ export function validName(name) {
 }
 export function validateContent(value, limitSize = true) {
   validName(value?.name);
+  validateLibraries(value?.libraries);
   if (typeof value.source !== 'string') throw new Error('main.cppのコードは文字列で指定してください');
   if (limitSize && new TextEncoder().encode(value.source).length > 1024 * 1024) throw new Error('コードは1 MiB以内にしてください');
   if (!boards.has(value.env)) throw new Error('未対応のboardです');
@@ -18,11 +20,11 @@ export function parseProject(text) {
   try { value = JSON.parse(text); } catch { throw new Error('JSONの形式が正しくありません'); }
   if (value?.format !== 'digicode-text-project' || value.version !== 1) throw new Error('未対応のファイル形式・バージョンです');
   validateContent(value);
-  return { name: validName(value.name), source: value.source, env: value.env };
+  return { name: validName(value.name), source: value.source, env: value.env, libraries: validateLibraries(value.libraries) };
 }
-export function makeProject(name, source, env = 'xiao_rp2040') {
+export function makeProject(name, source, env = 'xiao_rp2040', libraries = []) {
   const now = new Date().toISOString();
-  return { id: crypto.randomUUID(), name: validName(name), source, env, createdAt: now, updatedAt: now, revision: 0 };
+  return { id: crypto.randomUUID(), name: validName(name), source, env, libraries: validateLibraries(libraries), createdAt: now, updatedAt: now, revision: 0 };
 }
 
 // One writer per origin, held for the document lifetime. Saves themselves are synchronous,
@@ -52,6 +54,7 @@ export async function openProjects(hello, status) {
         if (typeof p.id !== 'string' || !p.id || ids.has(p.id) || !Number.isSafeInteger(p.revision) || p.revision < 0 ||
             typeof p.createdAt !== 'string' || !Number.isFinite(Date.parse(p.createdAt)) ||
             typeof p.updatedAt !== 'string' || !Number.isFinite(Date.parse(p.updatedAt))) throw new Error();
+        p.libraries = validateLibraries(p.libraries);
         ids.add(p.id);
       }
     }
@@ -105,8 +108,8 @@ export async function openProjects(hello, status) {
     get current() { return data.projects.find(p => p.id === data.activeId); },
     get dirty() { return dirty; },
     save,
-    edit(source, env) {
-      Object.assign(store.current, { source, env, revision: store.current.revision + 1, updatedAt: new Date().toISOString() });
+    edit(source, env, libraries = store.current.libraries) {
+      Object.assign(store.current, { source, env, libraries: validateLibraries(libraries), revision: store.current.revision + 1, updatedAt: new Date().toISOString() });
       dirty = true; save();
     },
     transact(change) {

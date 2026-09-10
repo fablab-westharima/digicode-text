@@ -92,12 +92,14 @@ test('Panel keyboard/pointer resize, tabs, collapse, long logs and error auto-op
   await page.click('#build');
   await expect.poll(() => Boolean(release)).toBe(true);
   await expect(page.locator('#build-phase')).toContainText('実行中');
-  await page.screenshot({ path: info.outputPath('building-mock.png') });
+  // Chromium capture can stall while this deliberately intercepted request is pending.
+  // Verify the building state above; capture the completed error panel below.
   await page.click('#panel-toggle');
   await expect(page.locator('#panel-body')).toBeHidden();
   release();
   await expect(page.locator('#build-output')).toBeVisible();
   await expect(page.locator('#status')).toContainText('Build失敗');
+  await page.screenshot({ path: info.outputPath('error-mock.png'), timeout: 20_000 });
   const overflow = await page.locator('#log').evaluate(el => ({ x: el.scrollWidth > el.clientWidth, y: el.scrollHeight > el.clientHeight }));
   expect(overflow).toEqual({ x: true, y: true });
   await fits(page);

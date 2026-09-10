@@ -3,6 +3,7 @@ import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
+import { setupLibraries } from './libraries.js';
 import { setupUI } from './ui.js';
 import { openProjects, makeProject, validName, parseProject, MAX_FILE } from './projects.js';
 
@@ -88,7 +89,7 @@ $('build').onclick = async () => {
   ui.openPanel('build');
   $('build').disabled = true;
   invalidateDownload();
-  const snapshot = { projectId: store.current.id, name: store.current.name, source: editor.getValue(), env: $('env').value, revision, projectRevision: store.current.revision };
+  const snapshot = { projectId: store.current.id, name: store.current.name, source: editor.getValue(), env: $('env').value, libraries: structuredClone(store.current.libraries), revision, projectRevision: store.current.revision };
   const sameProject = () => store.current.id === snapshot.projectId && revision === snapshot.revision;
   const obsolete = () => {
     ui.setBuildState('changed');
@@ -101,7 +102,7 @@ $('build').onclick = async () => {
   try {
     const res = await fetch('/compile', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ source: snapshot.source, env: snapshot.env }),
+      body: JSON.stringify({ source: snapshot.source, env: snapshot.env, libraries: snapshot.libraries, projectId: snapshot.projectId, projectRevision: snapshot.projectRevision }),
     });
     if (res.ok) {
       const blob = await res.blob();
@@ -122,7 +123,7 @@ $('build').onclick = async () => {
       ui.setBuildState('error');
       ui.openPanel('build');
       $('status').textContent = `Build失敗（${res.status}）${revision !== snapshot.revision ? '：編集前のコードの結果です' : ''}`;
-      $('log').textContent = `対象: ${snapshot.name} / ${snapshot.projectId} / ${snapshot.env} / revision ${snapshot.projectRevision}\n` + (j.log ?? j.error ?? 'エラー内容を取得できませんでした');
+      $('log').textContent = `対象: ${snapshot.name} / ${snapshot.projectId} / ${snapshot.env} / revision ${snapshot.projectRevision}\n` + ([j.error, j.log].filter(Boolean).join('\n') || 'エラー内容を取得できませんでした');
       // Bring the first compiler diagnostic into view, past PlatformIO's preamble.
       const errorLine = $('log').textContent.split('\n').findIndex(line => /(?:fatal )?error:/i.test(line));
       $('log').scrollTop = Math.max(0, errorLine - 2) * parseFloat(getComputedStyle($('log')).lineHeight);
@@ -254,7 +255,7 @@ $('name-form').onsubmit = event => {
       if (nameAction === 'rename') {
         store.current.name = name; store.current.updatedAt = new Date().toISOString();
       } else {
-        const p = makeProject(name, nameAction === 'new' ? HELLO : store.current.source, nameAction === 'new' ? 'xiao_rp2040' : store.current.env);
+        const p = makeProject(name, nameAction === 'new' ? HELLO : store.current.source, nameAction === 'new' ? 'xiao_rp2040' : store.current.env, nameAction === 'new' ? [] : store.current.libraries);
         data.projects.push(p); data.activeId = p.id;
       }
     });
@@ -273,7 +274,7 @@ $('project-delete').onclick = () => {
 };
 $('project-export').onclick = () => {
   const p = store.current;
-  const blob = new Blob([JSON.stringify({ format: 'digicode-text-project', version: 1, name: p.name, source: editor.getValue(), env: $('env').value }, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ format: 'digicode-text-project', version: 1, name: p.name, source: editor.getValue(), env: $('env').value, libraries: p.libraries }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = p.name.replace(/[\/:*?"<>|\x00-\x1f]/g, '_') + '.digicode.json';
@@ -288,7 +289,7 @@ $('project-file').onchange = async event => {
     if (file.size > MAX_FILE) throw new Error('JSONファイルは2 MiB以内にしてください');
     const value = parseProject(await file.text());
     if (store.transact(data => {
-      const p = makeProject(value.name, value.source, value.env);
+      const p = makeProject(value.name, value.source, value.env, value.libraries);
       data.projects.push(p); data.activeId = p.id;
     })) { activate(); $('project-notice').textContent = '新しいプロジェクトとして読み込みました'; }
     else $('project-notice').textContent = '保存できないため読み込みを止めました。現在の編集を書き出して退避してください';
@@ -296,3 +297,5 @@ $('project-file').onchange = async event => {
 };
 $('save-retry').onclick = () => store.save();
 renderProjects();
+
+setupLibraries(store, libraries => { store.current.libraries = libraries; changed(); });

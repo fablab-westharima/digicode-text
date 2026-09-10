@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -65,6 +66,7 @@ test('Actual C3 hello and WiFi builds, ZIP metadata and binary equality', async 
       const downloading=page.waitForEvent('download'); await page.click('#download'); const download=await downloading;
       expect(download.suggestedFilename()).toBe('firmware-xiao_esp32c3.zip');
       const path=info.outputPath(kind+'.zip'); await download.saveAs(path);
+      expect(createHash('sha256').update(await readFile(path)).digest('hex')).toBe(res.headers()['x-artifact-sha256']);
       const result=execFileSync('python3',[new URL('./verify-c3.py',import.meta.url).pathname,path],{encoding:'utf8'});
       console.log(kind+': '+result.trim());
       await page.screenshot({path:info.outputPath('real-c3-'+kind+'.png')});

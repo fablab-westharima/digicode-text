@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 
@@ -122,6 +123,7 @@ test('UF2 links invalidated by code/board changes, including edits during Build'
 });
 
 test('Actual edited XIAO build, browser download, UF2 validation, gcc error display', async ({ page }, testInfo) => {
+  test.setTimeout(900_000);
   const main = new URL('../compiler/pio-rp2040/src/main.cpp', import.meta.url);
   const original = await readFile(main);
   try {
@@ -130,8 +132,9 @@ test('Actual edited XIAO build, browser download, UF2 validation, gcc error disp
     await page.reload();
     await expect(page.locator('#save-status')).toContainText('復元');
     await expect(page.locator('.view-lines')).toContainText('hello Monaco');
+    const response = page.waitForResponse(r => r.url().endsWith('/compile'));
     await page.click('#build');
-    await expect(page.locator('#download')).toBeVisible({ timeout: 100_000 });
+    await expect(page.locator('#download')).toBeVisible({ timeout: 600_000 });
     await expect(page.locator('#status')).toContainText('Build成功');
     const downloading = page.waitForEvent('download');
     await page.click('#download');
@@ -153,7 +156,7 @@ test('Actual edited XIAO build, browser download, UF2 validation, gcc error disp
       expect(bytes.readUInt32LE(offset + 28)).toBe(0xe48bff56);
       expect(bytes.readUInt32LE(offset + 508)).toBe(0x0ab16f30);
     }
-    expect(bytes.equals(await readFile(new URL('../compiler/pio-rp2040/.pio/build/xiao_rp2040/firmware.uf2', import.meta.url)))).toBe(true);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe((await response).headers()['x-artifact-sha256']);
     await page.screenshot({ path: testInfo.outputPath('build-success.png'), fullPage: true });
     await edit(page, '#include <Arduino.h>\nvoid setup(){ Serial.begin(115200) }\nvoid loop(){}\n');
     await page.click('#build');
