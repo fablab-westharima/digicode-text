@@ -4,6 +4,7 @@ import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
 import { setupLibraries } from './libraries.js';
+import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
 import { openProjects, makeProject, validName, parseProject, MAX_FILE } from './projects.js';
 
@@ -58,6 +59,8 @@ editor.onDidChangeCursorPosition(({ position }) => {
 
 let revision = 0;
 let building = false;
+let ai;
+let lastBuildFailure = null;
 let downloadUrl;
 function invalidateDownload() {
   $('download').hidden = true;
@@ -69,6 +72,7 @@ let switching = false;
 function changed() {
   if (switching) return;
   revision++;
+  lastBuildFailure = null;
   ui.setBuildState(building ? 'building' : 'changed');
   invalidateDownload();
   $('status').textContent = building
@@ -76,6 +80,7 @@ function changed() {
     : '変更あり：Buildしてください';
   store.edit(editor.getValue(), $('env').value);
   renderProjects();
+  ai?.changed();
 }
 editor.onDidChangeModelContent(changed);
 $('env').addEventListener('change', changed);
@@ -85,6 +90,7 @@ $('status').textContent = 'Buildできます';
 $('build').onclick = async () => {
   if (building) return;
   building = true;
+  lastBuildFailure = null;
   ui.setBuildState('building');
   ui.openPanel('build');
   $('build').disabled = true;
@@ -124,6 +130,7 @@ $('build').onclick = async () => {
       ui.openPanel('build');
       $('status').textContent = `Build失敗（${res.status}）${revision !== snapshot.revision ? '：編集前のコードの結果です' : ''}`;
       $('log').textContent = `対象: ${snapshot.name} / ${snapshot.projectId} / ${snapshot.env} / revision ${snapshot.projectRevision}\n` + ([j.error, j.log].filter(Boolean).join('\n') || 'エラー内容を取得できませんでした');
+      lastBuildFailure = { ...snapshot, stage: j.stage === 'dependencies' ? 'dependencies' : j.stage === 'compile' ? 'compile' : 'request', log: $('log').textContent.slice(0, 24000) };
       // Bring the first compiler diagnostic into view, past PlatformIO's preamble.
       const errorLine = $('log').textContent.split('\n').findIndex(line => /(?:fatal )?error:/i.test(line));
       $('log').scrollTop = Math.max(0, errorLine - 2) * parseFloat(getComputedStyle($('log')).lineHeight);
@@ -134,6 +141,7 @@ $('build').onclick = async () => {
     ui.openPanel('build');
     $('status').textContent = 'Build通信に失敗しました。再実行できます';
     $('log').textContent = String(e);
+    lastBuildFailure = { ...snapshot, stage: 'network', log: 'ローカルBuildサーバーとの通信に失敗しました' };
   } finally {
     building = false;
     $('build').disabled = false;
@@ -170,6 +178,7 @@ function activate() {
   $('env').value = store.current.env;
   switching = false;
   revision++;
+  lastBuildFailure = null;
   invalidateDownload();
   ui.setBuildState(building ? 'building' : 'ready');
   $('status').textContent = building ? '以前のプロジェクトをBuild中です' : 'Buildできます';
@@ -177,6 +186,7 @@ function activate() {
   renderProjects();
   $('projects-dialog').close();
   editor.focus();
+  ai?.changed();
 }
 let nameAction;
 function askName(action, title, value) {
@@ -299,3 +309,24 @@ $('save-retry').onclick = () => store.save();
 renderProjects();
 
 setupLibraries(store, libraries => { store.current.libraries = libraries; changed(); });
+
+function aiSnapshot() {
+  const model = editor.getModel();
+  return { projectId: store.current.id, projectRevision: store.current.revision, revision,
+    modelIdentity: model, modelVersion: model.getVersionId(), source: editor.getValue(),
+    env: $('env').value, libraries: structuredClone(store.current.libraries) };
+}
+function matchesAI(s) {
+  const now = aiSnapshot();
+  return ['projectId', 'projectRevision', 'revision', 'modelIdentity', 'modelVersion', 'source', 'env'].every(key => now[key] === s[key])
+    && JSON.stringify(now.libraries) === JSON.stringify(s.libraries);
+}
+ai = setupAI(monaco, {
+  snapshot: aiSnapshot, matches: matchesAI, dirty: () => store.dirty,
+  failure: s => lastBuildFailure && lastBuildFailure.projectId === s.projectId && lastBuildFailure.revision === s.revision && lastBuildFailure.projectRevision === s.projectRevision ? lastBuildFailure : null,
+  apply: source => {
+    editor.pushUndoStop();
+    editor.executeEdits('ai-main-cpp', [{ range: editor.getModel().getFullModelRange(), text: source, forceMoveMarkers: true }]);
+    editor.pushUndoStop();
+  },
+});

@@ -37,6 +37,22 @@ USB・実機操作は別途Humanの明示許可が必要。実機書き込み・
 
 実機書き込みの確認、C3以外のESP32追加、esptool-jsによるブラウザ書き込み、device、Docker 化、認証、複数ユーザー対応。
 
+## AI開発支援
+
+上部「AI支援」→「API設定」でOpenAI／Claudeの利用者APIキーを入力する。ブラウザから提供元の固定APIへ直接送信し、NodeサーバーはAI要求・会話・キーを中継しない。入力だけならページ内で利用し、「このブラウザに保存」で提供元ごとにキー・モデル・API方式を保存／復元する。「キー・保存設定を削除」は選択中の提供元だけを消去する。ブラウザ保存は暗号化保管ではない。プロジェクトJSON・Build要求にAI設定を含めない。保存・設定変更だけではAI要求を送らない。
+
+「相談する」「生成・修正」「Buildエラー相談」を利用できる。コード・ボード・直接依存と版を送り、Buildエラー相談には現在の内容と一致する失敗ログだけを添える。「送信内容」でコンテキストを確認できる。生成は完全なmain.cppの全体置換で、初期値は**自動適用**。「確認して適用」ではMonaco差分を表示し、適用・破棄・コピーを選べる。適用モードはブラウザのUI設定として保存し、要求開始時の選択を固定する。適用はUndo 1回で戻せ、既存の保存・revision・成果物無効化を通る。適用済みと保存済みを区別する。生成中や差分表示後に編集・ボード／依存変更・プロジェクト切替があれば上書きせず、古い提案はコピー用に残す。
+
+会話はプロジェクトと提供元ごとにページ内保持（最大20対象、各12往復・32,000文字）。相談から生成へ引き継ぎ、過去のコードブロックは重複を避けて省略する。会話消去はコードを消さない。現在のコードは256 KiB、指示は16,000文字、出力は16,384 token（推論分を含むAPIあり）、取得テキストは256 KiBまで。入力の黙った切り詰めはせず、出力打ち切り・拒否・空・曖昧な候補は適用しない。形式検査はコンパイル成功を保証しない。AIは自動Build・ライブラリ追加・ボード変更・実機操作を行わない。生成後は利用者がBuildで確認する。
+
+標準fetchでOpenAI Responses／Chat CompletionsとAnthropic Messagesを使用する。初期モデルは`gpt-5-mini`（Responses、reasoning low）と`claude-sonnet-5`（Messages）。候補に`gpt-5.3-codex`（Responses）、`gpt-4.1-mini`（Chat Completions）、`claude-haiku-4-5`を用意し、モデルID自由入力とAPI方式指定も可能。候補は公式モデル資料で確認した静的一覧で、アカウントの利用権限を保証しない。Codex APIモデルとCLI／サブスク認証は別物であり、後者は使用しない。
+
+通信は非ストリーミング・1操作1要求・自動再送なし。中止と3分タイムアウトがあり、提供側の生成停止・無課金は保証しない。Anthropicにはブラウザ直送用ヘッダーを付ける。OpenAIはブラウザへの秘密キー配置を推奨していないため、本人のキーを本人のブラウザで扱うという製品方針での利用となる。実キーでの接続・CORS・モデル権限・生成品質は未検証。接続失敗時もサーバー中継やCORS回避へ切り替えない。
+
+公式確認日：2026-09-11。[GPT-5 Mini](https://developers.openai.com/api/docs/models/gpt-5-mini)は明確な小規模コード課題の費用・速度を考慮した初期値、[Sonnet 5](https://platform.claude.com/docs/en/models/sonnet-5/overview)はコード支援の品質と速度を考慮した初期値。[Codexモデル](https://developers.openai.com/api/docs/models/gpt-5.3-codex)、[Responses](https://developers.openai.com/api/reference/typescript/resources/responses/methods/create)、[Messages](https://platform.claude.com/docs/en/api/messages/create)、[Anthropicブラウザ利用](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript)、[OpenAI認証](https://developers.openai.com/api/reference/overview)。
+
+AIのモック検証はサーバー起動後`npm run test:browser -- tests/ai.spec.js`。独立ブラウザ・ダミーキーを使い、外部HTTPを捕捉／遮断する。実API課金要求はテストに含めない。
+
 ## 進め方と過去の記録
 
 進め方は `CLAUDE.md`。2026-08 の調査・設計・裁定は `prompt/maintenance/local/legacy/` にメモとして残している。
