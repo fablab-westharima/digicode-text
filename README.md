@@ -51,13 +51,17 @@ USB・実機操作は別途Humanの明示許可が必要。実機書き込み・
 
 回答は通常テキストとして受けたJSONの `kind`（`answer`／`change`）、`message`（説明）、`source`（回答ならnull、変更なら完全main.cpp）の厳密な3項目で検査する。全APIで同じ契約を使い、自由入力モデルへ未確認の構造化出力パラメーターを送らない。正常終了・単一候補・型・サイズ・重複フィールドを確認し、不正なら適用・自動再送をしない。通常回答のコードブロックは適用対象にしない。制御JSONは表示せず、変更コードは該当回答内の「生成されたmain.cpp」に保持する。自動判断の完全な正確さは保証できず、既存の差分確認・競合拒否・Undoで操作を保護する。
 
-説明は「全体の目的→起動後の動きと出力→重要な条件・制限」の順で、通常2〜4短段落または3〜5項目を目安にする。逐次説明は詳しさを求められたときに行う。通常操作はDigiCode Textのボード選択・ライブラリ画面・Buildで案内し、依存設定とパッケージ取得成功、ソースの処理とコア内部の挙動を区別する。ソースコメントをAI自身の検証事実とは扱わない。Humanは前回UI変更後の不要な全文再掲・外部IDE案内の解消を確認したが、今回の意図判断・説明粒度・JSON契約の実モデル品質は未確認。
+回答指示は最新の依頼に合わせる。「簡単に説明」は目的・主要動作・必要条件を短い2〜3段落または3〜5項目、「改善案だけ」は概要を再掲せず重要な2〜3案と効果、「変更理由」は直前の変更理由と影響を中心にする。詳しい説明は依頼に応じて行い、毎回答の固定見出しや末尾の提案を要求しない。タイマーの初回実行は初期値・条件・到達までの処理を踏まえ、スケッチの待機とOS／他タスクの停止を混同しない。検証記録がない場合は確認状況が不明なのであり、未検証と断定しない。通常操作はアプリのボード・ライブラリ・Buildで案内する。
+
+履歴へは回答文と簡潔なコード適用状態（pending/applied/discarded/stale）を渡し、画面のUndo案内やBuild注意文を再送しない。現在のソースを正本とし、履歴の適用状態をBuild・実機成功とは扱わない。改行はJSON各層を1回ずつデコードし、本文を一律置換・二重デコードしない。モデルには通常文章の改行を過剰エスケープしないよう指示する。生成コードは折り畳みを開けば全文を選択できる。閉じた状態のコピーではコードが含まれない場合がある。
+
+HumanはOpenAIで5000→2000の変更応答と適用／保存済み表示、改善案のみの非適用を確認した。変更後のBuild・実機・Undo・再読み込み保存の実確認まで済んだとは扱わない。簡潔さ、重複説明、条件付き挙動の説明には課題があり、今回指示を整理した。改善後の回答品質はHumanによる実API確認待ち。
 
 ブラウザから提供元の固定APIへ直接送信し、NodeはAI要求・会話・キーを中継しない。プロジェクトJSON・Build要求へAI設定を含めない。コード256 KiB、指示16,000文字、出力16,384 token、復号した説明／コード各256 KiB、制御JSON 1 MiB、HTTP応答2 MiBを上限とし、打ち切り・拒否・曖昧な候補は適用しない。生成コードは利用者がBuildで確認する。AIはBuild・依存追加・ボード変更・実機操作を自動実行しない。
 
 標準fetchでOpenAI Responses／Chat CompletionsとAnthropic Messagesを使用する。初期モデルは`gpt-5-mini`（Responses、reasoning low）と`claude-sonnet-5`（Messages）。候補に`gpt-5.3-codex`（Responses）、`gpt-4.1-mini`（Chat Completions）、`claude-haiku-4-5`を用意し、モデルID自由入力とAPI方式指定も可能。候補は公式モデル資料で確認した静的一覧で、アカウントの利用権限を保証しない。Codex APIモデルとCLI／サブスク認証は別物であり、後者は使用しない。
 
-通信は非ストリーミング・1操作1要求・自動再送なし。中止と3分タイムアウトがあり、提供側の生成停止・無課金は保証しない。Anthropicにはブラウザ直送用ヘッダーを付ける。OpenAIはブラウザへの秘密キー配置を推奨していないため、本人のキーを本人のブラウザで扱うという製品方針での利用となる。Humanから、当該環境のOpenAI／gpt-5-miniで日本語のコード説明を受信したとの確認を受けた（2026-09-12）。Codex自身の実API検証ではなく、Claude接続・コード生成や適用・生成コードのBuild成功を確認した意味ではない。今回のUI変更後の実接続・回答品質は再検証していない。接続失敗時もサーバー中継やCORS回避へ切り替えない。
+通信は非ストリーミング・1操作1要求・自動再送なし。中止と3分タイムアウトがあり、提供側の生成停止・無課金は保証しない。Anthropicにはブラウザ直送用ヘッダーを付ける。OpenAIはブラウザへの秘密キー配置を推奨していないため、本人のキーを本人のブラウザで扱うという製品方針での利用となる。Humanから、当該環境のOpenAI／gpt-5-miniで日本語のコード説明を受信したとの確認を受けた（2026-09-12）。Codex自身の実API検証ではなく、Claude接続や生成コードのBuild成功を確認した意味ではない。上記の追加Human確認と今回のモック検証を区別し、Codexは実APIを再検証していない。接続失敗時もサーバー中継やCORS回避へ切り替えない。
 
 公式確認日：2026-09-11。[GPT-5 Mini](https://developers.openai.com/api/docs/models/gpt-5-mini)は明確な小規模コード課題の費用・速度を考慮した初期値、[Sonnet 5](https://platform.claude.com/docs/en/models/sonnet-5/overview)はコード支援の品質と速度を考慮した初期値。[Codexモデル](https://developers.openai.com/api/docs/models/gpt-5.3-codex)、[Responses](https://developers.openai.com/api/reference/typescript/resources/responses/methods/create)、[Messages](https://platform.claude.com/docs/en/api/messages/create)、[Anthropicブラウザ利用](https://platform.claude.com/docs/en/cli-sdks-libraries/sdks/typescript)、[OpenAI認証](https://developers.openai.com/api/reference/overview)。
 

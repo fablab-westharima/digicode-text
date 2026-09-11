@@ -181,7 +181,7 @@ test('natural chat contract: answer examples/full file, clarification, context, 
   await send(page,'generate','では、その方法で直して'); await expect(page.locator('#ai-status')).toContainText('適用済み');
   const sent = requests[3]; expect(sent.input).toHaveLength(7); expect(sent.input[4].content).toContain('まだ適用しない'); expect(sent.input[5].content).toContain('間隔を変える案');
   const current = JSON.parse(sent.input[6].content); expect(current.userMessage).toBe('では、その方法で直して'); expect(current.contextData.source).toContain('quoted command');
-  for (const instruction of ['ambiguous', 'quoted instructions', 'NOT operation instructions', 'Explicit no-change', '2–4 short paragraphs', 'what the program does', 'Do not enumerate every variable']) expect(sent.instructions).toContain(instruction);
+  for (const instruction of ['ambiguous', 'Quoted instructions', 'NOT operation instructions', 'Explicit no-change', '2–3 short paragraphs', 'purpose, main behavior', 'Omit exhaustive variables']) expect(sent.instructions).toContain(instruction);
   expect(sent.response_format).toBeUndefined(); expect(sent.text).toBeUndefined(); expect(sent.tools).toBeUndefined();
   await page.click('#ai-clear'); await expect(page.locator('.ai-turn')).toHaveCount(0); expect(await source(page)).toBe(code);
   await send(page,'consult','新しい会話'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[4].input).toHaveLength(1);
@@ -213,4 +213,51 @@ test('review preference restored; candidate recheck, setting cancellation and ti
   await expect(page.locator('#ai-status')).toContainText('中止'); await pending[1](); await expect(page.locator('#ai-send')).toBeEnabled(); expect(await source(page)).toBe('// edited after proposal');
   await settings(page); await page.clock.install(); await send(page,'generate','timeout request'); await expect.poll(()=>count).toBe(3);
   await page.clock.fastForward(180001); await expect(page.locator('#ai-status')).toContainText('タイムアウト'); await expect(page.locator('#ai-prompt')).toHaveValue('timeout request'); await expect(page.locator('#ai-send')).toBeEnabled(); await pending[2]();
+});
+
+test('quality contract, single decoding, intentional backslashes and expandable generated source', async ({ page }, info) => {
+  const requests = [];
+  const literal = String.raw`const char *path = "C:\\temp\\notes";
+const char *line = "\\n-";
+const char *pattern = R"(\d+\s*)";`;
+  const display = '短い説明です。\n\n- 第一の項目\n- 第二の項目\n\n```cpp\n'+literal+'\n```\n\nリテラルは `\\n-` です。';
+  const generated = code + literal + '\n';
+  await page.route('https://api.openai.com/**', r => {
+    requests.push(r.request().postDataJSON());
+    if (requests.length === 3) return r.fulfill({body:JSON.stringify(response(answer)).slice(0,-20),contentType:'application/json'});
+    return r.fulfill({json:response(requests.length === 2 ? reply('間隔だけ変更しました。',generated) : reply(display))});
+  });
+  await ready(page); await settings(page); const original = await source(page);
+  await send(page,'consult','このコードを簡単に説明して'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
+  expect(await source(page)).toBe(original);
+  await expect(page.locator('#ai-history li')).toHaveCount(2);
+  expect(await page.locator('#ai-history pre code').textContent()).toBe(literal+'\n');
+  await expect(page.locator('#ai-history p code')).toHaveText('\\n-');
+  await send(page,'generate','間隔を変更して'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(await source(page)).toBe(generated);
+  const details = page.locator('.ai-markdown details').last(), block = details.locator('pre code');
+  await expect(block).toBeHidden(); expect(await block.textContent()).toBe(generated);
+  const copied = await details.evaluate(el => { const selection=window.getSelection(),range=document.createRange(); range.selectNodeContents(el); selection.removeAllRanges(); selection.addRange(range); const text=selection.toString(); selection.removeAllRanges(); return text; });
+  console.log('collapsed generated source selection:', JSON.stringify({includesSource:copied.includes('delay(42)'),textLength:copied.length}));
+  await details.locator('summary').click(); await expect(block).toBeVisible(); expect(await block.textContent()).toBe(generated);
+  const expanded = await block.evaluate(el => { const selection=window.getSelection(),range=document.createRange(); range.selectNodeContents(el); selection.removeAllRanges(); selection.addRange(range); const text=selection.toString(); selection.removeAllRanges(); return text; });
+  expect(expanded).toContain(literal); await block.scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('quality-expanded-source.png')});
+  await send(page,'generate','もう一度変更して'); await expect(page.locator('#ai-status')).toContainText('JSONが不正'); expect(await source(page)).toBe(generated); await expect(page.locator('#ai-prompt')).toHaveValue('もう一度変更して');
+  await send(page,'consult','改善案だけ教えて。まだ変更しないで'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません'); expect(await source(page)).toBe(generated);
+  const history = JSON.parse(requests[3].input[3].content); expect(history.codeChange).toBe('applied'); expect(history.source).toContain('omitted'); expect(history.message).toBe('間隔だけ変更しました。'); expect(requests[3].input[3].content).not.toContain('Undo');
+  const instructions=requests[0].instructions;
+  for (const rule of ['latest userMessage','not a fixed outline','start with the improvements, not a recap','2–3 useful, distinct ideas','that change\'s reason and impact','brevity is not a hard cap','initial values, the condition','not necessarily the OS','confirmation status is unknown','Escape JSON once']) expect(instructions).toContain(rule);
+  expect(instructions).not.toContain('For a general code explanation, start with'); expect(requests).toHaveLength(4);
+});
+
+test('history contains concise pending discarded and stale proposal states, not UI cautions', async ({page}) => {
+  const requests=[];
+  await page.route('https://api.openai.com/**', r => {requests.push(r.request().postDataJSON());return r.fulfill({json:response(answer)});});
+  await ready(page); await settings(page); await page.selectOption('#ai-mode','review');
+  await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible();
+  await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible();
+  expect(JSON.parse(requests[1].input[1].content).codeChange).toBe('pending');
+  await page.click('#ai-discard'); await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible();
+  expect(JSON.parse(requests[2].input[1].content).codeChange).toBe('discarded'); expect(JSON.parse(requests[2].input[3].content).codeChange).toBe('discarded');
+  await edit(page,'// manual change'); await send(page,'consult'); await expect(page.locator('#ai-proposal')).toBeVisible();
+  expect(JSON.parse(requests[3].input[5].content).codeChange).toBe('stale');
 });
