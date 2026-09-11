@@ -89,7 +89,7 @@ test('review diff, captured mode, late edit, cancel and stale finally', async ({
   await page.click('#ai-generate'); await expect.poll(() => count).toBe(3); const oldRelease = release; await page.click('#ai-cancel');
   await page.click('#ai-generate'); await expect.poll(() => count).toBe(4); oldRelease(); await expect(page.locator('#ai-generate')).toBeDisabled(); release(); await expect(page.locator('#ai-generate')).toBeEnabled();
   await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: info.outputPath('ai-narrow.png') });
-  await page.locator('#ai-apply').scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath('ai-narrow-diff.png') });
+  await page.locator('#ai-diff').scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath('ai-narrow-diff.png') });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.reload(); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); await expect(page.locator('#ai-mode')).toHaveValue('review');
   await page.click('#ai-settings-open'); await page.screenshot({ path: info.outputPath('ai-settings-narrow.png') });
