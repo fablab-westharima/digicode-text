@@ -7,7 +7,7 @@ export const MODELS = {
   ],
   claude: [{ id: 'claude-sonnet-5', api: 'messages' }, { id: 'claude-haiku-4-5', api: 'messages' }],
 };
-export const LIMITS = { source: 256 * 1024, output: 256 * 1024, response: 2 * 1024 * 1024, prompt: 16000, history: 32000, turns: 12, tokens: 16384, timeout: 180000 };
+export const LIMITS = { source: 256 * 1024, output: 256 * 1024, envelope: 1024 * 1024, response: 2 * 1024 * 1024, prompt: 16000, history: 32000, turns: 12, tokens: 16384, timeout: 180000 };
 export const bytes = text => new TextEncoder().encode(text).length;
 const fail = message => { throw new Error(message); };
 
@@ -27,10 +27,12 @@ export function contract(provider, config, system, messages) {
 }
 
 export function responseText(api, data) {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) fail('応答形式が不正です');
   let text;
   if (api === 'chat') {
     if (!Array.isArray(data.choices) || data.choices.length !== 1) fail('応答候補が単一ではありません');
     const choice = data.choices[0];
+    if (!choice) fail('応答形式が不正です');
     if (choice.message?.refusal || choice.finish_reason === 'content_filter') fail('提供側が応答を拒否しました');
     if (choice.finish_reason !== 'stop') fail(choice.finish_reason === 'length' ? '出力が上限で打ち切られました' : '正常終了を確認できません');
     if (choice.message?.tool_calls) fail('未対応のツール応答です');
@@ -38,31 +40,41 @@ export function responseText(api, data) {
   } else if (api === 'messages') {
     if (data.stop_reason === 'refusal' || data.stop_details?.type === 'refusal') fail('提供側が応答を拒否しました');
     if (data.stop_reason !== 'end_turn') fail(['max_tokens', 'model_context_window_exceeded'].includes(data.stop_reason) ? '出力が上限で打ち切られました' : '正常終了を確認できません');
-    if (!Array.isArray(data.content) || data.content.length !== 1 || data.content[0].type !== 'text') fail('単一のテキスト応答ではありません');
+    if (!Array.isArray(data.content) || data.content.length !== 1 || data.content[0]?.type !== 'text') fail('単一のテキスト応答ではありません');
     text = data.content[0].text;
-  } else {
+  } else if (api === 'responses') {
     if (data.status !== 'completed' || data.error || data.incomplete_details) fail(data.status === 'incomplete' ? '出力が打ち切られました' : '正常終了を確認できません');
     if (!Array.isArray(data.output)) fail('応答形式が不正です');
-    const messages = data.output.filter(x => x.type === 'message');
-    if (data.output.some(x => !['message', 'reasoning'].includes(x.type)) || messages.length !== 1) fail('単一のメッセージ応答ではありません');
+    const messages = data.output.filter(x => x?.type === 'message');
+    if (data.output.some(x => !['message', 'reasoning'].includes(x?.type)) || messages.length !== 1) fail('単一のメッセージ応答ではありません');
     const m = messages[0];
-    if (m.content?.some(x => x.type === 'refusal')) fail('提供側が応答を拒否しました');
-    if (m.status !== 'completed' || m.role !== 'assistant' || m.content?.length !== 1 || m.content[0].type !== 'output_text') fail('単一の正常なテキスト応答ではありません');
+    if (Array.isArray(m.content) && m.content.some(x => x?.type === 'refusal')) fail('提供側が応答を拒否しました');
+    if (m.status !== 'completed' || m.role !== 'assistant' || !Array.isArray(m.content) || m.content.length !== 1 || m.content[0]?.type !== 'output_text') fail('単一の正常なテキスト応答ではありません');
     text = m.content[0].text;
-  }
+  } else fail('未対応のAPI応答です');
   if (typeof text !== 'string' || !text.trim()) fail('応答が空です');
-  if (bytes(text) > LIMITS.output) fail('応答が256 KiBを超えています');
+  if (bytes(text) > LIMITS.envelope) fail('応答の内部形式が1 MiBを超えています');
   return text;
 }
 
-export function codeCandidate(text) {
-  // A single labelled, closed fence is the contract; C++ syntax is left to Build.
-  const lines = text.replace(/\r\n/g, '\n').split('\n');
-  const fences = lines.map((line, i) => /^\s*```/.test(line) ? i : -1).filter(i => i >= 0);
-  if (fences.length !== 2 || !/^\s*```(?:cpp|c\+\+)\s*$/.test(lines[fences[0]]) || !/^\s*```\s*$/.test(lines[fences[1]])) fail('完全なmain.cppを単一の閉じたcppコードブロックで取得できませんでした');
-  const source = lines.slice(fences[0] + 1, fences[1]).join('\n') + '\n';
-  if (!source.trim() || source.includes('\0') || bytes(source) > LIMITS.source) fail('コードが空、不正、または256 KiB上限を超えています');
-  return { source, explanation: [...lines.slice(0, fences[0]), ...lines.slice(fences[1] + 1)].join('\n').trim() };
+// Prompt-based envelope: no native structured-output capability is assumed for custom models.
+export function parseReply(text) {
+  const invalid = () => fail('回答形式を確認できませんでした。コードは適用していません（自動再送なし）');
+  if (typeof text !== 'string' || bytes(text) > LIMITS.envelope) invalid();
+  let reply;
+  try { reply = JSON.parse(text); } catch { invalid(); }
+  if (!reply || Array.isArray(reply) || typeof reply !== 'object') invalid();
+  const fields = Object.keys(reply);
+  if (fields.length !== 3 || !['kind', 'message', 'source'].every(k => fields.includes(k))) invalid();
+  if (!['answer', 'change'].includes(reply.kind) || typeof reply.message !== 'string' || !reply.message.trim() || bytes(reply.message) > LIMITS.output) invalid();
+  if (reply.kind === 'answer' ? reply.source !== null : typeof reply.source !== 'string') invalid();
+  // JSON.parse accepts duplicate keys. Tokenize JSON strings after syntax/type validation
+  // to reject ambiguous envelopes, including escaped spellings of the same field.
+  const keys = [...text.matchAll(/"(?:\\.|[^"\\])*"/g)]
+    .filter(m => /^\s*:/.test(text.slice(m.index + m[0].length))).map(m => JSON.parse(m[0]));
+  if (keys.length !== 3 || new Set(keys).size !== 3) invalid();
+  if (reply.kind === 'change' && (!reply.source.trim() || reply.source.includes('\0') || bytes(reply.source) > LIMITS.source || /^\s*```/.test(reply.source))) invalid();
+  return reply;
 }
 
 export async function requestAI(provider, config, system, messages, signal) {

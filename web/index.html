@@ -39,13 +39,12 @@
   <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
   <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>
   <div class="ai-composer">
-    <div class="ai-actions"><label for="ai-operation">送信モード</label><select id="ai-operation"><option value="consult">質問・説明</option><option value="generate">コード生成・修正</option></select></div>
-    <div id="ai-apply-mode" class="ai-actions" hidden><label for="ai-mode">生成後</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
+    <div id="ai-apply-mode" class="ai-actions"><label for="ai-mode">コード変更時</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
     <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled aria-describedby="ai-attach-note">Buildエラーを含めて送信</label><small id="ai-attach-note"></small>
     <label for="ai-prompt" class="sr-only">メッセージ</label>
     <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力（Enterで送信、Shift＋Enterで改行）"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
     <button id="ai-context" class="quiet">AIに送る内容を確認</button>
-    <p id="ai-status" role="status">質問・説明ではコードを変更しません。</p>
+    <p id="ai-status" role="status">説明や変更の依頼を入力してください。</p>
   </div>
 </aside>
 </div>

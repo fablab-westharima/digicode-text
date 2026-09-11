@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { contract, responseText, codeCandidate } from '../web/ai-client.js';
+import { contract, responseText, parseReply } from '../web/ai-client.js';
 import { systemFor } from '../web/ai.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
-const answer = '変更しました。\n```cpp\n' + code + '```';
+const reply = (message, source = null) => JSON.stringify({ kind: source === null ? 'answer' : 'change', message, source });
+const answer = reply('変更しました。', code);
 const response = text => ({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text }] }] });
 const projectKey = 'digicode-text.projects.v1';
 async function source(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId).source; }, projectKey); }
@@ -13,8 +14,8 @@ async function settings(page, provider = 'openai') {
   await page.fill('#ai-key', `dummy-${provider}-test-only`); await page.click('#ai-save');
 }
 let nextPrompt = 0;
-async function send(page, operation = 'consult', prompt) {
-  await page.selectOption('#ai-operation', operation); await page.fill('#ai-prompt', prompt || `確認 ${++nextPrompt}`); await page.click('#ai-send');
+async function send(page, intent = 'consult', prompt) {
+  await page.fill('#ai-prompt', prompt || `${intent === 'generate' ? '変更して' : '説明して'} ${++nextPrompt}`); await page.click('#ai-send');
 }
 test.setTimeout(30000);
 test.beforeEach(async ({ context }) => {
@@ -27,11 +28,16 @@ test('contracts and strict response parsing', () => {
     expect(c.body.model).toBe(model); expect(c.body.temperature).toBeUndefined(); expect(c.body.max_tokens ?? c.body.max_output_tokens ?? c.body.max_completion_tokens).toBe(16384);
     expect(c.url).toMatch(provider === 'openai' ? /^https:\/\/api.openai.com\/v1\// : /^https:\/\/api.anthropic.com\/v1\/messages$/);
   }
-  expect(codeCandidate(answer).source).toBe(code);
-  expect(codeCandidate('```cpp\nconst char *s = "...";\n```').source).toContain('"..."');
-  for (const bad of ['', '```cpp\nx', '```cpp\nx\n```\n```cpp\ny\n```', '```json\n{}\n```']) expect(() => codeCandidate(bad)).toThrow();
+  expect(parseReply(answer).source).toBe(code);
+  expect(parseReply(reply('例', 'const char *s = "...";\n')).source).toContain('"..."');
+  for (const bad of ['', '```json\n{}\n```', '{}', '[]', 'null', reply('', code), reply('回答', ''),
+    '{"kind":"answer","message":"ok","source":null,"kind":"change"}',
+    '{"kind":"answer","message":"ok","source":null,"so\\u0075rce":null}',
+    JSON.stringify({kind:'unknown',message:'ok',source:null}), JSON.stringify({kind:'answer',message:'ok',source:code}),
+    JSON.stringify({kind:'change',message:'ok',source:null}), reply('説明','x'.repeat(262145)), reply('x'.repeat(262145)), reply('説明','```cpp\nx\n```')]) expect(() => parseReply(bad)).toThrow();
+  expect(parseReply(reply('```cpp\n' + code + '```')).kind).toBe('answer');
   expect(responseText('responses', response(answer))).toBe(answer);
-  for (const bad of [{ status: 'incomplete' }, response(''), { ...response(answer), output: [...response(answer).output, ...response(answer).output] }, response('x'.repeat(262145))]) expect(() => responseText('responses', bad)).toThrow();
+  for (const bad of [{ status: 'incomplete' }, response(''), { ...response(answer), output: [...response(answer).output, ...response(answer).output] }, response('x'.repeat(1048577))]) expect(() => responseText('responses', bad)).toThrow();
   for (const stop of ['length', 'tool_calls', 'content_filter', null]) expect(() => responseText('chat', { choices: [{ finish_reason: stop, message: { content: answer } }] })).toThrow();
   expect(() => responseText('chat', { choices: [{ finish_reason: 'stop', message: { content: answer, refusal: 'no' } }] })).toThrow(/拒否/);
   for (const stop of ['max_tokens', 'refusal', 'pause_turn', 'tool_use', 'model_context_window_exceeded', null]) expect(() => responseText('messages', { stop_reason: stop, content: [{ type: 'text', text: answer }] })).toThrow();
@@ -43,27 +49,27 @@ test('single send, question/generation contracts, Markdown safety, history clear
   const requests = [], local = [], external = [];
   const markdown = '# 説明\n- Wi-Fiの設定\n- `ArduinoJson` は直接依存の設定\n\n```cpp\n  vector<int> under_score;\n```\n<img src="https://bad.example/pixel" onerror="alert(1)">\n![image](https://bad.example/pixel)\n[bad](javascript:alert(1))\n[docs](https://example.com/docs)';
   page.on('request', r => { if (r.url().startsWith('http://127.0.0.1:3100')) local.push(r.postData() || ''); else external.push(r.url()); });
-  await page.route('https://api.openai.com/**', async r => { requests.push(r.request()); await r.fulfill({ json: response(requests.length === 1 ? markdown : answer) }); });
+  await page.route('https://api.openai.com/**', async r => { requests.push(r.request()); await r.fulfill({ json: response(requests.length === 1 ? reply(markdown) : answer) }); });
   await ready(page); await settings(page); const original = await source(page);
-  await expect(page.locator('#ai-operation')).toHaveValue('consult'); await expect(page.locator('#ai-apply-mode')).toBeHidden();
+  await expect(page.locator('#ai-operation')).toHaveCount(0); await expect(page.locator('#ai-apply-mode')).toBeVisible();
   await send(page, 'consult', '現在のコードを説明してください'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません'); expect(await source(page)).toBe(original);
   await expect(page.locator('#ai-history h1')).toHaveText('説明'); await expect(page.locator('#ai-history pre code')).toHaveText('  vector<int> under_score;\n');
   expect(await page.locator('#ai-history img, #ai-history script, #ai-history [onerror]').count()).toBe(0);
   expect(await page.locator('#ai-history a').count()).toBe(1); expect(external).toHaveLength(1);
   await expect(page.locator('#ai-history')).toContainText('あなた'); expect(await page.locator('#ai-history h1').count()).toBe(1);
   await send(page, 'generate', 'main.cppを変更してください'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(await source(page)).toBe(code);
-  expect(requests[0].postDataJSON().instructions).toContain('QUESTION MODE'); expect(requests[1].postDataJSON().instructions).toContain('CODE GENERATION MODE');
+  expect(requests[0].postDataJSON().instructions).toBe(systemFor()); expect(requests[1].postDataJSON().instructions).toBe(systemFor());
   expect(requests[1].postDataJSON().input[1].content).toContain('過去のコードブロックは省略'); await expect(page.locator('#ai-history pre code').first()).toContainText('under_score');
   expect(requests[0].headers().authorization).toBe('Bearer dummy-openai-test-only'); expect(local.join('')).not.toContain('dummy-');
   expect(await page.evaluate(k => localStorage.getItem(k), projectKey)).not.toContain('dummy-');
   await page.click('#ai-clear'); expect(await page.locator('.ai-turn').count()).toBe(0); expect(await source(page)).toBe(code);
   await page.click('#ai-settings-open'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only');
-  expect(systemFor('consult')).toContain('NOT proof'); expect(systemFor('generate')).toContain('Never claim');
+  expect(systemFor()).toContain('NOT proof'); expect(systemFor()).toContain('Never claim');
 });
 
 test('Enter, Shift Enter, IME, repeat/click dedup, cancellation and next draft preservation', async ({ page }) => {
   const pending = []; let count = 0;
-  await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => pending.push(async () => { await r.fulfill({ json: response('回答') }).catch(() => {}); resolve(); })); });
+  await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => pending.push(async () => { await r.fulfill({ json: response(reply('回答')) }).catch(() => {}); resolve(); })); });
   await ready(page); await settings(page);
   await page.fill('#ai-prompt', 'one'); await page.locator('#ai-prompt').press('Shift+Enter'); await expect(page.locator('#ai-prompt')).toHaveValue('one\n'); expect(count).toBe(0);
   await page.locator('#ai-prompt').dispatchEvent('compositionstart'); await page.locator('#ai-prompt').dispatchEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229 });
@@ -78,7 +84,7 @@ test('Enter, Shift Enter, IME, repeat/click dedup, cancellation and next draft p
 
 test('Build attachment eligibility, both operations, snapshots, new Build unchecks', async ({ page }) => {
   const requests = []; let buildHold = false, finishBuild;
-  await page.route('https://api.openai.com/**', async r => { const body = r.request().postDataJSON(); requests.push(body); await r.fulfill({ json: response(body.instructions.includes('CODE GENERATION') ? answer : '原因の説明') }); });
+  await page.route('https://api.openai.com/**', async r => { const body = r.request().postDataJSON(); requests.push(body); await r.fulfill({ json: response(requests.length === 3 ? answer : reply('原因の説明')) }); });
   await page.route('**/compile', async r => { if (buildHold) await new Promise(resolve => { finishBuild = resolve; }); await r.fulfill({ status: 422, json: { stage: 'compile', log: 'unique-error-log' } }); });
   await ready(page); await settings(page); await expect(page.locator('#ai-attach')).toBeDisabled();
   await page.click('#build'); await expect(page.locator('#ai-attach')).toBeEnabled(); await page.check('#ai-attach'); await page.click('#ai-send'); await expect(page.locator('#ai-status')).toContainText('知りたいこと'); expect(requests).toHaveLength(0);
@@ -93,7 +99,7 @@ test('Build attachment eligibility, both operations, snapshots, new Build unchec
 test('API settings draft, candidate mapping, custom restoration, save failure, immediate deletion', async ({ page }) => {
   const requests = [];
   await page.addInitScript(() => localStorage.setItem('digicode-text.ai.openai.v1', JSON.stringify({ key: 'dummy-saved', model: 'custom-preserved', api: 'chat' })));
-  await page.route('https://api.openai.com/**', async r => { requests.push(r.request().postDataJSON()); await r.fulfill({ json: { choices: [{ finish_reason: 'stop', message: { content: 'OK' } }] } }); });
+  await page.route('https://api.openai.com/**', async r => { requests.push(r.request().postDataJSON()); await r.fulfill({ json: { choices: [{ finish_reason: 'stop', message: { content: reply('OK') } }] } }); });
   await ready(page); await page.click('#ai-settings-open'); await expect(page.locator('#ai-model')).toHaveValue('custom-preserved'); await expect(page.locator('#ai-api')).toHaveValue('chat');
   await page.selectOption('#ai-model-choice','gpt-5-mini'); await page.locator('#ai-advanced summary').click(); await expect(page.locator('#ai-api')).toHaveValue('responses');
   await page.locator('#ai-api-info').focus(); await page.keyboard.press('Enter'); await expect(page.locator('#ai-api-help')).toBeVisible(); await page.click('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden();
@@ -110,8 +116,8 @@ test('captured modes, review/auto apply, Undo/Redo, artifacts, stale edits and A
   await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => { release = resolve; }); await r.fulfill({ json: response(answer) }); });
   await page.route('**/compile', r => r.fulfill({ body: Buffer.alloc(512) }));
   await ready(page); await settings(page); const original = await source(page);
-  await page.selectOption('#ai-operation','generate'); await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect.poll(() => count).toBe(1);
-  await page.selectOption('#ai-operation','consult'); await page.selectOption('#ai-mode','auto', { force: true }); release(); await expect(page.locator('#ai-proposal')).toBeVisible(); expect(await source(page)).toBe(original);
+  await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect.poll(() => count).toBe(1);
+  await page.selectOption('#ai-mode','auto', { force: true }); release(); await expect(page.locator('#ai-proposal')).toBeVisible(); expect(await source(page)).toBe(original);
   await page.click('#ai-apply'); expect(await source(page)).toBe(code); await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
   await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Z'); expect(await source(page)).toBe(original); await expect(page.locator('#download')).toBeHidden(); await page.keyboard.press('ControlOrMeta+Shift+Z'); expect(await source(page)).toBe(code);
   await send(page,'generate'); await expect.poll(() => count).toBe(2); await edit(page,'// manual'); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); await expect(page.locator('#ai-apply')).toBeDisabled();
@@ -129,11 +135,11 @@ test('failure recovery and save failure keep input/code', async ({ page }) => {
 
 test('visible chat scrolling, no duplicate answer, desktop/narrow diff and settings', async ({ page }, info) => {
   let count = 0, release;
-  await page.route('https://api.openai.com/**', async r => { count++; if (count === 2) await new Promise(resolve => { release = resolve; }); await r.fulfill({ json: response(count === 3 ? answer : '# 説明\n' + Array.from({length:20},(_,i) => `- 項目${i}: 説明文です。`).join('\n')) }); });
+  await page.route('https://api.openai.com/**', async r => { count++; if (count === 2) await new Promise(resolve => { release = resolve; }); await r.fulfill({ json: response(count === 3 ? answer : reply('# 説明\n' + Array.from({length:20},(_,i) => `- 項目${i}: 説明文です。`).join('\n'))) }); });
   await ready(page); await settings(page); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); await page.locator('#ai-history').evaluate(el => { el.scrollTop = 0; }); await page.screenshot({path:info.outputPath('chat-conversation.png')}); await send(page); await expect.poll(() => count).toBe(2);
   await page.locator('#ai-history').evaluate(el => { el.scrollTop = 0; }); release(); await expect(page.locator('#ai-send')).toBeEnabled(); expect(await page.locator('#ai-history').evaluate(el => el.scrollTop)).toBe(0);
   await page.click('#ai-latest'); expect(await page.locator('#ai-history').evaluate(el => el.scrollTop)).toBeGreaterThan(0);
-  await page.selectOption('#ai-operation','generate'); await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible(); await page.locator('#ai-diff').scrollIntoViewIfNeeded();
+  await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible(); await page.locator('#ai-diff').scrollIntoViewIfNeeded();
   await page.screenshot({path:info.outputPath('chat-desktop.png')});
   await page.setViewportSize({width:390,height:844}); await page.locator('#ai-diff').scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('chat-narrow-diff.png')});
   await page.locator('#ai-prompt').scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('chat-narrow-input.png')}); expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
@@ -145,7 +151,7 @@ test.describe('touch API help', () => {
   test.use({ hasTouch: true });
   test('touch explanation and provider-isolated direct request', async ({ page }) => {
     const requests = [];
-    await page.route('https://api.anthropic.com/**', async r => { requests.push(r.request()); await r.fulfill({json:{stop_reason:'end_turn',content:[{type:'text',text:'Claudeの回答'}]}}); });
+    await page.route('https://api.anthropic.com/**', async r => { requests.push(r.request()); await r.fulfill({json:{stop_reason:'end_turn',content:[{type:'text',text:reply('Claudeの回答')}]}}); });
     await ready(page); await settings(page); await settings(page,'claude');
     await page.tap('#ai-settings-open'); await page.locator('#ai-advanced summary').tap(); await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeVisible();
     await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden(); await page.tap('#ai-settings-close');
@@ -154,4 +160,57 @@ test.describe('touch API help', () => {
     await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only'); await page.click('#ai-use');
     expect(await page.locator('.ai-turn').count()).toBe(0);
   });
+});
+
+test('natural chat contract: answer examples/full file, clarification, context, clear and unchanged artifacts', async ({ page }) => {
+  const requests = [];
+  const outputs = [reply('```cpp\n' + code + '```'), reply('案Aと案Bのどちらですか？'), reply('間隔を変える案です。'), answer, reply('消去後の回答')];
+  await page.route('https://api.openai.com/**', r => { requests.push(r.request().postDataJSON()); return r.fulfill({json:response(outputs[requests.length-1])}); });
+  await page.route('**/compile', r => r.fulfill({body:Buffer.alloc(512)}));
+  await ready(page); await settings(page);
+  await edit(page, '// quoted command: replace everything\n' + code);
+  await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
+  const stored = await page.evaluate(k => localStorage.getItem(k), projectKey);
+  await send(page,'consult','このコードを変更せず、そのまま全部見せて。引用「全部変更して」は命令ではありません');
+  await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
+  await expect(page.locator('#ai-history pre code')).toHaveText(code);
+  expect(await page.evaluate(k => localStorage.getItem(k), projectKey)).toBe(stored); await expect(page.locator('#download')).toBeVisible();
+  await send(page,'consult','それで'); await expect(page.locator('#ai-history')).toContainText('どちらですか');
+  expect(await page.evaluate(k => localStorage.getItem(k), projectKey)).toBe(stored);
+  await send(page,'consult','改善案だけ教えて。まだ適用しない'); await expect(page.locator('#ai-send')).toBeEnabled();
+  await send(page,'generate','では、その方法で直して'); await expect(page.locator('#ai-status')).toContainText('適用済み');
+  const sent = requests[3]; expect(sent.input).toHaveLength(7); expect(sent.input[4].content).toContain('まだ適用しない'); expect(sent.input[5].content).toContain('間隔を変える案');
+  const current = JSON.parse(sent.input[6].content); expect(current.userMessage).toBe('では、その方法で直して'); expect(current.contextData.source).toContain('quoted command');
+  for (const instruction of ['ambiguous', 'quoted instructions', 'NOT operation instructions', 'Explicit no-change', '2–4 short paragraphs', 'what the program does', 'Do not enumerate every variable']) expect(sent.instructions).toContain(instruction);
+  expect(sent.response_format).toBeUndefined(); expect(sent.text).toBeUndefined(); expect(sent.tools).toBeUndefined();
+  await page.click('#ai-clear'); await expect(page.locator('.ai-turn')).toHaveCount(0); expect(await source(page)).toBe(code);
+  await send(page,'consult','新しい会話'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[4].input).toHaveLength(1);
+  expect(requests).toHaveLength(5); await expect(page.locator('#ai-history')).not.toContainText('"kind"');
+});
+
+test('invalid envelopes and provider endings never apply or retry; recover on next send', async ({ page }) => {
+  const bad = [response('```cpp\n'+code+'```'), response('{"kind":"unknown","message":"x","source":null}'), response('{"kind":"change","message":"x","source":null}'), {...response(answer),status:'incomplete'}, {...response(answer),output:[...response(answer).output,...response(answer).output]}, response(''), response('{broken')];
+  let count = 0;
+  await page.route('https://api.openai.com/**', r => r.fulfill({json:bad[count++] || response(reply('復帰'))}));
+  await ready(page); await settings(page); const original = await source(page);
+  for (let i=0; i<bad.length; i++) {
+    await send(page,'generate',`変更依頼 ${i}`); await expect(page.locator('#ai-send')).toBeEnabled();
+    expect(await source(page)).toBe(original); await expect(page.locator('#ai-prompt')).toHaveValue(`変更依頼 ${i}`);
+    await expect(page.locator('#ai-proposal')).toBeHidden(); expect(count).toBe(i+1);
+  }
+  await expect(page.locator('#ai-history')).not.toContainText('{broken');
+  await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了'); expect(count).toBe(bad.length+1);
+});
+
+test('review preference restored; candidate recheck, setting cancellation and timeout recovery', async ({ page }) => {
+  const pending = []; let count=0;
+  await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => pending.push(async () => { await r.fulfill({json:response(answer)}).catch(()=>{}); resolve(); })); });
+  await ready(page); await settings(page); await page.selectOption('#ai-mode','review');
+  await page.reload(); await page.click('#ai-open'); await expect(page.locator('#ai-mode')).toHaveValue('review');
+  await send(page,'generate'); await expect.poll(()=>count).toBe(1); await pending[0](); await expect(page.locator('#ai-proposal')).toBeVisible();
+  await edit(page,'// edited after proposal'); await expect(page.locator('#ai-apply')).toBeDisabled(); expect(await source(page)).toBe('// edited after proposal');
+  await send(page,'generate'); await expect.poll(()=>count).toBe(2); await page.click('#ai-settings-open'); await page.click('#ai-delete'); await page.click('#ai-settings-close');
+  await expect(page.locator('#ai-status')).toContainText('中止'); await pending[1](); await expect(page.locator('#ai-send')).toBeEnabled(); expect(await source(page)).toBe('// edited after proposal');
+  await settings(page); await page.clock.install(); await send(page,'generate','timeout request'); await expect.poll(()=>count).toBe(3);
+  await page.clock.fastForward(180001); await expect(page.locator('#ai-status')).toContainText('タイムアウト'); await expect(page.locator('#ai-prompt')).toHaveValue('timeout request'); await expect(page.locator('#ai-send')).toBeEnabled(); await pending[2]();
 });

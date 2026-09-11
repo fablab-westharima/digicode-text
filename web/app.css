@@ -195,5 +195,5 @@ h2 { font-size: 18px; margin: 0 0 16px; }
  #ai-pane { width: 100%; min-height: 640px; height: 85dvh; flex: none; border-left: 0; border-top: 1px solid var(--border); }
  #ai-history { min-height: 220px; }
  #ai-diff { height: 280px; }
- #ai-operation, #ai-mode { width: auto; }
+ #ai-mode { width: auto; }
 }
