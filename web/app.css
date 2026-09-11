@@ -145,30 +145,55 @@ h2 { font-size: 18px; margin: 0 0 16px; }
 #library-suggestions button { max-width: 100%; height: auto; min-height: 34px; white-space: normal; overflow-wrap: anywhere; }
 
 .work-area { display: flex; flex: 1; min-height: 0; min-width: 0; }
-#ai-pane { width: clamp(350px, 40vw, 620px); flex: none; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-left: 1px solid var(--border); background: var(--surface); overflow: auto; }
-.ai-heading, .ai-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+#ai-pane { width: clamp(370px, 42vw, 680px); flex: none; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-left: 1px solid var(--border); background: var(--surface); }
+.ai-heading, .ai-actions, .ai-conversation-tools, .ai-input-row { display: flex; align-items: center; gap: 8px; }
+.ai-actions { flex-wrap: wrap; }
 .ai-heading strong { margin-right: auto; }
-#ai-pane p { margin: 0; line-height: 1.65; overflow-wrap: anywhere; }
-#ai-connection, #ai-history-note { font-size: 11px; color: var(--muted); }
+#ai-pane p { line-height: 1.65; overflow-wrap: anywhere; }
+#ai-connection, #ai-history-note, #ai-attach-note { font-size: 11px; color: var(--muted); margin: 0; }
+#ai-history-note { flex: 1; }
+#ai-history { flex: 1; min-height: 110px; overflow: auto; overflow-anchor: none; padding: 4px 4px 12px; }
+.ai-turn { margin: 0 0 18px; }
+.ai-user { background: var(--raised); padding: 10px 12px; border-radius: 8px; margin: 0 0 12px 24px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-assistant { padding: 0 4px; }
+.ai-turn strong:first-child { font-size: 12px; color: var(--accent); }
+.ai-turn-status { color: var(--muted); font-size: 11px; }
+.ai-markdown { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; overflow-wrap: anywhere; }
+.ai-markdown p { margin: 8px 0; }
+.ai-markdown h1, .ai-markdown h2, .ai-markdown h3, .ai-markdown h4 { margin: 14px 0 8px; font-size: 15px; }
+.ai-markdown ul, .ai-markdown ol { padding-left: 24px; }
+.ai-markdown pre { display: block; padding: 10px; white-space: pre; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+.ai-markdown code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.ai-markdown :not(pre) > code { background: var(--raised); padding: 2px 4px; border-radius: 3px; }
+.ai-markdown a { color: var(--focus); }
+.ai-markdown table { display: block; overflow: auto; border-collapse: collapse; }
+.ai-markdown td, .ai-markdown th { border: 1px solid var(--border); padding: 6px; }
+.ai-composer { flex: none; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--border); padding-top: 10px; }
+.ai-attach-label { display: flex; align-items: center; gap: 6px; }
 #ai-prompt, #ai-settings input { width: 100%; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 9px; font: inherit; }
-#ai-prompt { resize: vertical; min-height: 65px; max-height: 220px; flex-shrink: 0; }
-#ai-status { color: var(--accent); font-size: 12px; }
-.ai-results { overflow: auto; min-height: 90px; flex: 1; }
-#ai-result, #ai-history { white-space: pre-wrap; overflow-wrap: anywhere; padding: 10px; }
-#ai-result:empty { display: none; }
-#ai-proposal { margin-bottom: 12px; }
-#ai-proposal-note { font-size: 12px; color: var(--muted); padding-bottom: 8px; }
+#ai-prompt { min-width: 0; resize: vertical; min-height: 65px; max-height: 140px; }
+.ai-input-row { align-items: flex-end; }
+#ai-send { width: 44px; height: 44px; min-width: 44px; font-size: 26px; }
+.ai-send-wrap { position: relative; }
+.ai-send-tip { display: none; position: absolute; bottom: 48px; right: 0; padding: 4px 8px; background: var(--raised); border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
+.ai-send-wrap:hover .ai-send-tip, .ai-send-wrap:focus-within .ai-send-tip { display: block; }
+#ai-status { margin: 0; color: var(--accent); font-size: 12px; }
 #ai-diff { height: 340px; margin-top: 10px; border: 1px solid var(--border); }
+#ai-proposal-note { color: var(--muted); font-size: 12px; }
 #ai-settings label { display: block; margin: 14px 0 6px; }
 #ai-settings select { width: 100%; max-width: none; }
 #ai-settings-status { color: var(--accent); }
+#ai-advanced { margin-top: 14px; }
+#ai-advanced summary { cursor: pointer; }
+#ai-delete { margin-top: 16px; }
 #ai-context-dialog { width: min(850px, calc(100% - 24px)); }
 #ai-context-text { max-height: 55dvh; white-space: pre-wrap; overflow-wrap: anywhere; }
-#ai-pane summary { padding: 8px 0; cursor: pointer; color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (max-width: 760px) {
  .work-area { flex-direction: column; overflow: auto; }
- .work-area:has(#ai-pane:not([hidden])) .editor-pane { flex: none; height: 230px; }
- #ai-pane { width: 100%; min-height: 0; flex: none; overflow: visible; border-left: 0; border-top: 1px solid var(--border); }
- .ai-results { flex: none; overflow: visible; }
+ .work-area:has(#ai-pane:not([hidden])) .editor-pane { flex: none; height: 220px; }
+ #ai-pane { width: 100%; min-height: 640px; height: 85dvh; flex: none; border-left: 0; border-top: 1px solid var(--border); }
+ #ai-history { min-height: 220px; }
  #ai-diff { height: 280px; }
+ #ai-operation, #ai-mode { width: auto; }
 }

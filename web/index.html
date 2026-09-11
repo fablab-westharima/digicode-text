@@ -36,15 +36,16 @@
 <aside id="ai-pane" aria-label="AI開発支援" hidden>
   <div class="ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open">API設定</button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
   <p id="ai-connection"></p>
-  <label for="ai-prompt">相談・生成の指示</label>
-  <textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="例：LEDを1秒ごとに点滅させたい"></textarea>
-  <div class="ai-actions"><button id="ai-consult">相談する</button><button id="ai-build-help">Buildエラー相談</button><button id="ai-context" class="quiet">送信内容</button></div>
-  <div class="ai-actions"><label for="ai-mode">生成後</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select><button id="ai-generate" class="primary">生成・修正</button><button id="ai-cancel" hidden>中止</button></div>
-  <p id="ai-status" role="status">生成はmain.cpp全体を置換します。相談ではコードを変更しません。</p>
-  <div class="ai-results">
-    <pre id="ai-result" tabindex="0" aria-label="AIの返答"></pre>
-    <section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section>
-    <details><summary>会話履歴</summary><p id="ai-history-note"></p><button id="ai-clear" class="quiet">会話を消去</button><pre id="ai-history" tabindex="0"></pre></details>
+  <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
+  <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>
+  <div class="ai-composer">
+    <div class="ai-actions"><label for="ai-operation">送信モード</label><select id="ai-operation"><option value="consult">質問・説明</option><option value="generate">コード生成・修正</option></select></div>
+    <div id="ai-apply-mode" class="ai-actions" hidden><label for="ai-mode">生成後</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
+    <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled aria-describedby="ai-attach-note">Buildエラーを含めて送信</label><small id="ai-attach-note"></small>
+    <label for="ai-prompt" class="sr-only">メッセージ</label>
+    <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力（Enterで送信、Shift＋Enterで改行）"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
+    <button id="ai-context" class="quiet">AIに送る内容を確認</button>
+    <p id="ai-status" role="status">質問・説明ではコードを変更しません。</p>
   </div>
 </aside>
 </div>
@@ -111,12 +112,20 @@
   <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
   <label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option></select>
   <label for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false">
-  <label for="ai-model">モデルID（候補選択・自由入力）</label><input id="ai-model" list="ai-model-options" maxlength="200" autocomplete="off" spellcheck="false"><datalist id="ai-model-options"></datalist>
-  <label for="ai-api">API方式（自由入力モデルは対応方式を指定）</label><select id="ai-api"><option value="responses">OpenAI Responses</option><option value="chat">OpenAI Chat Completions</option><option value="messages">Claude Messages</option></select>
-  <p class="storage-hint">入力はこのページで使用します。「保存」でこのブラウザに保存し、次回復元します。暗号化保管ではありません。共用端末では保存を避けてください。CodexのAPIモデルはCLI・サブスク認証とは別です。</p>
-  <div class="ai-actions"><button id="ai-save" class="primary">このブラウザに保存</button><button id="ai-delete">キー・保存設定を削除</button></div><p id="ai-settings-status" role="status"></p>
+  <label for="ai-model-choice">モデル</label><select id="ai-model-choice"></select>
+  <details id="ai-advanced"><summary>詳細設定</summary>
+    <label for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
+    <label for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
+    <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option></select>
+    <p class="storage-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
+    <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
+  </details>
+  <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
+  <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
+  <button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button><p id="ai-settings-status" role="status"></p>
 </dialog>
-<dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、Buildエラー相談時は一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
+<dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
+<div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>
 <script type="module" src="/assets/app.js"></script>
 </body>
 </html>

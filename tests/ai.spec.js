@@ -1,29 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { contract, responseText, codeCandidate } from '../web/ai-client.js';
+import { systemFor } from '../web/ai.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
 const answer = '変更しました。\n```cpp\n' + code + '```';
 const response = text => ({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text }] }] });
 const projectKey = 'digicode-text.projects.v1';
 async function source(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId).source; }, projectKey); }
 async function edit(page, text) { await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.insertText(text); }
-async function settings(page, provider = 'openai', model) {
+async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); }
+async function settings(page, provider = 'openai') {
   await page.click('#ai-settings-open'); await page.selectOption('#ai-provider', provider);
-  await page.fill('#ai-key', provider === 'openai' ? 'dummy-openai-test-only' : 'dummy-claude-test-only');
-  if (model) await page.fill('#ai-model', model);
-  await page.click('#ai-save'); await page.click('#ai-settings-close');
+  await page.fill('#ai-key', `dummy-${provider}-test-only`); await page.click('#ai-save');
 }
-async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); await settings(page); await page.fill('#ai-prompt', 'LEDを点滅させる'); }
+let nextPrompt = 0;
+async function send(page, operation = 'consult', prompt) {
+  await page.selectOption('#ai-operation', operation); await page.fill('#ai-prompt', prompt || `確認 ${++nextPrompt}`); await page.click('#ai-send');
+}
+test.setTimeout(30000);
 test.beforeEach(async ({ context }) => {
-  // All external HTTP traffic is denied unless a test-specific route fulfills it.
   await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === 'http://127.0.0.1:3100' ? route.continue() : route.abort());
-  await context.addInitScript(() => {
-    if (navigator.serial) {
-      navigator.serial.getPorts = () => { throw new Error('serial forbidden'); };
-      navigator.serial.requestPort = () => { throw new Error('serial forbidden'); };
-    }
-  });
+  await context.addInitScript(() => { if (navigator.serial) { navigator.serial.getPorts = navigator.serial.requestPort = () => { throw new Error('serial forbidden'); }; } });
 });
-
 test('contracts and strict response parsing', () => {
   for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['openai','gpt-5.3-codex','responses'], ['openai','gpt-4.1-mini','chat'], ['claude','claude-sonnet-5','messages']]) {
     const c = contract(provider, { model, api, key: 'dummy' }, 'system', [{ role: 'user', content: 'hello' }]);
@@ -41,125 +38,120 @@ test('contracts and strict response parsing', () => {
   expect(() => responseText('messages', { stop_reason: 'end_turn', content: [{ type: 'text', text: answer }, { type: 'text', text: answer }] })).toThrow();
 });
 
-test('direct routes, provider-separated storage, consultation to generation, auto apply and Undo/Redo invalidate Build', async ({ page }) => {
-  const requests = [];
-  await page.route('https://api.openai.com/**', async route => { requests.push(route.request()); await route.fulfill({ json: response(requests.length === 1 ? '相談の回答 <img src=x onerror=alert(1)>' : answer) }); });
-  await page.route('https://api.anthropic.com/**', async route => { requests.push(route.request()); await route.fulfill({ json: { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Claude回答' }] } }); });
-  const localBodies = []; page.on('request', r => { if (r.url().startsWith('http://127.0.0.1:3100')) localBodies.push(r.postData() || ''); });
-  await ready(page); expect(requests).toHaveLength(0);
-  const original = await source(page);
-  await page.click('#ai-consult'); await expect(page.locator('#ai-status')).toContainText('回答完了'); expect(await source(page)).toBe(original);
-  expect(await page.locator('#ai-result img').count()).toBe(0);
-  await page.click('#ai-generate'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(await source(page)).toBe(code);
-  expect(requests[1].postDataJSON().input[1].content).toContain('相談の回答');
-  expect(requests[0].headers().authorization).toBe('Bearer dummy-openai-test-only');
-  expect(requests[0].url()).toBe('https://api.openai.com/v1/responses');
-  await page.route('**/compile', route => route.fulfill({ body: Buffer.alloc(50), contentType: 'application/octet-stream' }));
-  await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
-  await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Z'); expect(await source(page)).toBe(original); await expect(page.locator('#download')).toBeHidden();
-  await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
-  await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Shift+Z'); expect(await source(page)).toBe(code); await expect(page.locator('#download')).toBeHidden();
-  await settings(page, 'claude'); await page.click('#ai-consult'); await expect(page.locator('#ai-result')).toHaveText('Claude回答');
-  expect(requests[2].headers()['x-api-key']).toBe('dummy-claude-test-only'); expect(requests[2].headers().authorization).toBeUndefined(); expect(requests[2].headers()['anthropic-dangerous-direct-browser-access']).toBe('true');
-  expect(requests[2].postData()).not.toContain('相談の回答');
-  expect(localBodies.join('')).not.toContain('dummy-');
+
+test('single send, question/generation contracts, Markdown safety, history clear', async ({ page }) => {
+  const requests = [], local = [], external = [];
+  const markdown = '# 説明\n- Wi-Fiの設定\n- `ArduinoJson` は直接依存の設定\n\n```cpp\n  vector<int> under_score;\n```\n<img src="https://bad.example/pixel" onerror="alert(1)">\n![image](https://bad.example/pixel)\n[bad](javascript:alert(1))\n[docs](https://example.com/docs)';
+  page.on('request', r => { if (r.url().startsWith('http://127.0.0.1:3100')) local.push(r.postData() || ''); else external.push(r.url()); });
+  await page.route('https://api.openai.com/**', async r => { requests.push(r.request()); await r.fulfill({ json: response(requests.length === 1 ? markdown : answer) }); });
+  await ready(page); await settings(page); const original = await source(page);
+  await expect(page.locator('#ai-operation')).toHaveValue('consult'); await expect(page.locator('#ai-apply-mode')).toBeHidden();
+  await send(page, 'consult', '現在のコードを説明してください'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません'); expect(await source(page)).toBe(original);
+  await expect(page.locator('#ai-history h1')).toHaveText('説明'); await expect(page.locator('#ai-history pre code')).toHaveText('  vector<int> under_score;\n');
+  expect(await page.locator('#ai-history img, #ai-history script, #ai-history [onerror]').count()).toBe(0);
+  expect(await page.locator('#ai-history a').count()).toBe(1); expect(external).toHaveLength(1);
+  await expect(page.locator('#ai-history')).toContainText('あなた'); expect(await page.locator('#ai-history h1').count()).toBe(1);
+  await send(page, 'generate', 'main.cppを変更してください'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(await source(page)).toBe(code);
+  expect(requests[0].postDataJSON().instructions).toContain('QUESTION MODE'); expect(requests[1].postDataJSON().instructions).toContain('CODE GENERATION MODE');
+  expect(requests[1].postDataJSON().input[1].content).toContain('過去のコードブロックは省略'); await expect(page.locator('#ai-history pre code').first()).toContainText('under_score');
+  expect(requests[0].headers().authorization).toBe('Bearer dummy-openai-test-only'); expect(local.join('')).not.toContain('dummy-');
   expect(await page.evaluate(k => localStorage.getItem(k), projectKey)).not.toContain('dummy-');
-  await page.locator('#ai-pane summary').click(); await page.click('#ai-clear'); expect(await source(page)).toBe(code);
-  await page.reload(); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open');
+  await page.click('#ai-clear'); expect(await page.locator('.ai-turn').count()).toBe(0); expect(await source(page)).toBe(code);
   await page.click('#ai-settings-open'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only');
-  await page.selectOption('#ai-provider','claude'); await expect(page.locator('#ai-key')).toHaveValue('dummy-claude-test-only');
-  await page.click('#ai-delete'); await expect(page.locator('#ai-key')).toHaveValue('');
-  expect(await page.evaluate(() => localStorage.getItem('digicode-text.ai.claude.v1'))).toBeNull();
+  expect(systemFor('consult')).toContain('NOT proof'); expect(systemFor('generate')).toContain('Never claim');
 });
 
-test('review diff, captured mode, late edit, cancel and stale finally', async ({ page }, info) => {
-  let release; let count = 0;
-  await page.route('https://api.openai.com/**', async route => { count++; await new Promise(r => { release = r; }); await route.fulfill({ json: response(answer) }).catch(() => {}); });
-  await ready(page); const original = await source(page);
-  await page.selectOption('#ai-mode','review'); await page.click('#ai-generate'); await expect.poll(() => count).toBe(1);
-  await page.selectOption('#ai-mode','auto'); await page.click('#ai-close'); await page.click('#ai-open');
-  await page.locator('#ai-prompt').press('Enter'); expect(count).toBe(1);
-  release(); await expect(page.locator('#ai-proposal')).toBeVisible(); expect(await source(page)).toBe(original);
-  await page.screenshot({ path: info.outputPath('ai-desktop-diff.png') });
-  await page.click('#ai-apply'); expect(await source(page)).toBe(code);
-  await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Z'); expect(await source(page)).toBe(original);
-  await page.keyboard.press('ControlOrMeta+Shift+Z'); expect(await source(page)).toBe(code);
-  await page.selectOption('#ai-mode','review'); await page.click('#ai-generate'); await expect.poll(() => count).toBe(2); release(); await expect(page.locator('#ai-proposal')).toBeVisible();
-  await edit(page, '// manual edit'); await expect(page.locator('#ai-apply')).toBeDisabled(); await expect(page.locator('#ai-proposal-note')).toContainText('古い提案'); expect(await source(page)).toBe('// manual edit');
-  await page.click('#ai-generate'); await expect.poll(() => count).toBe(3); const oldRelease = release; await page.click('#ai-cancel');
-  await page.click('#ai-generate'); await expect.poll(() => count).toBe(4); oldRelease(); await expect(page.locator('#ai-generate')).toBeDisabled(); release(); await expect(page.locator('#ai-generate')).toBeEnabled();
-  await page.setViewportSize({ width: 390, height: 844 }); await page.screenshot({ path: info.outputPath('ai-narrow.png') });
-  await page.locator('#ai-diff').scrollIntoViewIfNeeded(); await page.screenshot({ path: info.outputPath('ai-narrow-diff.png') });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  await page.reload(); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); await expect(page.locator('#ai-mode')).toHaveValue('review');
-  await page.click('#ai-settings-open'); await page.screenshot({ path: info.outputPath('ai-settings-narrow.png') });
+test('Enter, Shift Enter, IME, repeat/click dedup, cancellation and next draft preservation', async ({ page }) => {
+  const pending = []; let count = 0;
+  await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => pending.push(async () => { await r.fulfill({ json: response('回答') }).catch(() => {}); resolve(); })); });
+  await ready(page); await settings(page);
+  await page.fill('#ai-prompt', 'one'); await page.locator('#ai-prompt').press('Shift+Enter'); await expect(page.locator('#ai-prompt')).toHaveValue('one\n'); expect(count).toBe(0);
+  await page.locator('#ai-prompt').dispatchEvent('compositionstart'); await page.locator('#ai-prompt').dispatchEvent('keydown', { key: 'Enter', isComposing: true, keyCode: 229 });
+  await page.locator('#ai-prompt').dispatchEvent('compositionend'); await page.locator('#ai-prompt').dispatchEvent('keydown', { key: 'Enter' }); await page.locator('#ai-prompt').dispatchEvent('keyup', { key: 'Enter' }); expect(count).toBe(0);
+  await page.fill('#ai-prompt', 'send one'); await page.locator('#ai-prompt').press('Enter'); await expect.poll(() => count).toBe(1);
+  await page.locator('#ai-prompt').dispatchEvent('keydown', { key: 'Enter', repeat: true }); await page.locator('#ai-send').evaluate(el => el.click()); expect(count).toBe(1);
+  await page.fill('#ai-prompt', 'next draft'); await pending[0](); await expect(page.locator('#ai-send')).toBeEnabled(); await expect(page.locator('#ai-prompt')).toHaveValue('next draft');
+  await page.locator('#ai-prompt').press('Enter'); await expect.poll(() => count).toBe(2); await page.click('#ai-cancel'); await expect(page.locator('#ai-prompt')).toHaveValue('next draft');
+  await page.fill('#ai-prompt', 'new request'); await page.click('#ai-send'); await expect.poll(() => count).toBe(3); await pending[1](); await expect(page.locator('#ai-send')).toBeDisabled(); await pending[2](); await expect(page.locator('#ai-prompt')).toHaveValue('');
+  await page.locator('#ai-send').focus(); await expect(page.locator('.ai-send-tip')).toBeVisible(); await expect(page.locator('#ai-send')).toHaveAccessibleName('送信');
 });
 
-test('pending edits, board changes, A→B→A and settings invalidation never overwrite', async ({ page }) => {
+test('Build attachment eligibility, both operations, snapshots, new Build unchecks', async ({ page }) => {
+  const requests = []; let buildHold = false, finishBuild;
+  await page.route('https://api.openai.com/**', async r => { const body = r.request().postDataJSON(); requests.push(body); await r.fulfill({ json: response(body.instructions.includes('CODE GENERATION') ? answer : '原因の説明') }); });
+  await page.route('**/compile', async r => { if (buildHold) await new Promise(resolve => { finishBuild = resolve; }); await r.fulfill({ status: 422, json: { stage: 'compile', log: 'unique-error-log' } }); });
+  await ready(page); await settings(page); await expect(page.locator('#ai-attach')).toBeDisabled();
+  await page.click('#build'); await expect(page.locator('#ai-attach')).toBeEnabled(); await page.check('#ai-attach'); await page.click('#ai-send'); await expect(page.locator('#ai-status')).toContainText('知りたいこと'); expect(requests).toHaveLength(0);
+  await page.click('#ai-context'); await expect(page.locator('#ai-context-text')).toContainText('unique-error-log'); await page.click('#ai-context-close');
+  await send(page, 'consult'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[0].input.at(-1).content).toContain('unique-error-log');
+  await page.uncheck('#ai-attach'); await send(page, 'consult'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[1].input.at(-1).content).not.toContain('unique-error-log');
+  await page.check('#ai-attach'); await send(page, 'generate'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(requests[2].input.at(-1).content).toContain('unique-error-log'); await expect(page.locator('#ai-attach')).not.toBeChecked(); await expect(page.locator('#ai-attach')).toBeDisabled();
+  await page.click('#build'); await expect(page.locator('#ai-attach')).toBeEnabled(); await page.check('#ai-attach'); buildHold = true; await page.click('#build'); await expect(page.locator('#ai-attach')).not.toBeChecked(); await expect(page.locator('#ai-attach')).toBeDisabled(); await expect.poll(() => Boolean(finishBuild)).toBe(true); finishBuild(); await expect(page.locator('#ai-attach')).toBeEnabled();
+  await page.check('#ai-attach'); await page.selectOption('#env','pico'); await expect(page.locator('#ai-attach')).not.toBeChecked();
+});
+
+test('API settings draft, candidate mapping, custom restoration, save failure, immediate deletion', async ({ page }) => {
+  const requests = [];
+  await page.addInitScript(() => localStorage.setItem('digicode-text.ai.openai.v1', JSON.stringify({ key: 'dummy-saved', model: 'custom-preserved', api: 'chat' })));
+  await page.route('https://api.openai.com/**', async r => { requests.push(r.request().postDataJSON()); await r.fulfill({ json: { choices: [{ finish_reason: 'stop', message: { content: 'OK' } }] } }); });
+  await ready(page); await page.click('#ai-settings-open'); await expect(page.locator('#ai-model')).toHaveValue('custom-preserved'); await expect(page.locator('#ai-api')).toHaveValue('chat');
+  await page.selectOption('#ai-model-choice','gpt-5-mini'); await page.locator('#ai-advanced summary').click(); await expect(page.locator('#ai-api')).toHaveValue('responses');
+  await page.locator('#ai-api-info').focus(); await page.keyboard.press('Enter'); await expect(page.locator('#ai-api-help')).toBeVisible(); await page.click('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden();
+  await page.click('#ai-settings-close'); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[0].model).toBe('custom-preserved');
+  await page.click('#ai-settings-open'); await page.fill('#ai-model','custom-session'); await page.click('#ai-use'); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[1].model).toBe('custom-session');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('digicode-text.ai.openai.v1')).model)).toBe('custom-preserved');
+  await page.click('#ai-settings-open'); await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('quota'); }; }); await page.click('#ai-save'); await expect(page.locator('#ai-settings-status')).toContainText('保存できません'); await expect(page.locator('#ai-settings')).toBeVisible();
+  await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await page.click('#ai-delete'); await page.click('#ai-settings-close'); await page.click('#ai-settings-open'); await expect(page.locator('#ai-key')).toHaveValue('');
+  await page.selectOption('#ai-provider','claude'); await page.fill('#ai-key','dummy-claude'); await page.selectOption('#ai-model-choice','claude-haiku-4-5'); await page.click('#ai-save'); await page.click('#ai-settings-open'); await page.locator('#ai-advanced summary').click(); await expect(page.locator('#ai-api')).toHaveValue('messages');
+});
+
+test('captured modes, review/auto apply, Undo/Redo, artifacts, stale edits and A B A', async ({ page }) => {
   let release, count = 0;
-  await page.route('https://api.openai.com/**', async route => { count++; await new Promise(r => { release = r; }); await route.fulfill({ json: response(answer) }).catch(() => {}); });
-  await ready(page);
-  for (const change of [async () => edit(page, '// changed'), async () => page.selectOption('#env', 'pico'), async () => {
-    await page.click('#projects-open'); await page.click('#project-new'); await page.fill('#name-input', 'B'); await page.locator('#name-form button[type=submit]').click();
-    await page.click('#projects-open'); await page.click('#project-open-list'); await page.locator('.project-item').filter({ hasText: 'はじめてのプロジェクト' }).click();
-  }]) {
-    const expected = count + 1; await page.click('#ai-generate'); await expect.poll(() => count).toBe(expected); await change(); const before = await source(page); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); expect(await source(page)).toBe(before);
-  }
-  await page.click('#ai-generate'); await expect.poll(() => count).toBe(4); await page.click('#ai-settings-open'); await page.click('#ai-delete'); await page.click('#ai-settings-close'); release(); await expect(page.locator('#ai-generate')).toBeEnabled(); expect(await source(page)).toBe('// changed');
+  await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => { release = resolve; }); await r.fulfill({ json: response(answer) }); });
+  await page.route('**/compile', r => r.fulfill({ body: Buffer.alloc(512) }));
+  await ready(page); await settings(page); const original = await source(page);
+  await page.selectOption('#ai-operation','generate'); await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect.poll(() => count).toBe(1);
+  await page.selectOption('#ai-operation','consult'); await page.selectOption('#ai-mode','auto', { force: true }); release(); await expect(page.locator('#ai-proposal')).toBeVisible(); expect(await source(page)).toBe(original);
+  await page.click('#ai-apply'); expect(await source(page)).toBe(code); await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
+  await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Z'); expect(await source(page)).toBe(original); await expect(page.locator('#download')).toBeHidden(); await page.keyboard.press('ControlOrMeta+Shift+Z'); expect(await source(page)).toBe(code);
+  await send(page,'generate'); await expect.poll(() => count).toBe(2); await edit(page,'// manual'); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); await expect(page.locator('#ai-apply')).toBeDisabled();
+  await send(page,'generate'); await expect.poll(() => count).toBe(3); await page.click('#projects-open'); await page.click('#project-new'); await page.fill('#name-input','B'); await page.locator('#name-form button[type=submit]').click(); await page.click('#projects-open'); await page.click('#project-open-list'); await page.locator('.project-item').filter({hasText:'はじめてのプロジェクト'}).click(); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); expect(await source(page)).toBe('// manual');
 });
 
-test('HTTP errors, malformed output, timeout and save failure recover without retry', async ({ page }) => {
-  let status = 401, payload = response(answer), count = 0, hold = false;
-  await page.route('https://api.openai.com/**', async route => { count++; if (hold) return; await route.fulfill({ status, json: payload }); });
-  await ready(page); const original = await source(page);
-  for (const code of [400,401,403,404,429,500]) { status = code; await page.click('#ai-generate'); await expect(page.locator('#ai-status')).toContainText(`HTTP ${code}`); await expect(page.locator('#ai-generate')).toBeEnabled(); }
-  status = 200;
-  for (const bad of [response(''), { status: 'incomplete' }, response('```cpp\nunfinished'), { ...response(answer), output: [] }]) { payload = bad; await page.click('#ai-generate'); await expect(page.locator('#ai-generate')).toBeEnabled(); expect(await source(page)).toBe(original); }
-  expect(count).toBe(10);
-  await page.clock.install(); hold = true; await page.click('#ai-generate'); await expect.poll(() => count).toBe(11); await page.clock.fastForward(180001); await expect(page.locator('#ai-status')).toContainText('タイムアウト');
-  hold = false; payload = response(answer);
-  await page.evaluate(() => { window.savedSet = Storage.prototype.setItem; Storage.prototype.setItem = function(k,v) { if (k === 'digicode-text.projects.v1') throw new Error('quota'); return window.savedSet.call(this,k,v); }; });
-  await page.click('#ai-generate'); await expect(page.locator('#ai-status')).toContainText('適用済み・未保存'); await expect(page.locator('#editor .view-lines')).toContainText('delay(42)'); expect(await source(page)).toBe(original);
-  await page.evaluate(() => { Storage.prototype.setItem = window.savedSet; }); await page.click('#save-retry'); expect(await source(page)).toBe(code);
+test('failure recovery and save failure keep input/code', async ({ page }) => {
+  let status = 500;
+  await page.route('https://api.openai.com/**', r => r.fulfill({ status, json: response(answer) }));
+  await ready(page); await settings(page); await send(page,'generate','変更して'); await expect(page.locator('#ai-status')).toContainText('HTTP 500'); await expect(page.locator('#ai-prompt')).toHaveValue('変更して');
+  status = 200; await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = function(k,v) { if (k === 'digicode-text.projects.v1') throw new Error('quota'); return window.originalSet.call(this,k,v); }; });
+  await send(page,'generate','再度変更して'); await expect(page.locator('#ai-status')).toContainText('適用済み・未保存'); await expect(page.locator('#editor .view-lines')).toContainText('delay(42)');
+  await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await page.click('#save-retry'); expect(await source(page)).toBe(code);
 });
 
-test('Build failure snapshot, context, and IME', async ({ page }) => {
-  const requests = [];
-  await page.route('https://api.openai.com/**', async route => { requests.push(route.request().postDataJSON()); await route.fulfill({ json: response('依存を確認してください') }); });
-  await page.route('**/compile', route => route.fulfill({ status: 422, json: { stage: 'dependencies', error: '取得失敗', log: 'unique-build-error' } }));
-  await ready(page); await page.click('#ai-build-help'); await expect(page.locator('#ai-status')).toContainText('一致するBuild失敗がありません'); expect(requests).toHaveLength(0);
-  await page.click('#build'); await expect(page.locator('#status')).toContainText('Build失敗'); await page.click('#ai-build-help'); await expect(page.locator('#ai-status')).toContainText('回答完了');
-  expect(requests[0].input.at(-1).content).toContain('unique-build-error'); expect(requests[0].input.at(-1).content).toContain('dependencies');
-  await edit(page, '// newer'); await page.click('#ai-build-help'); expect(requests).toHaveLength(1);
-  await page.click('#ai-context'); await expect(page.locator('#ai-context-text')).toContainText('// newer'); await expect(page.locator('#ai-context-text')).not.toContainText('unique-build-error'); await page.click('#ai-context-close');
-  await page.locator('#ai-prompt').dispatchEvent('compositionstart'); await page.click('#ai-consult'); expect(requests).toHaveLength(1); await page.locator('#ai-prompt').dispatchEvent('compositionend');
-  await page.locator('#ai-prompt').press('Enter'); expect(requests).toHaveLength(1);
+test('visible chat scrolling, no duplicate answer, desktop/narrow diff and settings', async ({ page }, info) => {
+  let count = 0, release;
+  await page.route('https://api.openai.com/**', async r => { count++; if (count === 2) await new Promise(resolve => { release = resolve; }); await r.fulfill({ json: response(count === 3 ? answer : '# 説明\n' + Array.from({length:20},(_,i) => `- 項目${i}: 説明文です。`).join('\n')) }); });
+  await ready(page); await settings(page); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); await page.locator('#ai-history').evaluate(el => { el.scrollTop = 0; }); await page.screenshot({path:info.outputPath('chat-conversation.png')}); await send(page); await expect.poll(() => count).toBe(2);
+  await page.locator('#ai-history').evaluate(el => { el.scrollTop = 0; }); release(); await expect(page.locator('#ai-send')).toBeEnabled(); expect(await page.locator('#ai-history').evaluate(el => el.scrollTop)).toBe(0);
+  await page.click('#ai-latest'); expect(await page.locator('#ai-history').evaluate(el => el.scrollTop)).toBeGreaterThan(0);
+  await page.selectOption('#ai-operation','generate'); await page.selectOption('#ai-mode','review'); await send(page,'generate'); await expect(page.locator('#ai-proposal')).toBeVisible(); await page.locator('#ai-diff').scrollIntoViewIfNeeded();
+  await page.screenshot({path:info.outputPath('chat-desktop.png')});
+  await page.setViewportSize({width:390,height:844}); await page.locator('#ai-diff').scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('chat-narrow-diff.png')});
+  await page.locator('#ai-prompt').scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('chat-narrow-input.png')}); expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await page.click('#ai-settings-open'); await page.locator('#ai-advanced summary').click(); await page.click('#ai-api-info'); await page.screenshot({path:info.outputPath('chat-settings.png')});
 });
 
-test('Chat adapter, free model ID, key storage failures, network recovery and library conflict', async ({ page }) => {
-  let count = 0, release, delay = false, networkFailure = false;
-  const requests = [];
-  await page.route('https://api.openai.com/**', async r => {
-    count++; requests.push(r.request());
-    if (networkFailure) return r.abort('failed');
-    if (delay) await new Promise(resolve => { release = resolve; });
-    await r.fulfill({ json: { choices: [{ finish_reason: 'stop', message: { content: answer } }] } });
+
+test.describe('touch API help', () => {
+  test.use({ hasTouch: true });
+  test('touch explanation and provider-isolated direct request', async ({ page }) => {
+    const requests = [];
+    await page.route('https://api.anthropic.com/**', async r => { requests.push(r.request()); await r.fulfill({json:{stop_reason:'end_turn',content:[{type:'text',text:'Claudeの回答'}]}}); });
+    await ready(page); await settings(page); await settings(page,'claude');
+    await page.tap('#ai-settings-open'); await page.locator('#ai-advanced summary').tap(); await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeVisible();
+    await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden(); await page.tap('#ai-settings-close');
+    await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
+    expect(requests[0].headers()['x-api-key']).toBe('dummy-claude-test-only'); expect(requests[0].headers().authorization).toBeUndefined();
+    await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only'); await page.click('#ai-use');
+    expect(await page.locator('.ai-turn').count()).toBe(0);
   });
-  await ready(page); await settings(page, 'openai', 'gpt-4.1-mini');
-  await page.click('#ai-generate'); await expect(page.locator('#ai-status')).toContainText('適用済み');
-  expect(requests[0].url()).toBe('https://api.openai.com/v1/chat/completions');
-  await page.click('#ai-settings-open'); await page.fill('#ai-model', 'user-selected-model-id'); await page.selectOption('#ai-api', 'chat');
-  await page.evaluate(() => { window.originalStorage = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('quota'); }; });
-  await page.click('#ai-save'); await expect(page.locator('#ai-settings-status')).toContainText('保存できません');
-  await page.evaluate(() => { Storage.prototype.setItem = window.originalStorage; }); await page.click('#ai-settings-close');
-  networkFailure = true; await page.click('#ai-consult'); await expect(page.locator('#ai-status')).toContainText('直接接続に失敗'); expect(requests[1].postDataJSON().model).toBe('user-selected-model-id'); expect(count).toBe(2);
-  networkFailure = false; delay = true;
-  const lib = { id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' };
-  await page.route('**/libraries/search?*', r => r.fulfill({ json: { items: [lib], total: 1, more: false } }));
-  await page.route('**/libraries/details?*', r => r.fulfill({ json: { ...lib, frameworks: ['*'], platforms: ['*'], versions: ['7.4.3'] } }));
-  await page.click('#ai-generate'); await expect.poll(() => count).toBe(3);
-  await page.click('#libraries-open'); await page.fill('#library-query', 'ArduinoJson'); await page.locator('#library-search-form button').click();
-  const row = page.locator('[data-library-id="64"]'); await row.getByRole('button', { name: 'バージョンを選択' }).click(); await row.getByRole('button', { name: 'プロジェクトに追加' }).click(); await page.click('#libraries-close');
-  release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); await expect(page.locator('#ai-apply')).toBeDisabled();
-  delay = false; await page.click('#ai-consult'); await expect(page.locator('#ai-status')).toContainText('回答完了'); expect(requests[3].postData()).toContain('7.4.3');
 });

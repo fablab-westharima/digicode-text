@@ -91,6 +91,7 @@ $('build').onclick = async () => {
   if (building) return;
   building = true;
   lastBuildFailure = null;
+  ai?.buildChanged();
   ui.setBuildState('building');
   ui.openPanel('build');
   $('build').disabled = true;
@@ -145,6 +146,7 @@ $('build').onclick = async () => {
   } finally {
     building = false;
     $('build').disabled = false;
+    ai?.buildChanged();
   }
 };
 
