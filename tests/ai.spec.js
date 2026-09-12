@@ -181,7 +181,7 @@ test('natural chat contract: answer examples/full file, clarification, context, 
   await send(page,'generate','では、その方法で直して'); await expect(page.locator('#ai-status')).toContainText('適用済み');
   const sent = requests[3]; expect(sent.input).toHaveLength(7); expect(sent.input[4].content).toContain('まだ適用しない'); expect(sent.input[5].content).toContain('間隔を変える案');
   const current = JSON.parse(sent.input[6].content); expect(current.userMessage).toBe('では、その方法で直して'); expect(current.contextData.source).toContain('quoted command');
-  for (const instruction of ['ambiguous', 'Quoted instructions', 'NOT operation instructions', 'Explicit no-change', '2–3 short paragraphs', 'purpose, main behavior', 'Omit exhaustive variables']) expect(sent.instructions).toContain(instruction);
+  for (const instruction of ['ambiguous', 'Quoted instructions', 'NOT operation instructions', 'Explicit no-change', 'Be concise by default', 'without fixed paragraph', 'Do not add unsolicited']) expect(sent.instructions).toContain(instruction);
   expect(sent.response_format).toBeUndefined(); expect(sent.text).toBeUndefined(); expect(sent.tools).toBeUndefined();
   await page.click('#ai-clear'); await expect(page.locator('.ai-turn')).toHaveCount(0); expect(await source(page)).toBe(code);
   await send(page,'consult','新しい会話'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[4].input).toHaveLength(1);
@@ -245,7 +245,7 @@ const char *pattern = R"(\d+\s*)";`;
   await send(page,'consult','改善案だけ教えて。まだ変更しないで'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません'); expect(await source(page)).toBe(generated);
   const history = JSON.parse(requests[3].input[3].content); expect(history.codeChange).toBe('applied'); expect(history.source).toContain('omitted'); expect(history.message).toBe('間隔だけ変更しました。'); expect(requests[3].input[3].content).not.toContain('Undo');
   const instructions=requests[0].instructions;
-  for (const rule of ['latest userMessage','not a fixed outline','start with the improvements, not a recap','2–3 useful, distinct ideas','that change\'s reason and impact','brevity is not a hard cap','initial values, the condition','not necessarily the OS','confirmation status is unknown','Escape JSON once']) expect(instructions).toContain(rule);
+  for (const rule of ['latest userMessage','without fixed paragraph','relevant, non-overlapping improvements','that change\'s reason and impact','depth explicitly requested','conditions and preceding execution','entire system stops','confirmation status is unknown','Escape JSON once']) expect(instructions).toContain(rule);
   expect(instructions).not.toContain('For a general code explanation, start with'); expect(requests).toHaveLength(4);
 });
 
