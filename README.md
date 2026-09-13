@@ -55,6 +55,8 @@ USB・実機操作は別途Humanの明示許可が必要。実機書き込み・
 
 `web/ai-context.js`で応答原則・既存JSON契約・短い製品対応情報を区別し、全APIへ共通送信する。現在のコード・選択ボード・具体版の直接依存・適用方法は要求時snapshotから取得する。製品情報はボード/core系列/platform設定、UF2とBINセットZIP、ブラウザ書き込み未実装、シリアルのVID/速度制限、保存/JSON退避、AIと利用者の操作境界を含む参照情報で、毎回答の説明項目ではない。依存設定、Registry登録、パッケージ取得、Build成功、実機確認を区別する。coreの実インストール版は推測せず、未特定はnullとする。
 
+書き込み案内では対象成果物のmanifest／README本文をAIへ自動送信していないことを明示する。未確認アドレス・flash設定を使う具体的コマンドは「一般例」でも提示しないよう指示し、Build→ZIP取得→同梱資料に基づく外部書き込みは案内する。過去のアドレスは共通情報に固定しない。選択ボードの情報にはSerialの案内条件も含め、C3にはアプリ内Serialを接続手順として勧めない。RP2040も実際のポートとVIDフィルターの一致が条件。C3の書き込み用ROM download modeをDFUと混同せず、手動移行は[Seeed公式手順](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/#troubleshooting)を参照する（2026-09-13確認）。これはモデルへ渡す情報・指示の修正であり、生成文章の正確性を強制・保証する後処理ではない。実モデルの改善確認はHumanによる再確認が必要。
+
 保守時は機能変更と同じ差分で`ai-context.js`の該当実装コメントと対応情報を更新する。限定的なmetadataのためcompilerやINI生成は変更せず、`tests/ai-product.spec.js`で実際のボード選択・project検証・compiler成果物定義・INI・serial設定との一致、および3APIへの最終送信を検査する。`npm run test:browser -- tests/ai.spec.js tests/ai-product.spec.js`は独立Chrome・外部AI遮断の検証であり、実モデルの簡潔さ・正確さの保証ではない。
 
 履歴へは回答文と簡潔なコード適用状態（pending/applied/discarded/stale）を渡し、画面のUndo案内やBuild注意文を再送しない。現在のソースを正本とし、履歴の適用状態をBuild・実機成功とは扱わない。改行はJSON各層を1回ずつデコードし、本文を一律置換・二重デコードしない。モデルには通常文章の改行を過剰エスケープしないよう指示する。生成コードは折り畳みを開けば全文を選択できる。閉じた状態のコピーではコードが含まれない場合がある。
