@@ -12,7 +12,7 @@
 - Human review の後、次の周を勝手に始めない。
 - 検証は実行で行う。動くものに対して壊れるか試す。独立レビューは重要なコードにかけ、文書にはかけない。
 - コードの commit より文書の commit が多くなったら、やり方が戻っている。
-- 報告書は repo ではなく `~/digicode-text-notes/` に置く。repo には動くコードと最小の README だけを commit する。
+- 報告書は repo ではなく `~/Downloads/` に置く。repo には動くコードと最小の README だけを commit する。
 
 ## Classic から持ち越す教訓(この 3 つだけ)
 1. 依存は project 単位で分離する。global な lib_deps で 16/20 board が死んだ。
