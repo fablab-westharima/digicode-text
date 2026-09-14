@@ -24,6 +24,7 @@
     </select></label>
     <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
     <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
+    <button id="flash" class="download" hidden disabled title="Build結果をUSB接続したボードへ書き込む"><span aria-hidden="true">⇥</span> 書き込み</button>
   </div>
 </header>
 <input id="project-file" type="file" accept=".json,application/json" hidden>
@@ -60,6 +61,7 @@
   <div id="panel-body" hidden>
     <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
       <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
+      <p id="flash-status" role="status" hidden></p>
       <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
     </div>
     <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>

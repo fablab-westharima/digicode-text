@@ -1,6 +1,6 @@
 // DigiCode Text compiler — minimal first slice.
 // POST /compile  { env: "xiao_rp2040" | "pico", source: "<main.cpp>" }
-//   -> 200 UF2 for RP2040, ZIP flash set for XIAO ESP32C3 on success
+//   -> 200 UF2 bytes for RP2040/Pico; JSON flash set (manifest + base64 images) for ESP boards
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
 // GET  /health    -> { ok: true }
@@ -20,10 +20,11 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RP2040_PROJECT = path.join(here, 'pio-rp2040');
+const ESP_SHARED = path.join(here, 'pio-esp'); // packager shared by every ESP-family project
 const BOARDS = new Map([
-  ['xiao_rp2040', { project: RP2040_PROJECT, extension: 'uf2', contentType: 'application/octet-stream' }],
-  ['pico', { project: RP2040_PROJECT, extension: 'uf2', contentType: 'application/octet-stream' }],
-  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), extension: 'zip', contentType: 'application/zip' }],
+  ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream' }],
+  ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream' }],
+  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8' }],
 ]);
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
@@ -72,13 +73,15 @@ async function compile(env, source, libraries) {
       const config = '[platformio]\nlib_dir = lib\ngloballib_dir = global-lib\nlibdeps_dir = .pio/libdeps\n\n[env]\nlib_deps =\n' +
         libraries.map(p => `    ${p.owner}/${p.name}@${p.version}`).join('\n') + '\n\n' + template;
       await writeFile(path.join(project, 'platformio.ini'), config);
-      if (env === 'xiao_esp32c3') for (const file of ['portable_paths.py', 'package_firmware.py'])
-        await copyFile(path.join(board.project, file), path.join(project, file));
+      if (board.family === 'esp') {
+        await copyFile(path.join(board.project, 'portable_paths.py'), path.join(project, 'portable_paths.py'));
+        await copyFile(path.join(ESP_SHARED, 'package_firmware.py'), path.join(project, 'package_firmware.py'));
+      }
       const { code, log } = await runPio(env, project);
       const durationMs = Date.now() - started;
       if (code !== 0) return { ok: false, log: publicLog(log, project),
         stage: /(?:PackageException|UnknownPackageError|HTTPClientError|Could not install|Could not find the package)/i.test(log) ? 'dependencies' : 'compile', durationMs };
-      const artifact = await readFile(path.join(project, '.pio', 'build', env, `firmware.${board.extension}`));
+      const artifact = await readFile(path.join(project, '.pio', 'build', env, board.family === 'esp' ? 'flashset.json' : `firmware.${board.extension}`));
       return { ok: true, artifact, board, durationMs };
     } finally { await rm(project, { recursive: true, force: true }); }
   });
@@ -146,7 +149,8 @@ const server = http.createServer(async (req, res) => {
       if (!r.ok) return json(res, 422, { error: r.stage === 'dependencies' ? 'ライブラリ取得・確認に失敗しました' : 'コンパイルに失敗しました', stage: r.stage, log: r.log, durationMs: r.durationMs });
       res.writeHead(200, {
         'content-type': r.board.contentType,
-        'content-disposition': `attachment; filename="firmware-${env}.${r.board.extension}"`,
+        // UF2 is downloaded by the browser; the ESP flash set is internal data for browser flashing.
+        ...(r.board.family === 'rp2040' ? { 'content-disposition': `attachment; filename="firmware-${env}.${r.board.extension}"` } : {}),
         'x-compile-duration-ms': String(r.durationMs),
         'x-artifact-sha256': createHash('sha256').update(r.artifact).digest('hex'),
       });

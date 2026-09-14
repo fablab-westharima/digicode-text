@@ -3,6 +3,7 @@ import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
+import { isEspEnv, parseFlashSet, flashEsp } from './flash.js';
 import { setupLibraries } from './libraries.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
@@ -62,11 +63,21 @@ let building = false;
 let ai;
 let lastBuildFailure = null;
 let downloadUrl;
+let flashSet = null; // ESP flash set of the last successful build; cleared with the download on any edit
+let flashing = false;
 function invalidateDownload() {
   $('download').hidden = true;
   $('download').removeAttribute('href');
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = undefined;
+  flashSet = null;
+  $('flash').hidden = true;
+  $('flash').disabled = true;
+}
+function flashStatus(message, state = '') {
+  $('flash-status').textContent = message;
+  $('flash-status').dataset.state = state;
+  $('flash-status').hidden = !message;
 }
 let switching = false;
 function changed() {
@@ -112,18 +123,32 @@ $('build').onclick = async () => {
       body: JSON.stringify({ source: snapshot.source, env: snapshot.env, libraries: snapshot.libraries, projectId: snapshot.projectId, projectRevision: snapshot.projectRevision }),
     });
     if (res.ok) {
-      const blob = await res.blob();
-      if (!sameProject()) { obsolete(); return; }
+      let size, summary;
+      if (isEspEnv(snapshot.env)) {
+        // ESP family: the server returns the build's flash set; the browser flashes it via esptool-js.
+        const set = parseFlashSet(await res.json());
+        if (!sameProject()) { obsolete(); return; }
+        flashSet = set;
+        size = set.images.reduce((n, i) => n + i.data.length, 0);
+        summary = set.images.map(i => `${i.file} @ 0x${i.address.toString(16)} (${i.data.length} bytes)`).join(', ');
+        $('flash').hidden = false;
+        $('flash').disabled = false;
+        flashStatus('');
+      } else {
+        const blob = await res.blob();
+        if (!sameProject()) { obsolete(); return; }
+        downloadUrl = URL.createObjectURL(blob);
+        const a = $('download');
+        a.href = downloadUrl;
+        a.download = `firmware-${snapshot.env}.uf2`;
+        a.textContent = '↓ UF2 ダウンロード';
+        a.hidden = false;
+        size = blob.size;
+        summary = `${size} bytes`;
+      }
       ui.setBuildState('success');
-      downloadUrl = URL.createObjectURL(blob);
-      const a = $('download');
-      a.href = downloadUrl;
-      const extension = snapshot.env === 'xiao_esp32c3' ? 'zip' : 'uf2';
-      a.download = `firmware-${snapshot.env}.${extension}`;
-      a.textContent = extension === 'zip' ? '↓ BINセット ダウンロード' : '↓ UF2 ダウンロード';
-      a.hidden = false;
-      $('status').textContent = `Build成功：${blob.size} bytes（${((performance.now() - t0) / 1000).toFixed(1)}秒）`;
-      $('log').textContent = `対象: ${snapshot.name} / ${snapshot.projectId} / revision ${snapshot.projectRevision}\nbuild OK: ${snapshot.env}, ${blob.size} bytes (${res.headers.get('x-compile-duration-ms')} ms on server)`;
+      $('status').textContent = `Build成功：${size} bytes（${((performance.now() - t0) / 1000).toFixed(1)}秒）`;
+      $('log').textContent = `対象: ${snapshot.name} / ${snapshot.projectId} / revision ${snapshot.projectRevision}\nbuild OK: ${snapshot.env}, ${summary} (${res.headers.get('x-compile-duration-ms')} ms on server)`;
     } else {
       const j = await res.json().catch(() => ({}));
       if (!sameProject()) { obsolete(); return; }
@@ -147,6 +172,25 @@ $('build').onclick = async () => {
     building = false;
     $('build').disabled = false;
     ai?.buildChanged();
+  }
+};
+
+// Flash the last build to an ESP board. Disabled again by any edit (invalidateDownload).
+$('flash').onclick = async () => {
+  if (flashing || !flashSet) return;
+  flashing = true;
+  const set = flashSet;
+  $('flash').disabled = true;
+  $('build').disabled = true;
+  ui.openPanel('build');
+  try {
+    await flashEsp(set, ({ stage, percent, message }) => flashStatus(`書き込み ${percent}%：${message}`, stage));
+  } catch (error) {
+    flashStatus(String(error?.message ?? error), 'error');
+  } finally {
+    flashing = false;
+    $('build').disabled = building;
+    $('flash').disabled = flashSet !== set; // keep enabled unless the build was invalidated meanwhile
   }
 };
 

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 const lib = { id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' };
 const item = { ...lib, description: 'JSON serialization library', frameworks: ['*'], platforms: ['*'] };
@@ -99,11 +99,21 @@ test('server rejects malformed dependencies before compilation', async ({ reques
 test('Actual Registry add, RP2040 and C3 builds/downloads, deletion and concurrent project isolation', async ({ page, request }, info) => {
   test.setTimeout(1_200_000); await ready(page); await edit(page, source); await add(page); await page.click('#libraries-close');
   for (const env of ['xiao_rp2040', 'xiao_esp32c3']) {
-    await page.selectOption('#env', env); await page.click('#build'); await expect(page.locator('#download')).toBeVisible({ timeout: 600_000 });
-    const downloading = page.waitForEvent('download'); await page.click('#download'); const download = await downloading;
-    const dest = info.outputPath(download.suggestedFilename()); await download.saveAs(dest); const bytes = await readFile(dest);
-    if (env === 'xiao_rp2040') { expect(bytes.length % 512).toBe(0); for (let i=0;i<bytes.length;i+=512) { expect(bytes.readUInt32LE(i)).toBe(0x0a324655); expect(bytes.readUInt32LE(i+508)).toBe(0x0ab16f30); } }
-    else console.log(execFileSync('python3', ['tests/verify-c3.py', dest], { encoding: 'utf8' }));
+    await page.selectOption('#env', env);
+    const response = page.waitForResponse(r => r.url().endsWith('/compile'), { timeout: 600_000 });
+    await page.click('#build');
+    let bytes;
+    if (env === 'xiao_rp2040') {
+      await expect(page.locator('#download')).toBeVisible({ timeout: 600_000 });
+      const downloading = page.waitForEvent('download'); await page.click('#download'); const download = await downloading;
+      const dest = info.outputPath(download.suggestedFilename()); await download.saveAs(dest); bytes = await readFile(dest);
+      expect(bytes.length % 512).toBe(0); for (let i=0;i<bytes.length;i+=512) { expect(bytes.readUInt32LE(i)).toBe(0x0a324655); expect(bytes.readUInt32LE(i+508)).toBe(0x0ab16f30); }
+    } else {
+      // ESP boards: the flash set stays in the browser for esptool-js; inspect the server response instead.
+      await expect(page.locator('#flash')).toBeEnabled({ timeout: 600_000 }); await expect(page.locator('#download')).toBeHidden();
+      bytes = await (await response).body(); const dest = info.outputPath('flashset-' + env + '.json'); await writeFile(dest, bytes);
+      console.log(execFileSync('python3', ['tests/verify-c3.py', dest], { encoding: 'utf8' }));
+    }
     console.log(env, bytes.length); await page.screenshot({ path: info.outputPath(`real-${env}.png`) });
   }
   await page.click('#libraries-open'); await page.locator('#library-added button').click(); await page.click('#libraries-close');

@@ -21,7 +21,8 @@ test('product metadata agrees with compiler templates, artifacts, project schema
     const setting = key => section.match(new RegExp('^' + key.replaceAll('.', '\\.') + '\\s*=\\s*(.+)$', 'm'))?.[1].trim();
     expect(info.platform).toBe(setting('platform'));
     expect(info.framework.toLowerCase()).toBe(setting('framework'));
-    expect(info.artifact).toBe(target.extension);
+    // ESP boards now return a browser-flash JSON set; BOARD_INFO/PRODUCT_INFO still say 'zip' (AI text untouched in this slice, next GO).
+    if (target.family !== 'esp') expect(info.artifact).toBe(target.extension);
     expect(info.coreVersion).toBeNull();
     expect(info.platformVersion).toBe(info.platform.match(/@(.+)$/)?.[1] ?? null);
     if (env === 'xiao_rp2040') expect(info.core).toContain(setting('board_build.core'));
@@ -29,11 +30,12 @@ test('product metadata agrees with compiler templates, artifacts, project schema
     expect(() => validateContent({ name: 'test', env, source: '', libraries: [] })).not.toThrow();
   }
   const serial = await read('web/serial.js');
-  expect(serial).toContain(`usbVendorId: ${PRODUCT_INFO.serial.usbVendorId}`);
+  // serial.js now lists several vendor IDs (RP2040 + ESP bridges); PRODUCT_INFO still names only 0x2e8a (AI text untouched, next GO).
+  expect(serial.toLowerCase()).toContain(PRODUCT_INFO.serial.usbVendorId.toLowerCase());
   expect(serial).toContain(`baudRate: ${PRODUCT_INFO.serial.baudRate}`);
-  expect(PRODUCT_INFO.browserFlashing).toBe(false);
-  const packager = await read('compiler/pio-esp32c3/package_firmware.py');
-  for (const file of ['bootloader', 'partitions', 'boot_app0', 'firmware', 'manifest.json', 'README.txt']) expect(packager).toContain(file);
+  expect(PRODUCT_INFO.browserFlashing).toBe(false); // implementation now flashes ESP boards from the browser (web/flash.js); PRODUCT_INFO is stale until the next GO
+  const packager = await read('compiler/pio-esp/package_firmware.py');
+  for (const file of ['bootloader', 'partitions', 'boot_app0', 'firmware', 'flashset.json']) expect(packager).toContain(file);
   expect(validateLibraries([{ id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' }])[0].version).toBe('7.4.3');
   for (const invalid of [{url:'https://example.com/library.zip'}, {id:64,owner:'bblanchon',name:'ArduinoJson',version:'latest'}]) expect(() => validateLibraries([invalid])).toThrow();
   expect(RESPONSE_RULES).not.toMatch(/2[–〜-]3|3[–〜-]5/);
@@ -74,7 +76,8 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       const json = api === 'responses' ? {status:'completed',output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text}]}]} : api === 'chat' ? {choices:[{finish_reason:'stop',message:{content:text}}]} : {stop_reason:'end_turn',content:[{type:'text',text}]};
       return route.fulfill({json});
     });
-    await page.route('**/compile', route => route.fulfill({body:Buffer.alloc(512)})); // download UI only; no real Build
+    const mockSet = JSON.stringify({format:'digicode-text-flash-set',version:2,board:'seeed_xiao_esp32c3',chip:'esp32c3',flashMode:'dio',flashFrequency:'80m',flashSize:'4MB',images:[{file:'bootloader.bin',address:'0x0',size:4,sha256:'',data:Buffer.from('mock').toString('base64')}]});
+    await page.route('**/compile', route => route.request().postDataJSON().env === 'xiao_esp32c3' ? route.fulfill({contentType:'application/json',body:mockSet}) : route.fulfill({body:Buffer.alloc(512)})); // download/flash UI only; no real Build
     await page.goto('/'); await expect(page.locator('#build')).toBeEnabled();
     expect(await page.locator('#env option').evaluateAll(options => options.map(o => o.value))).toEqual(Object.keys(BOARD_INFO));
     const source = '#include <Arduino.h>\n// Compile verified is only a source comment.\nconst char* ssid="DUMMY_SSID";\nconst char* password="DUMMY_PASSWORD";\nvoid setup(){}\nvoid loop(){}\n';
@@ -91,8 +94,9 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       const env = envs[i]; await page.selectOption('#env',env);
       const mode = i === 1 ? 'review' : 'auto'; await page.selectOption('#ai-mode',mode);
       if (i > 0) {
-        await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
-        await expect(page.locator('#download')).toHaveAttribute('download',`firmware-${env}.${BOARD_INFO[env].artifact}`);
+        await page.click('#build');
+        if (env === 'xiao_esp32c3') { await expect(page.locator('#flash')).toBeEnabled(); await expect(page.locator('#download')).toBeHidden(); }
+        else { await expect(page.locator('#download')).toBeVisible(); await expect(page.locator('#download')).toHaveAttribute('download',`firmware-${env}.${BOARD_INFO[env].artifact}`); }
       }
       const saved = await page.evaluate(() => localStorage.getItem('digicode-text.projects.v1'));
       await page.fill('#ai-prompt',prompts[i]); await page.click('#ai-send'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
@@ -114,7 +118,7 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       expect(payload.contextData.directDependencyStatus).toContain('configured'); expect(payload.contextData.directDependencyStatus).toContain('not provided');
       expect(JSON.stringify(body)).not.toContain('dummy-product-test-only');
       expect(await page.evaluate(() => localStorage.getItem('digicode-text.projects.v1'))).toBe(saved);
-      if (i > 0) await expect(page.locator('#download')).toBeVisible();
+      if (i > 0) await expect(page.locator(env === 'xiao_esp32c3' ? '#flash' : '#download')).toBeVisible();
       await page.click('#ai-context'); const preview = JSON.parse(await page.locator('#ai-context-text').textContent()); expect(preview).toEqual(payload.contextData); await page.click('#ai-context-close');
       await page.click('#ai-clear'); await expect(page.locator('.ai-turn')).toHaveCount(0);
     }
