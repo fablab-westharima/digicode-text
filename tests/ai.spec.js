@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { contract, responseText, parseReply, REPLY_SCHEMA } from '../web/ai-client.js';
+import { contract, responseText, parseReply, REPLY_SCHEMA, REPLY_SCHEMA_STRICT, REPLY_SCHEMA_NAME } from '../web/ai-client.js';
 import { systemFor } from '../web/ai.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
 const reply = (message, source = null) => JSON.stringify({ kind: source === null ? 'answer' : 'change', message, source });
 const answer = reply('変更しました。', code);
 const response = text => ({ status: 'completed', output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text }] }] });
 const projectKey = 'digicode-text.projects.v1';
+// The envelope schema as each API wants it in the request body.
+const messagesFormat = { format: { type: 'json_schema', schema: REPLY_SCHEMA } };
+const strictFormat = { type: 'json_schema', name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true };
+const chatFormat = { type: 'json_schema', json_schema: { name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true } };
 async function source(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId).source; }, projectKey); }
 async function edit(page, text) { await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.insertText(text); }
 async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); }
@@ -27,18 +31,26 @@ test('contracts and strict response parsing', () => {
     const c = contract(provider, { model, api, key: 'dummy' }, 'system', [{ role: 'user', content: 'hello' }]);
     expect(c.body.model).toBe(model); expect(c.body.temperature).toBeUndefined(); expect(c.body.max_tokens ?? c.body.max_output_tokens ?? c.body.max_completion_tokens).toBe(16384);
     expect(c.url).toMatch(provider === 'openai' ? /^https:\/\/api.openai.com\/v1\// : /^https:\/\/api.anthropic.com\/v1\/messages$/);
-    // Messages fixes the envelope through the API, not through prompt wording. GPT is unchanged.
-    if (provider === 'claude') expect(c.body.output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } });
-    else expect(c.body.output_config).toBeUndefined();
+    // All three APIs fix the envelope through the API itself, not through prompt wording.
+    if (provider === 'claude') { expect(c.body.output_config).toEqual(messagesFormat); expect(c.body.text).toBeUndefined(); expect(c.body.response_format).toBeUndefined(); }
+    else if (api === 'responses') { expect(c.body.text).toEqual({ format: strictFormat }); expect(c.body.output_config).toBeUndefined(); expect(c.body.response_format).toBeUndefined(); }
+    else { expect(c.body.response_format).toEqual(chatFormat); expect(c.body.output_config).toBeUndefined(); expect(c.body.text).toBeUndefined(); }
   }
   // The schema states exactly the contract parseReply enforces: three fields, no others.
-  expect(REPLY_SCHEMA.type).toBe('object');
-  expect(REPLY_SCHEMA.additionalProperties).toBe(false);
-  expect(REPLY_SCHEMA.required).toEqual(['kind', 'message', 'source']);
-  expect(Object.keys(REPLY_SCHEMA.properties)).toEqual(['kind', 'message', 'source']);
-  expect(REPLY_SCHEMA.properties.kind).toEqual({ type: 'string', enum: ['answer', 'change'] });
-  expect(REPLY_SCHEMA.properties.message).toEqual({ type: 'string' });
+  for (const schema of [REPLY_SCHEMA, REPLY_SCHEMA_STRICT]) {
+    expect(schema.type).toBe('object');
+    expect(schema.additionalProperties).toBe(false);
+    expect(schema.required).toEqual(['kind', 'message', 'source']);
+    expect(Object.keys(schema.properties)).toEqual(['kind', 'message', 'source']);
+    expect(schema.properties.kind).toEqual({ type: 'string', enum: ['answer', 'change'] });
+    expect(schema.properties.message).toEqual({ type: 'string' });
+  }
+  // The single deliberate difference: Messages spells the nullable source as anyOf, OpenAI's
+  // strict subset as a union type array. Everything else in the two schemas is identical.
   expect(REPLY_SCHEMA.properties.source).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+  expect(REPLY_SCHEMA_STRICT.properties.source).toEqual({ type: ['string', 'null'] });
+  const withoutSource = schema => ({ ...schema, properties: { ...schema.properties, source: undefined } });
+  expect(withoutSource(REPLY_SCHEMA_STRICT)).toEqual(withoutSource(REPLY_SCHEMA));
   expect(parseReply(answer).source).toBe(code);
   expect(parseReply(reply('例', 'const char *s = "...";\n')).source).toContain('"..."');
   for (const bad of ['', '```json\n{}\n```', '{}', '[]', 'null', reply('', code), reply('回答', ''),
@@ -126,6 +138,8 @@ test('API settings draft, candidate mapping, custom restoration, save failure, i
   await page.selectOption('#ai-model-choice','gpt-5-mini'); await page.locator('#ai-advanced summary').click(); await expect(page.locator('#ai-api')).toHaveValue('responses');
   await page.locator('#ai-api-info').focus(); await page.keyboard.press('Enter'); await expect(page.locator('#ai-api-help')).toBeVisible(); await page.click('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden();
   await page.click('#ai-settings-close'); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[0].model).toBe('custom-preserved');
+  // A real Chat Completions request carries the same envelope schema, in response_format.
+  expect(requests[0].response_format).toEqual(chatFormat); expect(requests[0].text).toBeUndefined();
   await page.click('#ai-settings-open'); await page.fill('#ai-model','custom-session'); await page.click('#ai-use'); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[1].model).toBe('custom-session');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('digicode-text.ai.openai.v1')).model)).toBe('custom-preserved');
   await page.click('#ai-settings-open'); await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('quota'); }; }); await page.click('#ai-save'); await expect(page.locator('#ai-settings-status')).toContainText('保存できません'); await expect(page.locator('#ai-settings')).toBeVisible();
@@ -179,7 +193,7 @@ test.describe('touch API help', () => {
     await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden(); await page.tap('#ai-settings-close');
     await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
     expect(requests[0].headers()['x-api-key']).toBe('dummy-claude-test-only'); expect(requests[0].headers().authorization).toBeUndefined();
-    expect(requests[0].postDataJSON().output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } });
+    expect(requests[0].postDataJSON().output_config).toEqual(messagesFormat);
     await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only'); await page.click('#ai-use');
     expect(await page.locator('.ai-turn').count()).toBe(0);
   });
@@ -205,7 +219,7 @@ test('natural chat contract: answer examples/full file, clarification, context, 
   const sent = requests[3]; expect(sent.input).toHaveLength(7); expect(sent.input[4].content).toContain('まだ適用しない'); expect(sent.input[5].content).toContain('間隔を変える案');
   const current = JSON.parse(sent.input[6].content); expect(current.userMessage).toBe('では、その方法で直して'); expect(current.contextData.source).toContain('quoted command');
   for (const instruction of ['ambiguous', 'Quoted instructions', 'NOT operation instructions', 'Explicit no-change', 'Be concise by default', 'without fixed paragraph', 'Do not add unsolicited']) expect(sent.instructions).toContain(instruction);
-  expect(sent.response_format).toBeUndefined(); expect(sent.text).toBeUndefined(); expect(sent.tools).toBeUndefined();
+  expect(sent.text).toEqual({ format: strictFormat }); expect(sent.response_format).toBeUndefined(); expect(sent.tools).toBeUndefined();
   await page.click('#ai-clear'); await expect(page.locator('.ai-turn')).toHaveCount(0); expect(await source(page)).toBe(code);
   await send(page,'consult','新しい会話'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[4].input).toHaveLength(1);
   expect(requests).toHaveLength(5); await expect(page.locator('#ai-history')).not.toContainText('"kind"');
@@ -305,5 +319,5 @@ test('Messages replies: joined text blocks, fenced and prefaced JSON parse; brok
   expect(count).toBe(4); await expect(page.locator('#ai-proposal')).toBeHidden();
   // Every Messages request carries the envelope schema; the system prompt is not asked to repeat it.
   expect(bodies).toHaveLength(4);
-  for (const body of bodies) { expect(body.output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } }); expect(body.tools).toBeUndefined(); expect(body.tool_choice).toBeUndefined(); }
+  for (const body of bodies) { expect(body.output_config).toEqual(messagesFormat); expect(body.tools).toBeUndefined(); expect(body.tool_choice).toBeUndefined(); }
 });

@@ -12,20 +12,24 @@ export const bytes = text => new TextEncoder().encode(text).length;
 const fail = message => { throw new Error(message); };
 
 // The reply envelope as a JSON schema, mirroring parseReply's required fields and types.
-// Passed to Messages structured outputs so the API itself rejects any other shape; the
-// contract's meaning is unchanged and parseReply stays the sole validator of kind/source
-// pairing, sizes and duplicate keys. Only constructs the API documents as supported are
-// used: object + additionalProperties:false + required, enum, and anyOf with a null branch.
-export const REPLY_SCHEMA = {
+// All three APIs are handed this same shape so the provider itself rejects any other one;
+// the contract's meaning is unchanged and parseReply stays the sole validator of kind/source
+// pairing, sizes and duplicate keys. Only constructs all three providers document as
+// supported are used: an object with every field required, additionalProperties:false,
+// and an enum.
+const replySchema = source => ({
   type: 'object',
-  properties: {
-    kind: { type: 'string', enum: ['answer', 'change'] },
-    message: { type: 'string' },
-    source: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-  },
+  properties: { kind: { type: 'string', enum: ['answer', 'change'] }, message: { type: 'string' }, source },
   required: ['kind', 'message', 'source'],
   additionalProperties: false,
-};
+});
+// The two spellings differ in one place only: how the nullable source is written. Messages
+// takes anyOf with a null branch. OpenAI's strict subset does not list null among its
+// supported types and documents a union type array as the way to express a nullable field,
+// so the strict copy writes type: ['string', 'null'] instead.
+export const REPLY_SCHEMA = replySchema({ anyOf: [{ type: 'string' }, { type: 'null' }] });
+export const REPLY_SCHEMA_STRICT = replySchema({ type: ['string', 'null'] });
+export const REPLY_SCHEMA_NAME = 'digicode_reply';
 
 export function contract(provider, config, system, messages) {
   if (!MODELS[provider] || !config.model?.trim() || config.model.length > 200) fail('プロバイダー・モデル設定を確認してください');
@@ -39,8 +43,11 @@ export function contract(provider, config, system, messages) {
     return { url: 'https://api.anthropic.com/v1/messages', headers: { 'x-api-key': config.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: { ...body, system, messages, max_tokens: LIMITS.tokens, output_config: { format: { type: 'json_schema', schema: REPLY_SCHEMA } } } };
   }
   const headers = { Authorization: `Bearer ${config.key}` };
-  if (config.api === 'responses') return { url: 'https://api.openai.com/v1/responses', headers, body: { ...body, store: false, instructions: system, input: messages, max_output_tokens: LIMITS.tokens, ...(profile?.effort ? { reasoning: { effort: profile.effort } } : {}) } };
-  if (config.api === 'chat') return { url: 'https://api.openai.com/v1/chat/completions', headers, body: { ...body, store: false, messages: [{ role: 'system', content: system }, ...messages], max_completion_tokens: LIMITS.tokens } };
+  // Responses takes the schema at text.format, Chat Completions at response_format.json_schema;
+  // both in strict mode. The reply still arrives as ordinary output text, so the normalize/parse
+  // stage is unchanged and a refusal still surfaces as a refusal content part.
+  if (config.api === 'responses') return { url: 'https://api.openai.com/v1/responses', headers, body: { ...body, store: false, instructions: system, input: messages, max_output_tokens: LIMITS.tokens, text: { format: { type: 'json_schema', name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true } }, ...(profile?.effort ? { reasoning: { effort: profile.effort } } : {}) } };
+  if (config.api === 'chat') return { url: 'https://api.openai.com/v1/chat/completions', headers, body: { ...body, store: false, messages: [{ role: 'system', content: system }, ...messages], max_completion_tokens: LIMITS.tokens, response_format: { type: 'json_schema', json_schema: { name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true } } } };
   fail('API方式を選択してください');
 }
 
@@ -101,7 +108,8 @@ export function normalizeReply(raw) {
   return { text: body, notes };
 }
 
-// Prompt-based envelope: no native structured-output capability is assumed for custom models.
+// The sole validator of the envelope. Every request pins the schema at the API, but a custom
+// model ID may ignore or reject it, so the reply is parsed here regardless of provider.
 // On failure the error names the failure type and the first 200 characters of the raw reply.
 export function parseReply(raw, meta = {}) {
   const invalid = kind => {
