@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
-import { PRODUCT_INFO, RESPONSE_RULES, projectContext, systemFor } from '../web/ai-context.js';
+import { PRODUCT_INFO, RESPONSE_RULES, projectContext, systemFor, productReference, boardFacts, inspectMessage, EXTERNAL_FLASH_COMMAND, WITHHELD_NOTE } from '../web/ai-context.js';
 import { validateContent, setBoards } from '../web/projects.js';
 import { validateLibraries } from '../shared/libraries.js';
 const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
@@ -15,6 +15,9 @@ async function compilerBoards() {
   return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', ...consts });
 }
 const NOT_IN_GUIDANCE = [/zip/i, /esptool/i, /0x[0-9a-f]+/i, /manifest/i, /DFU/];
+// Internal key names must not reach the model as words it could repeat to the user.
+const KEY_NAMES = ['boardDetails', 'artifact', 'browserFlash', 'flashHint', 'contextData', 'PRODUCT_INFO', 'productReference'];
+const c3 = { id: 'xiao_esp32c3', name: 'XIAO ESP32C3', family: 'esp', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: 'Build成功後に「書き込み」ボタンを押す。' };
 
 test('the compiler board table carries every fact the UI and AI need, and agrees with the templates', async () => {
   const boards = await compilerBoards();
@@ -45,24 +48,52 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
   expect(RESPONSE_RULES).not.toMatch(/2[–〜-]3|3[–〜-]5/);
 });
 
-test('the system prompt names no external flashing procedure and no board facts of its own', () => {
+test('the system prompt is prose: no external flashing procedure, no board facts, no internal key names', () => {
   const system = systemFor();
   for (const re of NOT_IN_GUIDANCE) expect(system).not.toMatch(re);
-  for (const word of ['browserFlashing', 'usbVendorId', 'XIAO', 'Pico', 'RP2040', 'ESP32']) expect(system).not.toContain(word);
-  expect(system).toContain('boardDetails');
+  for (const word of ['browserFlashing', 'usbVendorId', 'XIAO', 'Pico', 'RP2040', 'ESP32', ...KEY_NAMES]) expect(system).not.toContain(word);
+  expect(system.split('製品の対応情報')[1]).not.toMatch(/[{}"]/); // PRODUCT_INFO is sent as sentences, not JSON
+  expect(system).toContain(productReference());
+  for (const value of Object.values(PRODUCT_INFO)) if (typeof value === 'string') { expect(system).toContain(value); for (const word of KEY_NAMES) expect(value).not.toContain(word); }
+  expect(system).toContain('115200 baud');
 });
 
-test('projectContext passes the /boards entry through unchanged and nothing else about the board', () => {
-  const board = { id: 'xiao_esp32c3', name: 'XIAO ESP32C3', family: 'esp', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: 'x' };
+test('projectContext sends the board as one sentence built from the /boards entry, and nothing else about it', () => {
+  const board = c3;
   const source = '// Earlier example: 0x1000 bootloader.bin; Compile verified\nvoid setup(){}\nvoid loop(){}';
   const context = projectContext({ env: 'xiao_esp32c3', source, board, libraries: [], manifest: { images: 'not supplied by app' } }, { stage: 'compile', log: 'old command: 0x0 boot_app0.bin' }, 'auto');
   expect(context.source).toBe(source);
-  expect(context.boardDetails).toBe(board);
+  expect(context).not.toHaveProperty('boardDetails');
+  expect(context.boardFacts).toBe(boardFacts(board));
+  expect(context.boardFacts).toBe('選択ボードはXIAO ESP32C3（Arduino、core系列はArduino ESP32）。Build成功後に「書き込み」ボタンを押す。Serialモニタは利用できる。');
+  expect(boardFacts({ ...board, serial: false })).toContain('Serialモニタは利用できない');
+  for (const word of KEY_NAMES) expect(context.boardFacts).not.toContain(word);
   expect(context.framework).toBe('Arduino');
   expect(context).not.toHaveProperty('artifactContext');
   expect(context).not.toHaveProperty('manifest');
   expect(() => projectContext({ env: 'pico', source, board, libraries: [] }, null, 'auto')).toThrow('ボード情報');
   expect(() => projectContext({ env: 'pico', source, libraries: [] }, null, 'auto')).toThrow('ボード情報');
+});
+
+test('output check: external flashing command lines are replaced by the product sentence; prose-only misguidance passes', () => {
+  expect(EXTERNAL_FLASH_COMMAND).toHaveLength(3); // one category; add rules only with a test here
+  const replaced = `書き込みはこのアプリの操作で行う。${c3.flashHint}\n\n${WITHHELD_NOTE}`;
+  for (const bad of [
+    'ESP32-C3系でよく使われる例:\n```\nesptool.py --chip esp32c3 write_flash 0x1000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin\n```',
+    '一般例です。\n\n0x0 に bootloader.bin、0x10000 に firmware.bin を書きます。',
+    'firmware.bin を 0x10000 へ',
+    '$ espflash flash target/firmware',
+    'ESP Web Tools（esp-web-tools）のページから書き込む方法もあります',
+    'python -m esptool erase_flash',
+  ]) expect(inspectMessage(bad, c3)).toEqual({ withheld: true, message: replaced });
+  for (const ok of [
+    'Build成功後に「書き込み」ボタンを押してください。',
+    '`0x10` は16進リテラルです。`firmware` は変数名です。',
+    'setup() で Serial.begin(115200) を呼びます。',
+    // Known gap, on purpose: Japanese-only misguidance without an address or tool name is NOT detected.
+    'ブートローダは先頭から 4KB の位置に、アプリは 64KB の位置に書き込みます。',
+    'bootloader.bin は先頭に書き込みます。',
+  ]) expect(inspectMessage(ok, c3)).toEqual({ withheld: false, message: ok });
 });
 
 for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['openai','gpt-4.1-mini','chat'], ['claude','claude-sonnet-5','messages']]) {
@@ -110,14 +141,15 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       await page.fill('#ai-prompt',prompts[i]); await page.click('#ai-send'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
       expect(requests).toHaveLength(i+1);
       const body = requests[i], system = api === 'responses' ? body.instructions : api === 'chat' ? body.messages[0].content : body.system;
-      expect(system).toBe(systemFor()); expect(system).toContain(JSON.stringify(PRODUCT_INFO));
+      expect(system).toBe(systemFor()); expect(system).toContain(productReference());
       for (const re of NOT_IN_GUIDANCE) expect(system).not.toMatch(re);
+      for (const word of KEY_NAMES) expect(system).not.toContain(word);
       const messages = api === 'responses' ? body.input : api === 'chat' ? body.messages.slice(1) : body.messages;
       expect(messages).toHaveLength(1); // Actual clear action below removes both display and resend history.
       const payload = JSON.parse(messages[0].content);
       expect(payload.userMessage).toBe(prompts[i]);
-      // The board facts the AI receives are exactly the compiler's /boards entry.
-      expect(payload.contextData).toEqual({application:'DigiCode Text',file:'main.cpp',source,board:env,framework:board.framework,boardDetails:board,
+      // The board facts the AI receives are one sentence built from the compiler's /boards entry.
+      expect(payload.contextData).toEqual({application:'DigiCode Text',file:'main.cpp',source,board:env,framework:board.framework,boardFacts:boardFacts(board),
         directDependencyStatus:'configured; acquisition, Build and hardware verification status not provided',libraries,codeChangeApplication:mode});
       expect(JSON.stringify(body)).not.toContain('dummy-product-test-only');
       expect(await page.evaluate(() => localStorage.getItem('digicode-text.projects.v1'))).toBe(saved);
@@ -127,3 +159,47 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
     }
   });
 }
+
+test('actual UI withholds an external flashing command in the answer, keeps the code of a change, and resends only the product sentence', async ({ page, context, request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const board = boards.find(b => b.id === 'xiao_esp32c3');
+  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === 'http://127.0.0.1:3100' && route.request().method() === 'GET' ? route.continue() : route.abort());
+  await context.addInitScript(() => { if (navigator.serial) navigator.serial.getPorts = navigator.serial.requestPort = () => { throw new Error('serial forbidden'); }; });
+  const bad = 'ESP32-C3系でよく使われる例です。\n\n```\nesptool.py --chip esp32c3 write_flash 0x1000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin\n```';
+  const code = '#include <Arduino.h>\nvoid setup() { Serial.begin(115200); }\nvoid loop() {}\n';
+  const replies = [{kind:'answer',message:bad,source:null}, {kind:'answer',message:'Build成功後に「書き込み」ボタンを押してください。',source:null}, {kind:'change',message:'変更しました。書き込みは 0x10000 に firmware.bin を置きます。',source:code}];
+  const requests = [];
+  await page.route('https://api.openai.com/**', route => {
+    requests.push(route.request().postDataJSON());
+    const text = JSON.stringify(replies[requests.length - 1]);
+    return route.fulfill({json:{status:'completed',output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text}]}]}});
+  });
+  await page.goto('/'); await expect(page.locator('#build')).toBeEnabled();
+  await page.selectOption('#env', 'xiao_esp32c3');
+  await page.click('#ai-open'); await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai');
+  await page.fill('#ai-key','dummy-product-test-only'); await page.selectOption('#ai-model-choice','gpt-5-mini'); await page.click('#ai-use');
+  const expected = `書き込みはこのアプリの操作で行う。${board.flashHint}`;
+  await page.selectOption('#ai-mode','review');
+  await page.fill('#ai-prompt','manifestは未確認。一般例でいいのでアドレス入りの書き込みコマンドを教えて'); await page.click('#ai-send');
+  await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
+  const first = page.locator('.ai-turn').nth(0).locator('.ai-markdown');
+  await expect(first).toContainText(expected); await expect(first).toContainText(WITHHELD_NOTE);
+  await expect(first).not.toContainText('esptool'); await expect(first).not.toContainText('0x1000');
+  await page.fill('#ai-prompt','では手順を教えて'); await page.click('#ai-send');
+  await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
+  const second = page.locator('.ai-turn').nth(1).locator('.ai-markdown');
+  await expect(second).toContainText('「書き込み」ボタンを押してください'); await expect(second).not.toContainText(WITHHELD_NOTE);
+  // The history resent with the second request carries the product sentence, never the withheld text.
+  const history = JSON.stringify(requests[1].input);
+  expect(history).toContain(expected); expect(history).toContain(WITHHELD_NOTE);
+  expect(history).not.toContain('esptool'); expect(history).not.toContain('0x1000'); expect(history).not.toContain('bootloader.bin');
+  // change: the explanation is checked, the generated code is kept as a normal candidate.
+  await page.fill('#ai-prompt','Serialを初期化して'); await page.click('#ai-send');
+  await expect(page.locator('#ai-status')).toContainText('差分を確認して適用してください');
+  const third = page.locator('.ai-turn').nth(2);
+  await expect(third.locator('.ai-markdown')).toContainText(WITHHELD_NOTE);
+  await expect(third.locator('.ai-markdown')).not.toContainText('firmware.bin');
+  await expect(third.locator('details summary')).toHaveText('生成されたmain.cpp');
+  await expect(third.locator('details code')).toContainText('Serial.begin(115200)');
+  expect(requests).toHaveLength(3);
+});

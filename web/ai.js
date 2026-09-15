@@ -3,7 +3,7 @@ import { renderMarkdown } from './ai-markdown.js';
 import { setupAISettings } from './ai-settings.js';
 const $ = id => document.getElementById(id);
 const modeKey = 'digicode-text.ai-ui.v1';
-import { systemFor, projectContext } from './ai-context.js';
+import { systemFor, projectContext, inspectMessage } from './ai-context.js';
 export { systemFor } from './ai-context.js';
 export function setupAI(monaco, host) {
   let active = null, candidate = null, settingsRevision = 0, diff = null, diffModels = [];
@@ -141,8 +141,11 @@ export function setupAI(monaco, host) {
       if (active !== req || req.controller.signal.aborted) return;
       if (settings.containsKey(text)) throw new Error('応答に設定キーと一致する内容が含まれるため表示・適用を停止しました');
       const parsed = parseReply(text);
+      // Output check on the prose only (answer message / change explanation), before rendering.
+      // The withheld text also becomes the history entry so the original is never resent.
+      const shown = inspectMessage(parsed.message, s.board);
       const followAnswer = displayedKey === key() && $('ai-history').scrollHeight - $('ai-history').scrollTop - $('ai-history').clientHeight < 45;
-      e.answer = parsed.message; e.code = parsed.source; renderMarkdown(e.content, parsed.message);
+      e.answer = shown.message; e.code = parsed.source; renderMarkdown(e.content, shown.message);
       if (parsed.kind === 'change') {
         const details = document.createElement('details'), summary = document.createElement('summary');
         summary.textContent = '生成されたmain.cpp';
