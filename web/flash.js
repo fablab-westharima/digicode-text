@@ -55,3 +55,51 @@ export async function flashEsp(flashSet, onProgress) {
     try { await transport.disconnect(); } catch {}
   }
 }
+
+// RP2040 boards expose the BOOTSEL drive as mass storage, so there is nothing to talk to:
+// the browser just writes the UF2 into the folder the user picks. showDirectoryPicker needs
+// the click's user gesture, so it is called before any await — callers must not await first.
+export const UF2_NAME = 'firmware.uf2';
+export const UF2_MARKER = 'INFO_UF2.TXT';
+
+export function flashUf2(bytes, onProgress) {
+  const report = (stage, percent, message) => onProgress({ stage, percent, message });
+  if (typeof window.showDirectoryPicker !== 'function') {
+    report('error', null, 'このブラウザはドライブへの書き込みに対応していません。ChromeまたはEdgeを使うか、「UF2 ダウンロード」でUF2を保存してRPI-RP2ドライブへコピーしてください');
+    return Promise.resolve(false);
+  }
+  return writeUf2(window.showDirectoryPicker({ mode: 'readwrite' }), bytes, report);
+}
+
+async function writeUf2(picked, bytes, report) {
+  let dir;
+  try { dir = await picked; }
+  catch (error) {
+    if (error?.name === 'AbortError') { report('', null, 'ドライブが選ばれなかったため書き込みを中止しました'); return false; }
+    throw new Error(`ドライブを選べませんでした: ${error?.message ?? error}`);
+  }
+  report('connecting', 0, `${dir.name} を確認中…（Macでは RPI-RP2 が「NO NAME」と表示される場合があります）`);
+  try { await dir.getFileHandle(UF2_MARKER); }
+  catch (error) {
+    if (error?.name === 'NotFoundError') throw new Error(`「${dir.name}」はRPI-RP2ドライブではありません。BOOTSELを押したままUSBを接続し直し、現れたRPI-RP2ドライブを選んでください`);
+    throw new Error(`ドライブを確認できませんでした: ${error?.message ?? error}`);
+  }
+  report('flashing', 10, `${UF2_NAME} を書き込み中…（${bytes.length} bytes）`);
+  let written = 0;
+  let writable;
+  try {
+    const handle = await dir.getFileHandle(UF2_NAME, { create: true });
+    writable = await handle.createWritable();
+  } catch (error) { throw new Error(`書き込みを開始できませんでした: ${error?.message ?? error}`); }
+  try { await writable.write(bytes); written = bytes.length; }
+  catch (error) {
+    try { await writable.close(); } catch {}
+    throw new Error(`書き込みに失敗しました: ${error?.message ?? error}`);
+  }
+  // The board reboots the moment it has the whole UF2, so the drive can vanish before close()
+  // returns. Every byte was already written, so that failure is the expected end, not an error.
+  try { await writable.close(); }
+  catch (error) { if (written < bytes.length) throw new Error(`書き込みに失敗しました: ${error?.message ?? error}`); }
+  report('complete', 100, `書き込み完了（${bytes.length} bytes）。ボードは再起動しました。Macで「ディスクの不正な取り出し」の通知が出ますが正常です。Serialタブで接続できます`);
+  return true;
+}

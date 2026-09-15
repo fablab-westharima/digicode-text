@@ -3,7 +3,7 @@ import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
-import { parseFlashSet, flashEsp } from './flash.js';
+import { parseFlashSet, flashEsp, flashUf2 } from './flash.js';
 import { setupLibraries } from './libraries.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
@@ -71,6 +71,7 @@ let ai;
 let lastBuildFailure = null;
 let downloadUrl;
 let flashSet = null; // ESP flash set of the last successful build; cleared with the download on any edit
+let uf2 = null; // UF2 bytes of the last successful build, for writing to the BOOTSEL drive
 let flashing = false;
 function invalidateDownload() {
   $('download').hidden = true;
@@ -78,6 +79,7 @@ function invalidateDownload() {
   if (downloadUrl) URL.revokeObjectURL(downloadUrl);
   downloadUrl = undefined;
   flashSet = null;
+  uf2 = null;
   $('flash').hidden = true;
   $('flash').disabled = true;
 }
@@ -143,6 +145,7 @@ $('build').onclick = async () => {
         flashStatus('');
       } else {
         const blob = await res.blob();
+        const bytes = new Uint8Array(await blob.arrayBuffer()); // read here so the flash click can stay synchronous
         if (!sameProject()) { obsolete(); return; }
         downloadUrl = URL.createObjectURL(blob);
         const a = $('download');
@@ -150,6 +153,10 @@ $('build').onclick = async () => {
         a.download = `firmware-${snapshot.env}.uf2`;
         a.textContent = '↓ UF2 ダウンロード';
         a.hidden = false;
+        uf2 = bytes;
+        $('flash').hidden = false;
+        $('flash').disabled = false;
+        flashStatus('');
         size = blob.size;
         summary = `${size} bytes`;
       }
@@ -182,23 +189,24 @@ $('build').onclick = async () => {
   }
 };
 
-// Flash the last build to an ESP board. Disabled again by any edit (invalidateDownload).
-$('flash').onclick = async () => {
-  if (flashing || !flashSet) return;
+// Flash the last build: ESP boards through esptool-js, RP2040 boards by writing the UF2 to the
+// BOOTSEL drive the user picks. Disabled again by any edit (invalidateDownload). Not async:
+// showDirectoryPicker needs this click's user gesture, so nothing may be awaited before it.
+$('flash').onclick = () => {
+  if (flashing || !(flashSet || uf2)) return;
   flashing = true;
-  const set = flashSet;
+  const set = flashSet, image = uf2;
   $('flash').disabled = true;
   $('build').disabled = true;
   ui.openPanel('build');
-  try {
-    await flashEsp(set, ({ stage, percent, message }) => flashStatus(`書き込み ${percent}%：${message}`, stage));
-  } catch (error) {
-    flashStatus(String(error?.message ?? error), 'error');
-  } finally {
-    flashing = false;
-    $('build').disabled = building;
-    $('flash').disabled = flashSet !== set; // keep enabled unless the build was invalidated meanwhile
-  }
+  const report = ({ stage, percent, message }) => flashStatus(percent === null ? message : `書き込み ${percent}%：${message}`, stage);
+  (set ? flashEsp(set, report) : flashUf2(image, report))
+    .catch(error => flashStatus(String(error?.message ?? error), 'error'))
+    .finally(() => {
+      flashing = false;
+      $('build').disabled = building;
+      $('flash').disabled = set ? flashSet !== set : uf2 !== image; // keep enabled unless the build was invalidated meanwhile
+    });
 };
 
 function renderProjects() {

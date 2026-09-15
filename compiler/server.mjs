@@ -24,16 +24,16 @@ const RP2040_PROJECT = path.join(here, 'pio-rp2040');
 const ESP_SHARED = path.join(here, 'pio-esp'); // build scripts shared by every ESP-family project
 // The only board definition. The UI select, project validation and the AI's board facts
 // are all generated from this table via GET /boards; nothing else lists boards.
-const RP2040_FLASH = 'Build成功後に「UF2 ダウンロード」を押し、BOOTSELモードで接続したボードのドライブへUF2をコピーする。';
+const RP2040_FLASH = 'BOOTSELを押したままUSBに接続するとRPI-RP2ドライブが現れる（Macでは「NO NAME」と表示される場合がある）。Build成功後に「書き込み」ボタンを押してそのドライブを選ぶと書き込まれ、完了後にボードは自動で再起動する。';
 const ESP_FLASH = 'Build成功後に「書き込み」ボタンを押し、USB接続したボードのポートをブラウザのダイアログで選ぶ。';
 // Wio Node is flashed through the Grove USB-serial adapter, which carries no auto-reset line,
 // so the board is put into its flashing mode by hand before and after the same browser button.
 const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前にFUNCを押したままRSTを押して書き込みモードに入れる。Build成功後に「書き込み」ボタンを押してポートを選び、完了後にRSTを押す。';
 const BOARDS = new Map([
   ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: false, serial: true, flashHint: RP2040_FLASH }],
+    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: false, serial: true, flashHint: RP2040_FLASH }],
+    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH }],
   ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',

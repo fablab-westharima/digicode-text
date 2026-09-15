@@ -27,7 +27,7 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
     for (const key of ['name', 'family', 'framework', 'core', 'flashHint']) expect(typeof b[key], `${env}.${key}`).toBe('string');
     expect(typeof b.browserFlash).toBe('boolean'); expect(typeof b.serial).toBe('boolean');
     expect(['uf2', 'flashset']).toContain(b.artifact);
-    expect(b.browserFlash).toBe(b.artifact === 'flashset'); // the flash button exists exactly for flash-set boards (app.js)
+    expect(b.browserFlash).toBe(true); // every board is flashed from the browser: flash sets via esptool-js, UF2 to the BOOTSEL drive (app.js)
     for (const re of NOT_IN_GUIDANCE) expect(b.flashHint).not.toMatch(re);
     const ini = await read('compiler/' + path.basename(b.project) + '/platformio.ini');
     const section = ini.split(`[env:${env}]`)[1]?.split(/\n\[env:/)[0];
@@ -137,8 +137,10 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       const mode = i === 1 ? 'review' : 'auto'; await page.selectOption('#ai-mode',mode);
       if (i > 0) {
         await page.click('#build');
-        if (board.browserFlash) { await expect(page.locator('#flash')).toBeEnabled(); await expect(page.locator('#download')).toBeHidden(); }
-        else { await expect(page.locator('#download')).toBeVisible(); await expect(page.locator('#download')).toHaveAttribute('download',`firmware-${env}.${board.artifact}`); await expect(page.locator('#flash')).toBeHidden(); }
+        await expect(page.locator('#flash')).toBeEnabled();
+        // UF2 boards keep the download next to the flash button; flash-set boards have no download.
+        if (board.artifact === 'flashset') await expect(page.locator('#download')).toBeHidden();
+        else { await expect(page.locator('#download')).toBeVisible(); await expect(page.locator('#download')).toHaveAttribute('download',`firmware-${env}.${board.artifact}`); }
       }
       const saved = await page.evaluate(() => localStorage.getItem('digicode-text.projects.v1'));
       await page.fill('#ai-prompt',prompts[i]); await page.click('#ai-send'); await expect(page.locator('#ai-status')).toContainText('コードは変更していません');
