@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 compiler/pio-rp2040/.pio/
 compiler/pio-esp32c3/.pio/
+compiler/pio-esp8266/.pio/
 node_modules/
 web/dist/
 test-results/

@@ -11,7 +11,7 @@ const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
 async function compilerBoards() {
   const server = await read('compiler/server.mjs');
   const table = server.match(/const BOARDS = (new Map\([\s\S]*?\n\]\));/)[1];
-  const consts = Object.fromEntries([...server.matchAll(/^const (RP2040_FLASH|ESP_FLASH) = ('.*');$/gm)].map(m => [m[1], vm.runInNewContext(m[2])]));
+  const consts = Object.fromEntries([...server.matchAll(/^const ([A-Z0-9_]*FLASH[A-Z0-9_]*) = ('.*');$/gm)].map(m => [m[1], vm.runInNewContext(m[2])]));
   return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', ...consts });
 }
 const NOT_IN_GUIDANCE = [/zip/i, /esptool/i, /0x[0-9a-f]+/i, /manifest/i, /DFU/];
@@ -42,7 +42,10 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
   const serial = await read('web/serial.js');
   expect(serial).toContain(`baudRate: ${PRODUCT_INFO.serial.baudRate}`);
   const packager = await read('compiler/pio-esp/package_firmware.py');
-  for (const file of ['bootloader', 'partitions', 'boot_app0', 'firmware', 'flashset.json']) expect(packager).toContain(file);
+  // Images and their addresses come from the build environment, so no image list is fixed here:
+  // espressif32 packages four images, espressif8266 one at the environment's own application offset.
+  for (const source of ['FLASH_EXTRA_IMAGES', 'ESP32_APP_OFFSET', 'upload.offset_address', 'flashset.json']) expect(packager).toContain(source);
+  for (const fixed of ['bootloader.bin', 'partitions.bin', 'boot_app0.bin']) expect(packager).not.toContain(fixed);
   expect(validateLibraries([{ id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' }])[0].version).toBe('7.4.3');
   for (const invalid of [{url:'https://example.com/library.zip'}, {id:64,owner:'bblanchon',name:'ArduinoJson',version:'latest'}]) expect(() => validateLibraries([invalid])).toThrow();
   expect(RESPONSE_RULES).not.toMatch(/2[–〜-]3|3[–〜-]5/);
