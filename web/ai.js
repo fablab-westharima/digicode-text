@@ -160,7 +160,11 @@ export function setupAI(monaco, host) {
       if (inputRevision === sentRevision) input.value = '';
       renderHistory(followAnswer);
     } catch (error) {
-      if (active === req) { e.status.textContent = req.timedOut ? '3分でタイムアウトしました。提供側の停止・無課金は保証されません' : req.controller.signal.aborted ? '中止しました' : error.message || 'AI要求に失敗しました'; say(e.status.textContent); }
+      // An HTTP failure carries the provider's own body on err.body. It is shown the same way as
+      // a parse failure's raw reply, unless it echoes a saved key, in which case it is withheld.
+      const body = typeof error?.body === 'string' ? error.body : '';
+      const detail = !body ? '' : settings.containsKey(body) ? '\n本文に設定キーが含まれるため伏せました' : `\n先頭200文字: ${body.trim().slice(0, 200)}`;
+      if (active === req) { e.status.textContent = req.timedOut ? '3分でタイムアウトしました。提供側の停止・無課金は保証されません' : req.controller.signal.aborted ? '中止しました' : (error.message || 'AI要求に失敗しました') + detail; say(e.status.textContent); }
     } finally { clearTimeout(req.timer); config.key = ''; if (active === req) { active = null; busy(false); } }
   }
   $('ai-send').onclick = () => send();

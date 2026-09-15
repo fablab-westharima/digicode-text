@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { contract, responseText, parseReply, REPLY_SCHEMA, REPLY_SCHEMA_STRICT, REPLY_SCHEMA_NAME } from '../web/ai-client.js';
+import { contract, responseText, parseReply, REPLY_SCHEMA, REPLY_SCHEMA_STRICT, REPLY_SCHEMA_GEMINI, REPLY_SCHEMA_NAME } from '../web/ai-client.js';
 import { systemFor } from '../web/ai.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
 const reply = (message, source = null) => JSON.stringify({ kind: source === null ? 'answer' : 'change', message, source });
@@ -10,6 +10,8 @@ const projectKey = 'digicode-text.projects.v1';
 const messagesFormat = { format: { type: 'json_schema', schema: REPLY_SCHEMA } };
 const strictFormat = { type: 'json_schema', name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true };
 const chatFormat = { type: 'json_schema', json_schema: { name: REPLY_SCHEMA_NAME, schema: REPLY_SCHEMA_STRICT, strict: true } };
+const geminiFormat = { text: { mimeType: 'APPLICATION_JSON', schema: REPLY_SCHEMA_GEMINI } };
+const geminiReply = (parts, finishReason = 'STOP') => ({ candidates: [{ content: { parts: Array.isArray(parts) ? parts : [{ text: parts }] }, finishReason }] });
 async function source(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId).source; }, projectKey); }
 async function edit(page, text) { await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.insertText(text); }
 async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); }
@@ -37,7 +39,7 @@ test('contracts and strict response parsing', () => {
     else { expect(c.body.response_format).toEqual(chatFormat); expect(c.body.output_config).toBeUndefined(); expect(c.body.text).toBeUndefined(); }
   }
   // The schema states exactly the contract parseReply enforces: three fields, no others.
-  for (const schema of [REPLY_SCHEMA, REPLY_SCHEMA_STRICT]) {
+  for (const schema of [REPLY_SCHEMA, REPLY_SCHEMA_STRICT, REPLY_SCHEMA_GEMINI]) {
     expect(schema.type).toBe('object');
     expect(schema.additionalProperties).toBe(false);
     expect(schema.required).toEqual(['kind', 'message', 'source']);
@@ -51,6 +53,24 @@ test('contracts and strict response parsing', () => {
   expect(REPLY_SCHEMA_STRICT.properties.source).toEqual({ type: ['string', 'null'] });
   const withoutSource = schema => ({ ...schema, properties: { ...schema.properties, source: undefined } });
   expect(withoutSource(REPLY_SCHEMA_STRICT)).toEqual(withoutSource(REPLY_SCHEMA));
+  // Gemini documents the same union type array, so its schema differs from Messages' in that one place too.
+  expect(REPLY_SCHEMA_GEMINI.properties.source).toEqual({ type: ['string', 'null'] });
+  expect(withoutSource(REPLY_SCHEMA_GEMINI)).toEqual(withoutSource(REPLY_SCHEMA));
+  // Gemini: the model is named in the path, the key travels in a header and never in the query,
+  // the system string and the history become systemInstruction and contents, and the same
+  // envelope schema sits at generationConfig.responseFormat.text.
+  const gem = contract('gemini', { model: 'gemini-3.8-flash', api: 'generatecontent', key: 'dummy-gemini' }, 'system', [{ role: 'user', content: 'hello' }, { role: 'assistant', content: 'hi' }, { role: 'user', content: 'again' }]);
+  expect(gem.url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
+  expect(gem.url).not.toContain('key');
+  expect(gem.headers).toEqual({ 'x-goog-api-key': 'dummy-gemini' });
+  expect(gem.body.model).toBeUndefined(); expect(gem.body.stream).toBeUndefined(); expect(gem.body.temperature).toBeUndefined();
+  expect(gem.body.systemInstruction).toEqual({ parts: [{ text: 'system' }] });
+  expect(gem.body.contents).toEqual([{ role: 'user', parts: [{ text: 'hello' }] }, { role: 'model', parts: [{ text: 'hi' }] }, { role: 'user', parts: [{ text: 'again' }] }]);
+  expect(gem.body.generationConfig).toEqual({ maxOutputTokens: 16384, responseFormat: geminiFormat });
+  expect(() => contract('gemini', { model: 'gemini-3.8-flash', api: 'messages', key: 'k' }, 'system', [])).toThrow();
+  // A custom model ID stays inside the path segment; it cannot add a query or a path of its own.
+  expect(contract('gemini', { model: 'a/b?key=x', api: 'generatecontent', key: 'k' }, 's', []).url)
+    .toBe('https://generativelanguage.googleapis.com/v1beta/models/a%2Fb%3Fkey%3Dx:generateContent');
   expect(parseReply(answer).source).toBe(code);
   expect(parseReply(reply('例', 'const char *s = "...";\n')).source).toContain('"..."');
   for (const bad of ['', '```json\n{}\n```', '{}', '[]', 'null', reply('', code), reply('回答', ''),
@@ -76,6 +96,19 @@ test('contracts and strict response parsing', () => {
   expect(() => parseReply('```json\n{}\n```')).toThrow(/必須項目欠落、フェンス/);
   expect(() => parseReply('説明 ' + JSON.stringify({ kind: 'answer', message: 'ok' }))).toThrow(/必須項目欠落、前後の文/);
   expect(() => parseReply('x'.repeat(300))).toThrow(/JSON不正）.*先頭200文字: x{200}$/s);
+  // Gemini: every text part of the single candidate is joined; anything but STOP, a blocked
+  // prompt or a candidate-less response is reported with its reason and never retried.
+  const geminiMeta = {};
+  expect(responseText('generatecontent', geminiReply([{ text: '以下が回答です。' }, { text: answer }]), geminiMeta)).toBe('以下が回答です。\n' + answer);
+  expect(geminiMeta.blocks).toBe(2);
+  expect(responseText('generatecontent', geminiReply(answer))).toBe(answer);
+  expect(() => responseText('generatecontent', geminiReply(answer, 'MAX_TOKENS'))).toThrow(/上限/);
+  for (const reason of ['SAFETY', 'RECITATION', 'PROHIBITED_CONTENT', 'OTHER', null]) expect(() => responseText('generatecontent', geminiReply(answer, reason))).toThrow(/Geminiが応答を返しませんでした（理由: /);
+  expect(() => responseText('generatecontent', { candidates: [{ content: { parts: [{ text: answer }] } }] })).toThrow(/理由: 不明/);
+  expect(() => responseText('generatecontent', { promptFeedback: { blockReason: 'SAFETY' } })).toThrow(/理由: SAFETY/);
+  expect(() => responseText('generatecontent', { candidates: [] })).toThrow(/理由: 不明/);
+  expect(() => responseText('generatecontent', { candidates: [geminiReply(answer).candidates[0], geminiReply(answer).candidates[0]] })).toThrow(/単一/);
+  for (const bad of [geminiReply([]), geminiReply([{ inlineData: { data: 'x' } }]), geminiReply(''), geminiReply('x'.repeat(1048577))]) expect(() => responseText('generatecontent', bad)).toThrow();
 });
 
 
@@ -320,4 +353,78 @@ test('Messages replies: joined text blocks, fenced and prefaced JSON parse; brok
   // Every Messages request carries the envelope schema; the system prompt is not asked to repeat it.
   expect(bodies).toHaveLength(4);
   for (const body of bodies) { expect(body.output_config).toEqual(messagesFormat); expect(body.tools).toBeUndefined(); expect(body.tool_choice).toBeUndefined(); }
+});
+
+test('Gemini generateContent: header key, system/history mapping, joined parts, blocked and truncated replies', async ({ page }) => {
+  const cases = [
+    geminiReply(reply('Geminiの回答')),
+    geminiReply([{ text: '前置きです。' }, { text: reply('複数パートの回答') }]),
+    geminiReply(reply('打ち切られた回答'), 'MAX_TOKENS'),
+    geminiReply(reply('安全性で止まった回答'), 'SAFETY'),
+    { promptFeedback: { blockReason: 'PROHIBITED_CONTENT' } },
+    geminiReply(reply('復帰の回答')),
+  ];
+  let count = 0; const bodies = [], urls = [], headers = [];
+  await page.route('https://generativelanguage.googleapis.com/**', r => {
+    urls.push(r.request().url()); headers.push(r.request().headers()); bodies.push(r.request().postDataJSON());
+    return r.fulfill({ json: cases[count++] });
+  });
+  await ready(page); await settings(page, 'gemini');
+  const original = await source(page);
+  for (const expected of ['Geminiの回答', '複数パートの回答']) {
+    await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
+    await expect(page.locator('.ai-turn').last()).toContainText(expected); await expect(page.locator('#ai-history')).not.toContainText('"kind"');
+  }
+  // Only STOP is a normal ending: a truncated, filtered or candidate-less reply is named and dropped.
+  await send(page, 'generate'); await expect(page.locator('#ai-status')).toContainText('出力が上限で打ち切られました');
+  await send(page, 'generate'); await expect(page.locator('#ai-status')).toContainText('Geminiが応答を返しませんでした（理由: SAFETY）');
+  await send(page, 'generate'); await expect(page.locator('#ai-status')).toContainText('Geminiが応答を返しませんでした（理由: PROHIBITED_CONTENT）');
+  expect(await source(page)).toBe(original); await expect(page.locator('#ai-proposal')).toBeHidden();
+  await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
+  expect(count).toBe(6);
+  // The key is a header only, never a query parameter, and the model names the path.
+  for (const url of urls) expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent');
+  for (const h of headers) { expect(h['x-goog-api-key']).toBe('dummy-gemini-test-only'); expect(h.authorization).toBeUndefined(); expect(h['x-api-key']).toBeUndefined(); }
+  // The same system string and the same envelope schema travel with every request.
+  for (const body of bodies) {
+    expect(body.systemInstruction).toEqual({ parts: [{ text: systemFor() }] });
+    expect(body.generationConfig).toEqual({ maxOutputTokens: 16384, responseFormat: geminiFormat });
+    expect(body.model).toBeUndefined(); expect(body.stream).toBeUndefined(); expect(body.tools).toBeUndefined();
+  }
+  // Answered turns are resent as contents, the assistant side spelled 'model', one text part each.
+  expect(bodies[0].contents.map(c => c.role)).toEqual(['user']);
+  expect(bodies[2].contents.map(c => c.role)).toEqual(['user', 'model', 'user', 'model', 'user']);
+  expect(bodies[2].contents.every(c => c.parts.length === 1 && typeof c.parts[0].text === 'string')).toBe(true);
+  expect(JSON.parse(bodies[2].contents[3].parts[0].text).message).toBe('複数パートの回答');
+  // A failed turn is not resent as history: the last request still carries the two answered pairs.
+  expect(bodies[5].contents.map(c => c.role)).toEqual(['user', 'model', 'user', 'model', 'user']);
+});
+
+test('HTTP failure shows the provider body, withheld when it echoes a saved key', async ({ page }) => {
+  const long = '{"error":{"message":"' + 'x'.repeat(320) + '"}}';
+  const bodies = [
+    '{"error":{"code":400,"message":"Invalid JSON payload received. Unknown name \\"responseFormat\\": Cannot find field."}}',
+    '{"error":{"code":400,"message":"API key dummy-openai-test-only is not valid"}}',
+    '',
+    long,
+  ];
+  let count = 0;
+  await page.route('https://api.openai.com/**', r => r.fulfill({ status: 400, contentType: 'application/json', body: bodies[count++] }));
+  await ready(page); await settings(page); const original = await source(page);
+  const status = page.locator('#ai-status');
+  // The provider's own error text is what says why a 400 happened, so it is shown like a parse failure's raw reply.
+  await send(page, 'generate', '本文あり'); await expect(page.locator('#ai-send')).toBeEnabled();
+  await expect(status).toContainText('AI HTTP 400：モデル・API方式・入力を確認してください。自動再送は行いません');
+  await expect(status).toContainText('先頭200文字: {"error":{"code":400,"message":"Invalid JSON payload received. Unknown name \\"responseFormat\\"');
+  // A body echoing a saved key is withheld entirely, not merely truncated.
+  await send(page, 'generate', 'キー入り本文'); await expect(status).toContainText('本文に設定キーが含まれるため伏せました');
+  await expect(status).not.toContainText('dummy-openai-test-only'); await expect(status).not.toContainText('先頭200文字');
+  // No body: the message is unchanged, with no head line at all.
+  await send(page, 'generate', '空本文'); await expect(status).toContainText('AI HTTP 400');
+  await expect(page.locator('#ai-send')).toBeEnabled(); await expect(status).not.toContainText('先頭200文字');
+  // A long body is cut at 200 characters.
+  await send(page, 'generate', '長い本文'); await expect(status).toContainText('先頭200文字');
+  const head = (await status.textContent()).split('先頭200文字: ')[1];
+  expect(head).toHaveLength(200); expect(head).toBe(long.slice(0, 200));
+  expect(count).toBe(4); expect(await source(page)).toBe(original); await expect(page.locator('#ai-proposal')).toBeHidden();
 });

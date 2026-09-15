@@ -1,7 +1,9 @@
 import { MODELS } from './ai-client.js';
 const $ = id => document.getElementById(id);
 const storageKey = p => `digicode-text.ai.${p}.v1`;
-const names = { 'gpt-5-mini': 'GPT-5 Mini', 'gpt-5.3-codex': 'GPT-5.3 Codex', 'gpt-4.1-mini': 'GPT-4.1 Mini', 'claude-sonnet-5': 'Claude Sonnet 5', 'claude-haiku-4-5': 'Claude Haiku 4.5' };
+const names = { 'gpt-5-mini': 'GPT-5 Mini', 'gpt-5.3-codex': 'GPT-5.3 Codex', 'gpt-4.1-mini': 'GPT-4.1 Mini', 'claude-sonnet-5': 'Claude Sonnet 5', 'claude-haiku-4-5': 'Claude Haiku 4.5', 'gemini-3.1-flash-lite': 'Gemini 3.1 Flash-Lite', 'gemini-3.8-flash': 'Gemini 3.8 Flash' };
+const providerNames = { openai: 'OpenAI', claude: 'Claude', gemini: 'Gemini' };
+const APIS = ['chat', 'responses', 'messages', 'generatecontent'];
 export function setupAISettings(onChange, say) {
   let provider = 'openai', draftProvider, drafts;
   const configs = {};
@@ -9,17 +11,19 @@ export function setupAISettings(onChange, say) {
     configs[p] = { key: '', model: MODELS[p][0].id, api: MODELS[p][0].api };
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey(p)) || 'null');
-      if (saved && typeof saved.key === 'string' && typeof saved.model === 'string' && ['chat','responses','messages'].includes(saved.api)) configs[p] = { key: saved.key, model: saved.model, api: saved.api };
+      if (saved && typeof saved.key === 'string' && typeof saved.model === 'string' && APIS.includes(saved.api)) configs[p] = { key: saved.key, model: saved.model, api: saved.api };
     } catch { say('一部のAPI設定を復元できませんでした'); }
   }
-  function render() { $('ai-connection').textContent = `${provider === 'openai' ? 'OpenAI' : 'Claude'} / ${names[configs[provider].model] || configs[provider].model} · ${configs[provider].key ? 'キー設定あり' : 'API設定が必要'}`; }
+  function render() { $('ai-connection').textContent = `${providerNames[provider]} / ${names[configs[provider].model] || configs[provider].model} · ${configs[provider].key ? 'キー設定あり' : 'API設定が必要'}`; }
   function fields() {
     const c = drafts[draftProvider];
     $('ai-provider').value = draftProvider; $('ai-key').value = c.key; $('ai-model').value = c.model; $('ai-api').value = c.api;
     $('ai-model-choice').replaceChildren(...MODELS[draftProvider].map(p => new Option(names[p.id], p.id)), new Option('その他・保存済みの独自モデル', 'custom'));
     $('ai-model-choice').value = MODELS[draftProvider].some(p => p.id === c.model && p.api === c.api) ? c.model : 'custom';
     $('ai-advanced').open = $('ai-model-choice').value === 'custom';
-    for (const option of $('ai-api').options) option.disabled = draftProvider === 'claude' ? option.value !== 'messages' : option.value === 'messages';
+    // A provider offers exactly the API methods its own candidate models use.
+    const offered = new Set(MODELS[draftProvider].map(p => p.api));
+    for (const option of $('ai-api').options) option.disabled = !offered.has(option.value);
   }
   function read() { drafts[draftProvider] = { key: $('ai-key').value.trim(), model: $('ai-model').value.trim(), api: $('ai-api').value }; }
   function commit(save) {

@@ -6,15 +6,16 @@ export const MODELS = {
     { id: 'gpt-4.1-mini', api: 'chat' },
   ],
   claude: [{ id: 'claude-sonnet-5', api: 'messages' }, { id: 'claude-haiku-4-5', api: 'messages' }],
+  gemini: [{ id: 'gemini-3.1-flash-lite', api: 'generatecontent' }, { id: 'gemini-3.8-flash', api: 'generatecontent' }],
 };
 export const LIMITS = { source: 256 * 1024, output: 256 * 1024, envelope: 1024 * 1024, response: 2 * 1024 * 1024, prompt: 16000, history: 32000, turns: 12, tokens: 16384, timeout: 180000 };
 export const bytes = text => new TextEncoder().encode(text).length;
 const fail = message => { throw new Error(message); };
 
 // The reply envelope as a JSON schema, mirroring parseReply's required fields and types.
-// All three APIs are handed this same shape so the provider itself rejects any other one;
+// All four APIs are handed this same shape so the provider itself rejects any other one;
 // the contract's meaning is unchanged and parseReply stays the sole validator of kind/source
-// pairing, sizes and duplicate keys. Only constructs all three providers document as
+// pairing, sizes and duplicate keys. Only constructs every provider documents as
 // supported are used: an object with every field required, additionalProperties:false,
 // and an enum.
 const replySchema = source => ({
@@ -29,6 +30,9 @@ const replySchema = source => ({
 // so the strict copy writes type: ['string', 'null'] instead.
 export const REPLY_SCHEMA = replySchema({ anyOf: [{ type: 'string' }, { type: 'null' }] });
 export const REPLY_SCHEMA_STRICT = replySchema({ type: ['string', 'null'] });
+// Gemini's structured output documents the same union type array for a nullable field, so it is
+// handed the same object; there is no third spelling to keep in step.
+export const REPLY_SCHEMA_GEMINI = REPLY_SCHEMA_STRICT;
 export const REPLY_SCHEMA_NAME = 'digicode_reply';
 
 export function contract(provider, config, system, messages) {
@@ -41,6 +45,14 @@ export function contract(provider, config, system, messages) {
     // output_config.format is GA on Messages (no beta header); the reply comes back as a
     // single text block holding schema-valid JSON, so the normalize/parse stage is unchanged.
     return { url: 'https://api.anthropic.com/v1/messages', headers: { 'x-api-key': config.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: { ...body, system, messages, max_tokens: LIMITS.tokens, output_config: { format: { type: 'json_schema', schema: REPLY_SCHEMA } } } };
+  }
+  if (provider === 'gemini') {
+    if (config.api !== 'generatecontent') fail('GeminiはGenerate Content APIを選択してください');
+    // generateContent names the model in the path and takes no model or stream field in the body;
+    // the key goes in a header, never in a query string, so it stays out of URLs and logs.
+    // The same system string and the same history feed systemInstruction and contents; the
+    // assistant role is spelled 'model' here and a message becomes one text part.
+    return { url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent`, headers: { 'x-goog-api-key': config.key }, body: { systemInstruction: { parts: [{ text: system }] }, contents: messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })), generationConfig: { maxOutputTokens: LIMITS.tokens, responseFormat: { text: { mimeType: 'APPLICATION_JSON', schema: REPLY_SCHEMA_GEMINI } } } } };
   }
   const headers = { Authorization: `Bearer ${config.key}` };
   // Responses takes the schema at text.format, Chat Completions at response_format.json_schema;
@@ -69,6 +81,25 @@ export function responseText(api, data, meta = {}) {
     if (!Array.isArray(data.content) || !data.content.length) fail('応答形式が不正です');
     const texts = data.content.filter(x => x?.type === 'text').map(x => x.text);
     if (!texts.length || texts.some(x => typeof x !== 'string')) fail('テキスト応答がありません');
+    meta.blocks = texts.length;
+    text = texts.join('\n');
+  } else if (api === 'generatecontent') {
+    // No candidate at all means the prompt itself was blocked; promptFeedback names the kind.
+    // A candidate that stopped for any reason other than STOP is reported with that reason and
+    // never retried. Every text part of the single candidate is joined; other part kinds are ignored.
+    const blocked = reason => fail(`Geminiが応答を返しませんでした（理由: ${reason || '不明'}）`);
+    const candidates = Array.isArray(data.candidates) ? data.candidates : [];
+    if (!candidates.length) blocked(data.promptFeedback?.blockReason);
+    if (candidates.length !== 1) fail('応答候補が単一ではありません');
+    const candidate = candidates[0];
+    if (candidate?.finishReason !== 'STOP') {
+      if (candidate?.finishReason === 'MAX_TOKENS') fail('出力が上限で打ち切られました');
+      blocked(candidate?.finishReason);
+    }
+    const parts = candidate.content?.parts;
+    if (!Array.isArray(parts) || !parts.length) fail('応答形式が不正です');
+    const texts = parts.filter(x => typeof x?.text === 'string').map(x => x.text);
+    if (!texts.length) fail('テキスト応答がありません');
     meta.blocks = texts.length;
     text = texts.join('\n');
   } else if (api === 'responses') {
@@ -137,6 +168,21 @@ export function parseReply(raw, meta = {}) {
   return reply;
 }
 
+// Reads a response body under the same size cap for both outcomes. `over` reports that the cap
+// was reached: a successful reply is rejected then, an error body is simply cut off there.
+async function readBody(body) {
+  const reader = body.getReader();
+  const chunks = []; let size = 0, over = false;
+  for (;;) {
+    const { value, done } = await reader.read(); if (done) break;
+    size += value.length; chunks.push(value);
+    if (size > LIMITS.response) { over = true; await reader.cancel(); break; }
+  }
+  const buffer = new Uint8Array(size); let offset = 0;
+  for (const chunk of chunks) { buffer.set(chunk, offset); offset += chunk.length; }
+  return { text: new TextDecoder().decode(buffer), over };
+}
+
 export async function requestAI(provider, config, system, messages, signal, meta = {}) {
   const request = contract(provider, config, system, messages);
   let res;
@@ -147,21 +193,19 @@ export async function requestAI(provider, config, system, messages, signal, meta
     throw new Error('直接接続に失敗しました。ネットワーク・CORS・提供側の状態を確認してください（自動再送なし）');
   }
   if (!res.ok) {
-    await res.body?.cancel(); // Never display raw provider errors, which can echo credentials.
+    // The provider's own error text is the only thing that says why a request was rejected, so it
+    // travels to the caller on err.body instead of being dropped. It can echo a credential, so it
+    // is never formatted here: the caller, which alone knows the saved keys, decides what to show.
+    let raw = '';
+    try { if (res.body) raw = (await readBody(res.body)).text; } catch { raw = ''; }
     const reason = { 400: 'モデル・API方式・入力を確認', 401: 'APIキーを確認', 403: 'モデルの利用権限を確認', 404: 'モデルID・API方式を確認', 429: '利用上限・残高を確認' }[res.status] || '提供側の状態を確認';
-    fail(`AI HTTP ${res.status}：${reason}してください。自動再送は行いません`);
+    const error = new Error(`AI HTTP ${res.status}：${reason}してください。自動再送は行いません`);
+    if (raw.trim()) error.body = raw;
+    throw error;
   }
-  const reader = res.body.getReader();
-  const chunks = []; let size = 0;
-  for (;;) {
-    const { value, done } = await reader.read(); if (done) break;
-    size += value.length;
-    if (size > LIMITS.response) { await reader.cancel(); fail('応答サイズが上限を超えています'); }
-    chunks.push(value);
-  }
-  const buffer = new Uint8Array(size); let offset = 0;
-  for (const chunk of chunks) { buffer.set(chunk, offset); offset += chunk.length; }
+  const { text: decoded, over } = await readBody(res.body);
+  if (over) fail('応答サイズが上限を超えています');
   let data;
-  try { data = JSON.parse(new TextDecoder().decode(buffer)); } catch { fail('応答JSONが不正です'); }
+  try { data = JSON.parse(decoded); } catch { fail('応答JSONが不正です'); }
   return responseText(config.api, data, meta);
 }

@@ -107,15 +107,15 @@
 <dialog id="ai-settings" aria-labelledby="ai-settings-title">
   <div class="dialog-heading"><h2 id="ai-settings-title">AI API設定</h2><button id="ai-settings-close">閉じる</button></div>
   <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
-  <label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option></select>
+  <label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
   <label for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false">
   <label for="ai-model-choice">モデル</label><select id="ai-model-choice"></select>
   <details id="ai-advanced"><summary>詳細設定</summary>
     <label for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
     <label for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
-    <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option></select>
+    <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
     <p class="storage-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
-    <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
+    <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
   </details>
   <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
   <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
