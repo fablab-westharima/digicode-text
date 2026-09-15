@@ -428,3 +428,62 @@ test('HTTP failure shows the provider body, withheld when it echoes a saved key'
   expect(head).toHaveLength(200); expect(head).toBe(long.slice(0, 200));
   expect(count).toBe(4); expect(await source(page)).toBe(original); await expect(page.locator('#ai-proposal')).toBeHidden();
 });
+
+test('startup default: recorded on demand, restored on reload, absent keeps OpenAI, per-provider keys survive switching', async ({ page }) => {
+  const defaultKey = 'digicode-text.ai.default.v1';
+  const stored = () => page.evaluate(k => localStorage.getItem(k), defaultKey);
+  const requests = [];
+  await page.route('https://generativelanguage.googleapis.com/**', r => { requests.push(r.request()); return r.fulfill({ json: geminiReply(reply('既定のGeminiからの回答')) }); });
+  await ready(page);
+  // Three providers, each with its own saved key. No default is recorded yet.
+  await settings(page, 'openai'); await settings(page, 'claude'); await settings(page, 'gemini');
+  expect(await stored()).toBeNull();
+  // Without a default the previous behaviour stands: startup opens on OpenAI.
+  await ready(page);
+  await expect(page.locator('#ai-connection')).toHaveText('OpenAI / GPT-5 Mini · キー設定あり');
+  // Switching provider in the dialog never drops another provider's saved key.
+  await page.click('#ai-settings-open');
+  for (const [p, key] of [['claude', 'dummy-claude-test-only'], ['gemini', 'dummy-gemini-test-only'], ['openai', 'dummy-openai-test-only']]) {
+    await page.selectOption('#ai-provider', p); await expect(page.locator('#ai-key')).toHaveValue(key);
+  }
+  // 既定にする records the provider and model shown, a freely typed model ID included, and no key.
+  await page.selectOption('#ai-provider', 'gemini'); await page.locator('#ai-advanced summary').click();
+  await page.fill('#ai-model', 'custom-gemini-id'); await page.click('#ai-default');
+  await expect(page.locator('#ai-settings-status')).toContainText('起動時の既定をGemini / custom-gemini-idにしました');
+  expect(JSON.parse(await stored())).toEqual({ provider: 'gemini', model: 'custom-gemini-id', api: 'generatecontent' });
+  expect(await stored()).not.toContain('dummy-');
+  // It neither closes the dialog nor changes the running settings on its own.
+  await expect(page.locator('#ai-settings')).toBeVisible(); await page.click('#ai-settings-close');
+  await expect(page.locator('#ai-connection')).toHaveText('OpenAI / GPT-5 Mini · キー設定あり');
+  // Reload: the default provider and its freely typed model come back, with that provider's own key.
+  await ready(page);
+  await expect(page.locator('#ai-connection')).toHaveText('Gemini / custom-gemini-id · キー設定あり');
+  await page.click('#ai-settings-open');
+  await expect(page.locator('#ai-provider')).toHaveValue('gemini');
+  await expect(page.locator('#ai-model')).toHaveValue('custom-gemini-id');
+  await expect(page.locator('#ai-api')).toHaveValue('generatecontent');
+  await expect(page.locator('#ai-key')).toHaveValue('dummy-gemini-test-only');
+  await page.click('#ai-settings-close');
+  // The restored default is what the request actually uses.
+  await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
+  expect(requests[0].url()).toBe('https://generativelanguage.googleapis.com/v1beta/models/custom-gemini-id:generateContent');
+  expect(requests[0].headers()['x-goog-api-key']).toBe('dummy-gemini-test-only');
+  // A later save for the default provider carries its model forward; saving another provider does not move the default.
+  await page.click('#ai-settings-open'); await page.selectOption('#ai-model-choice', 'gemini-3.8-flash'); await page.click('#ai-save');
+  expect(JSON.parse(await stored())).toEqual({ provider: 'gemini', model: 'gemini-3.8-flash', api: 'generatecontent' });
+  await page.click('#ai-settings-open'); await page.selectOption('#ai-provider', 'claude'); await page.click('#ai-save');
+  expect(JSON.parse(await stored())).toEqual({ provider: 'gemini', model: 'gemini-3.8-flash', api: 'generatecontent' });
+  await ready(page);
+  await expect(page.locator('#ai-connection')).toHaveText('Gemini / Gemini 3.8 Flash · キー設定あり');
+  // Deleting the default provider's settings removes the default too, so startup falls back to OpenAI.
+  await page.click('#ai-settings-open'); await page.click('#ai-delete');
+  await expect(page.locator('#ai-settings-status')).toContainText('削除しました');
+  expect(await stored()).toBeNull();
+  await page.click('#ai-settings-close'); await ready(page);
+  await expect(page.locator('#ai-connection')).toHaveText('OpenAI / GPT-5 Mini · キー設定あり');
+  // Only that one provider's record was deleted; the other two keys are untouched.
+  await page.click('#ai-settings-open');
+  await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only');
+  await page.selectOption('#ai-provider', 'claude'); await expect(page.locator('#ai-key')).toHaveValue('dummy-claude-test-only');
+  await page.selectOption('#ai-provider', 'gemini'); await expect(page.locator('#ai-key')).toHaveValue('');
+});

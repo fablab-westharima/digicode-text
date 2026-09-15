@@ -118,7 +118,8 @@
     <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
   </details>
   <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
-  <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
+  <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button><button id="ai-default">既定にする</button></div>
+  <p class="storage-hint">「既定にする」は、いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
   <button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button><p id="ai-settings-status" role="status"></p>
 </dialog>
 <dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
