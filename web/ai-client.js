@@ -11,6 +11,22 @@ export const LIMITS = { source: 256 * 1024, output: 256 * 1024, envelope: 1024 *
 export const bytes = text => new TextEncoder().encode(text).length;
 const fail = message => { throw new Error(message); };
 
+// The reply envelope as a JSON schema, mirroring parseReply's required fields and types.
+// Passed to Messages structured outputs so the API itself rejects any other shape; the
+// contract's meaning is unchanged and parseReply stays the sole validator of kind/source
+// pairing, sizes and duplicate keys. Only constructs the API documents as supported are
+// used: object + additionalProperties:false + required, enum, and anyOf with a null branch.
+export const REPLY_SCHEMA = {
+  type: 'object',
+  properties: {
+    kind: { type: 'string', enum: ['answer', 'change'] },
+    message: { type: 'string' },
+    source: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+  },
+  required: ['kind', 'message', 'source'],
+  additionalProperties: false,
+};
+
 export function contract(provider, config, system, messages) {
   if (!MODELS[provider] || !config.model?.trim() || config.model.length > 200) fail('プロバイダー・モデル設定を確認してください');
   const profile = MODELS[provider].find(p => p.id === config.model);
@@ -18,7 +34,9 @@ export function contract(provider, config, system, messages) {
   const body = { model: config.model, stream: false };
   if (provider === 'claude') {
     if (config.api !== 'messages') fail('ClaudeはMessages APIを選択してください');
-    return { url: 'https://api.anthropic.com/v1/messages', headers: { 'x-api-key': config.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: { ...body, system, messages, max_tokens: LIMITS.tokens } };
+    // output_config.format is GA on Messages (no beta header); the reply comes back as a
+    // single text block holding schema-valid JSON, so the normalize/parse stage is unchanged.
+    return { url: 'https://api.anthropic.com/v1/messages', headers: { 'x-api-key': config.key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: { ...body, system, messages, max_tokens: LIMITS.tokens, output_config: { format: { type: 'json_schema', schema: REPLY_SCHEMA } } } };
   }
   const headers = { Authorization: `Bearer ${config.key}` };
   if (config.api === 'responses') return { url: 'https://api.openai.com/v1/responses', headers, body: { ...body, store: false, instructions: system, input: messages, max_output_tokens: LIMITS.tokens, ...(profile?.effort ? { reasoning: { effort: profile.effort } } : {}) } };

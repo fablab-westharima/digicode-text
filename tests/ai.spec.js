@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { contract, responseText, parseReply } from '../web/ai-client.js';
+import { contract, responseText, parseReply, REPLY_SCHEMA } from '../web/ai-client.js';
 import { systemFor } from '../web/ai.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
 const reply = (message, source = null) => JSON.stringify({ kind: source === null ? 'answer' : 'change', message, source });
@@ -27,7 +27,18 @@ test('contracts and strict response parsing', () => {
     const c = contract(provider, { model, api, key: 'dummy' }, 'system', [{ role: 'user', content: 'hello' }]);
     expect(c.body.model).toBe(model); expect(c.body.temperature).toBeUndefined(); expect(c.body.max_tokens ?? c.body.max_output_tokens ?? c.body.max_completion_tokens).toBe(16384);
     expect(c.url).toMatch(provider === 'openai' ? /^https:\/\/api.openai.com\/v1\// : /^https:\/\/api.anthropic.com\/v1\/messages$/);
+    // Messages fixes the envelope through the API, not through prompt wording. GPT is unchanged.
+    if (provider === 'claude') expect(c.body.output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } });
+    else expect(c.body.output_config).toBeUndefined();
   }
+  // The schema states exactly the contract parseReply enforces: three fields, no others.
+  expect(REPLY_SCHEMA.type).toBe('object');
+  expect(REPLY_SCHEMA.additionalProperties).toBe(false);
+  expect(REPLY_SCHEMA.required).toEqual(['kind', 'message', 'source']);
+  expect(Object.keys(REPLY_SCHEMA.properties)).toEqual(['kind', 'message', 'source']);
+  expect(REPLY_SCHEMA.properties.kind).toEqual({ type: 'string', enum: ['answer', 'change'] });
+  expect(REPLY_SCHEMA.properties.message).toEqual({ type: 'string' });
+  expect(REPLY_SCHEMA.properties.source).toEqual({ anyOf: [{ type: 'string' }, { type: 'null' }] });
   expect(parseReply(answer).source).toBe(code);
   expect(parseReply(reply('例', 'const char *s = "...";\n')).source).toContain('"..."');
   for (const bad of ['', '```json\n{}\n```', '{}', '[]', 'null', reply('', code), reply('回答', ''),
@@ -168,6 +179,7 @@ test.describe('touch API help', () => {
     await page.tap('#ai-api-info'); await expect(page.locator('#ai-api-help')).toBeHidden(); await page.tap('#ai-settings-close');
     await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
     expect(requests[0].headers()['x-api-key']).toBe('dummy-claude-test-only'); expect(requests[0].headers().authorization).toBeUndefined();
+    expect(requests[0].postDataJSON().output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } });
     await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai'); await expect(page.locator('#ai-key')).toHaveValue('dummy-openai-test-only'); await page.click('#ai-use');
     expect(await page.locator('.ai-turn').count()).toBe(0);
   });
@@ -281,8 +293,8 @@ test('Messages replies: joined text blocks, fenced and prefaced JSON parse; brok
     claude('以下が回答です。\n' + reply('前置き付きの回答') + '\n以上です。'),
     claude('{"kind":"answer","message":"壊れた'),
   ];
-  let count = 0;
-  await page.route('https://api.anthropic.com/**', r => r.fulfill({ json: cases[count++] }));
+  let count = 0; const bodies = [];
+  await page.route('https://api.anthropic.com/**', r => { bodies.push(r.request().postDataJSON()); return r.fulfill({ json: cases[count++] }); });
   await ready(page); await settings(page, 'claude');
   for (const expected of ['複数ブロックの回答', 'フェンス付きの回答', '前置き付きの回答']) {
     await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
@@ -291,4 +303,7 @@ test('Messages replies: joined text blocks, fenced and prefaced JSON parse; brok
   await send(page); await expect(page.locator('#ai-status')).toContainText('回答形式を確認できませんでした（JSON不正）');
   await expect(page.locator('.ai-turn').last()).toContainText('先頭200文字: {"kind":"answer","message":"壊れた');
   expect(count).toBe(4); await expect(page.locator('#ai-proposal')).toBeHidden();
+  // Every Messages request carries the envelope schema; the system prompt is not asked to repeat it.
+  expect(bodies).toHaveLength(4);
+  for (const body of bodies) { expect(body.output_config).toEqual({ format: { type: 'json_schema', schema: REPLY_SCHEMA } }); expect(body.tools).toBeUndefined(); expect(body.tool_choice).toBeUndefined(); }
 });
