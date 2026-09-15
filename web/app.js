@@ -3,11 +3,11 @@ import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
-import { isEspEnv, parseFlashSet, flashEsp } from './flash.js';
+import { parseFlashSet, flashEsp } from './flash.js';
 import { setupLibraries } from './libraries.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
-import { openProjects, makeProject, validName, parseProject, MAX_FILE } from './projects.js';
+import { openProjects, makeProject, validName, parseProject, setBoards, MAX_FILE } from './projects.js';
 
 self.MonacoEnvironment = {
   getWorker() { return new Worker('/assets/editor.worker.js', { type: 'module' }); },
@@ -33,6 +33,13 @@ function saveStatus(message, error = false) {
   $('project-save-message').textContent = error ? message : '';
 }
 
+// The compiler's board table is the only board list: select options, project validation
+// and the AI's boardDetails are generated from it.
+const boardsRes = await fetch('/boards');
+if (!boardsRes.ok) throw new Error('ボード一覧を取得できません');
+const BOARDS = new Map((await boardsRes.json()).map(b => [b.id, b]));
+setBoards(BOARDS.keys());
+$('env').replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
 const store = await openProjects(HELLO, saveStatus);
 $('env').value = store.current.env;
 const editor = monaco.editor.create($('editor'), {
@@ -124,7 +131,7 @@ $('build').onclick = async () => {
     });
     if (res.ok) {
       let size, summary;
-      if (isEspEnv(snapshot.env)) {
+      if (BOARDS.get(snapshot.env).artifact === 'flashset') {
         // ESP family: the server returns the build's flash set; the browser flashes it via esptool-js.
         const set = parseFlashSet(await res.json());
         if (!sameProject()) { obsolete(); return; }
@@ -360,7 +367,7 @@ function aiSnapshot() {
   const model = editor.getModel();
   return { projectId: store.current.id, projectRevision: store.current.revision, revision,
     modelIdentity: model, modelVersion: model.getVersionId(), source: editor.getValue(),
-    env: $('env').value, libraries: structuredClone(store.current.libraries) };
+    env: $('env').value, board: BOARDS.get($('env').value), libraries: structuredClone(store.current.libraries) };
 }
 function matchesAI(s) {
   const now = aiSnapshot();

@@ -17,11 +17,7 @@
   <button id="ai-open" aria-expanded="false" aria-controls="ai-pane">AI支援</button>
   <span id="project-name" title="現在のプロジェクト"></span>
   <div class="build-tools">
-    <label class="board-picker"><span>BOARD</span><select id="env" aria-label="ボード">
-      <option value="xiao_rp2040">XIAO RP2040</option>
-      <option value="pico">Raspberry Pi Pico</option>
-      <option value="xiao_esp32c3">XIAO ESP32C3</option>
-    </select></label>
+    <label class="board-picker"><span>BOARD</span><select id="env" aria-label="ボード"></select></label>
     <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
     <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
     <button id="flash" class="download" hidden disabled title="Build結果をUSB接続したボードへ書き込む"><span aria-hidden="true">⇥</span> 書き込み</button>

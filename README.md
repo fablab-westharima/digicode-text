@@ -35,7 +35,7 @@ USB・実機操作は別途Humanの明示許可が必要。実機書き込み・
 
 ## まだ無いもの
 
-実機書き込みの確認、C3以外のESP32追加、esptool-jsによるブラウザ書き込み、device、Docker 化、認証、複数ユーザー対応。
+実機書き込みの確認、C3以外のESP32追加、RP2040のブラウザ書き込み（UF2はダウンロード）、device、Docker 化、認証、複数ユーザー対応。
 
 ## AI開発支援
 
@@ -53,9 +53,9 @@ USB・実機操作は別途Humanの明示許可が必要。実機書き込み・
 
 回答指示は最新の依頼へ直接、既定は簡潔に、詳細要求には詳しく答える原則に統合した。段落数・改善案数の固定目標は置かず、未依頼の背景・提案・注意や過去の定型説明を広げない。誤解を防ぐ条件は残し、コードの事実・検証記録・推測を区別する。ソースコメントを検証証拠とせず、確認記録がないだけで誰も検証していないと断定しない。
 
-`web/ai-context.js`で応答原則・既存JSON契約・短い製品対応情報を区別し、全APIへ共通送信する。現在のコード・選択ボード・具体版の直接依存・適用方法は要求時snapshotから取得する。製品情報はボード/core系列/platform設定、UF2とBINセットZIP、ブラウザ書き込み未実装、シリアルのVID/速度制限、保存/JSON退避、AIと利用者の操作境界を含む参照情報で、毎回答の説明項目ではない。依存設定、Registry登録、パッケージ取得、Build成功、実機確認を区別する。coreの実インストール版は推測せず、未特定はnullとする。
+`web/ai-context.js`で応答原則・既存JSON契約・短い製品対応情報を区別し、全APIへ共通送信する。現在のコード・選択ボード・具体版の直接依存・適用方法は要求時snapshotから取得する。ボードに属する事実（表示名・family・core系列・成果物の種類・ブラウザ書き込みの可否・Serialの可否・書き込み手順の一言）は`compiler/server.mjs`の`BOARDS`だけに書き、`GET /boards`で配信する。ボード選択肢・プロジェクト検証・AIへ渡す`boardDetails`はすべてこの応答から生成し、ボードを追加してもAI側の追従作業は発生しない。製品全体の対応情報（Build・書き込み・Serial・保存/JSON退避・AIと利用者の操作境界）は`PRODUCT_INFO`に短く残す参照情報で、毎回答の説明項目ではない。依存設定、Registry登録、パッケージ取得、Build成功、実機確認を区別する。coreの実インストール版は推測しない。
 
-書き込み案内では対象成果物のmanifest／README本文をAIへ自動送信していないことを明示する。未確認アドレス・flash設定を使う具体的コマンドは「一般例」でも提示しないよう指示し、Build→ZIP取得→同梱資料に基づく外部書き込みは案内する。過去のアドレスは共通情報に固定しない。選択ボードの情報にはSerialの案内条件も含め、C3にはアプリ内Serialを接続手順として勧めない。RP2040も実際のポートとVIDフィルターの一致が条件。C3の書き込み用ROM download modeをDFUと混同せず、手動移行は[Seeed公式手順](https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/#troubleshooting)を参照する（2026-09-13確認）。これはモデルへ渡す情報・指示の修正であり、生成文章の正確性を強制・保証する後処理ではない。実モデルの改善確認はHumanによる再確認が必要。
+書き込み案内はこのアプリに実際にある操作だけを対象にする。手順は各ボードの`flashHint`の1文（UF2ボードはダウンロードしてBOOTSELドライブへコピー、ESP系はBuild後の「書き込み」ボタンでUSB接続したポートを選ぶ）で、manifest・書き込みアドレス・外部ツールの手順はAIに渡す情報から外している。禁止文で誤答を抑える方式はとらず、`tests/ai-product.spec.js`でsystem全文と`flashHint`にZIP・esptool・manifest・アドレス表記が含まれないこと、AIへ送る`boardDetails`が`/boards`の応答と一致することを検査する。これはモデルへ渡す情報の修正であり、生成文章の正確性を強制・保証する後処理ではない。実モデルの改善確認はHumanによる再確認が必要。
 
 保守時は機能変更と同じ差分で`ai-context.js`の該当実装コメントと対応情報を更新する。限定的なmetadataのためcompilerやINI生成は変更せず、`tests/ai-product.spec.js`で実際のボード選択・project検証・compiler成果物定義・INI・serial設定との一致、および3APIへの最終送信を検査する。`npm run test:browser -- tests/ai.spec.js tests/ai-product.spec.js`は独立Chrome・外部AI遮断の検証であり、実モデルの簡潔さ・正確さの保証ではない。
 
@@ -86,7 +86,7 @@ repo は PUBLIC。secret / credential / token / 個人情報 / 非公開 URL を
 
 `compiler/pio-esp32c3/` はRP2040用と分離したPlatformIOプロジェクト。`espressif32@7.0.1`、board `seeed_xiao_esp32c3`、Arduino core 2.0.17（framework package 3.20017.241212+sha.dcc1105b）、RISC-V GCC 8.4.0+2021r2-patch5を実ビルドで確認した。既定の新規プロジェクトは従来どおりXIAO RP2040。C3を使う場合はボード選択を変更する。
 
-C3用の応答はUF2ではなく `firmware-xiao_esp32c3.zip`。4つのBIN（bootloader、partitions、boot_app0、firmware）と、当該ビルド環境から取得したアドレス・flash設定・サイズ・SHA-256を記載したmanifest.json、README.txtを含む。アプリ単体BINだけで初回書き込みが完結するとは扱わない。ブラウザ書き込み機能は追加していない。helloとWi-Fiサンプルの実Chrome Build・ZIPダウンロードを確認済み。現在の生成設定はbootloader 0x0、partitions 0x8000、boot_app0 0xe000、firmware 0x10000、flashはdio / 80m / 4MB。設定の正本は各ZIPのmanifestとし、C3へ汎用ESP32のbootloaderアドレスを流用しない。
+C3用の応答はUF2ではなく、ブラウザ書き込み用のJSON flash set（`compiler/pio-esp/package_firmware.py`が生成）。4つのBIN（bootloader、partitions、boot_app0、firmware）を、当該ビルド環境から取得したアドレス・flash設定・サイズ・SHA-256とともにbase64で含み、`web/flash.js`がesptool-jsでそのまま書き込む。アドレスと設定の正本は各Buildのflash setで、README・AI・固定表には持たない。helloの実Chrome Build→ブラウザ書き込み→Serialでの表示をHumanが実機で確認済み（2026-09-15）。Wi-FiサンプルはBuild確認のみ。
 
 Wi-Fiサンプルは `examples/xiao-esp32c3-wifi.cpp` と `examples/xiao-esp32c3-wifi.digicode.json`。「ファイル」→「ファイルから読み込む…」でJSONを選ぶと、C3を選択した新しいプロジェクトとして追加される。`WiFi.h` はcore付属を使い、外部libraryの追加はない。SSID・パスワードはダミー値、接続待機は15秒で打ち切る。Wi-Fiコードのコンパイル確認済み、実接続未確認。利用者の現在のコードへ自動挿入しない。
 

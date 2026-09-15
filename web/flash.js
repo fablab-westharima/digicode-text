@@ -6,8 +6,6 @@ import { disconnectSerial } from './serial.js';
 
 // Same vendor filter as the donor: CP210x, CH340, FTDI, Espressif USB JTAG/serial.
 export const ESP_VENDOR_IDS = [0x10c4, 0x1a86, 0x0403, 0x303a];
-export const ESP_FAMILY_ENVS = new Set(['xiao_esp32c3']);
-export const isEspEnv = (env) => ESP_FAMILY_ENVS.has(env);
 
 export function parseFlashSet(json) {
   if (!json || json.format !== 'digicode-text-flash-set' || !Array.isArray(json.images) || !json.images.length) throw new Error('書き込みデータの形式が不正です');

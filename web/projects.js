@@ -2,7 +2,9 @@ import { validateLibraries } from '../shared/libraries.js';
 export const PROJECT_KEY = 'digicode-text.projects.v1';
 export const DRAFT_KEY = 'digicode-text.draft.v1';
 export const MAX_FILE = 2 * 1024 * 1024;
-const boards = new Set(['xiao_rp2040', 'pico', 'xiao_esp32c3']);
+// Board ids come from the compiler's GET /boards; app.js sets them before opening projects.
+const boards = new Set();
+export function setBoards(ids) { boards.clear(); for (const id of ids) boards.add(id); }
 export function validName(name) {
   if (typeof name !== 'string' || !name.trim() || [...name].length > 80) throw new Error('名前は1〜80文字で入力してください（空白だけは使えません）');
   return name.trim();

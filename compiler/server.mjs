@@ -3,6 +3,7 @@
 //   -> 200 UF2 bytes for RP2040/Pico; JSON flash set (manifest + base64 images) for ESP boards
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
+// GET  /boards    -> [{ id, name, family, framework, core, artifact, browserFlash, serial, flashHint }]
 // GET  /health    -> { ok: true }
 //
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
@@ -21,11 +22,21 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RP2040_PROJECT = path.join(here, 'pio-rp2040');
 const ESP_SHARED = path.join(here, 'pio-esp'); // packager shared by every ESP-family project
+// The only board definition. The UI select, project validation and the AI's board facts
+// are all generated from this table via GET /boards; nothing else lists boards.
+const RP2040_FLASH = 'Build成功後に「UF2 ダウンロード」を押し、BOOTSELモードで接続したボードのドライブへUF2をコピーする。';
+const ESP_FLASH = 'Build成功後に「書き込み」ボタンを押し、USB接続したボードのポートをブラウザのダイアログで選ぶ。';
 const BOARDS = new Map([
-  ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream' }],
-  ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream' }],
-  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8' }],
+  ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
+    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: false, serial: true, flashHint: RP2040_FLASH }],
+  ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
+    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: false, serial: true, flashHint: RP2040_FLASH }],
+  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH }],
 ]);
+// Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
+const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, framework: b.framework, core: b.core,
+  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);
@@ -112,6 +123,7 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 200, await libraryDetails(url.searchParams.get('owner'), url.searchParams.get('name'))); }
       catch (error) { return json(res, 502, { error: error.message }); }
     }
+    if (req.method === 'GET' && req.url === '/boards') return json(res, 200, PUBLIC_BOARDS);
     if (req.method === 'GET' && req.url === '/health') return json(res, 200, { ok: true });
     if (req.method === 'GET' && req.url.startsWith('/assets/')) {
       const name = req.url.slice('/assets/'.length);
