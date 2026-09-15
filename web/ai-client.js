@@ -26,7 +26,7 @@ export function contract(provider, config, system, messages) {
   fail('API方式を選択してください');
 }
 
-export function responseText(api, data) {
+export function responseText(api, data, meta = {}) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) fail('応答形式が不正です');
   let text;
   if (api === 'chat') {
@@ -40,8 +40,12 @@ export function responseText(api, data) {
   } else if (api === 'messages') {
     if (data.stop_reason === 'refusal' || data.stop_details?.type === 'refusal') fail('提供側が応答を拒否しました');
     if (data.stop_reason !== 'end_turn') fail(['max_tokens', 'model_context_window_exceeded'].includes(data.stop_reason) ? '出力が上限で打ち切られました' : '正常終了を確認できません');
-    if (!Array.isArray(data.content) || data.content.length !== 1 || data.content[0]?.type !== 'text') fail('単一のテキスト応答ではありません');
-    text = data.content[0].text;
+    // Join every text block; other block types (thinking, etc.) are ignored.
+    if (!Array.isArray(data.content) || !data.content.length) fail('応答形式が不正です');
+    const texts = data.content.filter(x => x?.type === 'text').map(x => x.text);
+    if (!texts.length || texts.some(x => typeof x !== 'string')) fail('テキスト応答がありません');
+    meta.blocks = texts.length;
+    text = texts.join('\n');
   } else if (api === 'responses') {
     if (data.status !== 'completed' || data.error || data.incomplete_details) fail(data.status === 'incomplete' ? '出力が打ち切られました' : '正常終了を確認できません');
     if (!Array.isArray(data.output)) fail('応答形式が不正です');
@@ -57,27 +61,57 @@ export function responseText(api, data) {
   return text;
 }
 
+// Shared normalization for all three APIs: strip surrounding whitespace, ``` / ```json fences and
+// any prose before or after the envelope, keeping the first '{' through its matching '}'.
+// Only the wrapping is relaxed; the envelope contract itself is unchanged.
+export function normalizeReply(raw) {
+  const notes = [];
+  let text = raw.trim();
+  if (/^```/.test(text) || /```\s*$/.test(text)) { notes.push('フェンス'); text = text.replace(/^```[^\n]*\n?/, '').replace(/\n?```\s*$/, '').trim(); }
+  const start = text.indexOf('{');
+  if (start < 0) return { text, notes };
+  let depth = 0, end = -1, quoted = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) { if (ch === '\\') i++; else if (ch === '"') quoted = false; continue; }
+    if (ch === '"') quoted = true;
+    else if (ch === '{') depth++;
+    else if (ch === '}' && --depth === 0) { end = i; break; }
+  }
+  const body = end < 0 ? text.slice(start) : text.slice(start, end + 1);
+  if (body !== text) notes.push('前後の文');
+  return { text: body, notes };
+}
+
 // Prompt-based envelope: no native structured-output capability is assumed for custom models.
-export function parseReply(text) {
-  const invalid = () => fail('回答形式を確認できませんでした。コードは適用していません（自動再送なし）');
-  if (typeof text !== 'string' || bytes(text) > LIMITS.envelope) invalid();
+// On failure the error names the failure type and the first 200 characters of the raw reply.
+export function parseReply(raw, meta = {}) {
+  const invalid = kind => {
+    const parts = [kind, ...(meta.blocks > 1 ? [`textブロック${meta.blocks}個`] : []), ...notes];
+    const head = typeof raw === 'string' ? raw.trim().slice(0, 200) : '';
+    fail(`回答形式を確認できませんでした（${parts.join('、')}）。コードは適用していません（自動再送なし）` + (head ? `\n先頭200文字: ${head}` : ''));
+  };
+  let notes = [];
+  if (typeof raw !== 'string' || bytes(raw) > LIMITS.envelope) invalid('応答不正');
+  const norm = normalizeReply(raw); const text = norm.text; notes = norm.notes;
   let reply;
-  try { reply = JSON.parse(text); } catch { invalid(); }
-  if (!reply || Array.isArray(reply) || typeof reply !== 'object') invalid();
+  try { reply = JSON.parse(text); } catch { invalid('JSON不正'); }
+  if (!reply || Array.isArray(reply) || typeof reply !== 'object') invalid('JSON不正');
+  const invalidField = () => invalid('必須項目欠落');
   const fields = Object.keys(reply);
-  if (fields.length !== 3 || !['kind', 'message', 'source'].every(k => fields.includes(k))) invalid();
-  if (!['answer', 'change'].includes(reply.kind) || typeof reply.message !== 'string' || !reply.message.trim() || bytes(reply.message) > LIMITS.output) invalid();
-  if (reply.kind === 'answer' ? reply.source !== null : typeof reply.source !== 'string') invalid();
+  if (fields.length !== 3 || !['kind', 'message', 'source'].every(k => fields.includes(k))) invalidField();
+  if (!['answer', 'change'].includes(reply.kind) || typeof reply.message !== 'string' || !reply.message.trim() || bytes(reply.message) > LIMITS.output) invalidField();
+  if (reply.kind === 'answer' ? reply.source !== null : typeof reply.source !== 'string') invalidField();
   // JSON.parse accepts duplicate keys. Tokenize JSON strings after syntax/type validation
   // to reject ambiguous envelopes, including escaped spellings of the same field.
   const keys = [...text.matchAll(/"(?:\\.|[^"\\])*"/g)]
     .filter(m => /^\s*:/.test(text.slice(m.index + m[0].length))).map(m => JSON.parse(m[0]));
-  if (keys.length !== 3 || new Set(keys).size !== 3) invalid();
-  if (reply.kind === 'change' && (!reply.source.trim() || reply.source.includes('\0') || bytes(reply.source) > LIMITS.source || /^\s*```/.test(reply.source))) invalid();
+  if (keys.length !== 3 || new Set(keys).size !== 3) invalidField();
+  if (reply.kind === 'change' && (!reply.source.trim() || reply.source.includes('\0') || bytes(reply.source) > LIMITS.source || /^\s*```/.test(reply.source))) invalidField();
   return reply;
 }
 
-export async function requestAI(provider, config, system, messages, signal) {
+export async function requestAI(provider, config, system, messages, signal, meta = {}) {
   const request = contract(provider, config, system, messages);
   let res;
   try {
@@ -103,5 +137,5 @@ export async function requestAI(provider, config, system, messages, signal) {
   for (const chunk of chunks) { buffer.set(chunk, offset); offset += chunk.length; }
   let data;
   try { data = JSON.parse(new TextDecoder().decode(buffer)); } catch { fail('応答JSONが不正です'); }
-  return responseText(config.api, data);
+  return responseText(config.api, data, meta);
 }

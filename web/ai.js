@@ -137,10 +137,11 @@ export function setupAI(monaco, host) {
     say(`応答待ち… コード変更の場合は${s.mode === 'auto' ? '自動適用' : '確認して適用'}（最大3分）`);
     req.timer = setTimeout(() => { req.timedOut = true; req.controller.abort(); }, LIMITS.timeout);
     try {
-      const text = await requestAI(s.provider, config, systemFor(), messages, req.controller.signal);
+      const meta = {};
+      const text = await requestAI(s.provider, config, systemFor(), messages, req.controller.signal, meta);
       if (active !== req || req.controller.signal.aborted) return;
       if (settings.containsKey(text)) throw new Error('応答に設定キーと一致する内容が含まれるため表示・適用を停止しました');
-      const parsed = parseReply(text);
+      const parsed = parseReply(text, meta);
       // Output check on the prose only (answer message / change explanation), before rendering.
       // The withheld text also becomes the history entry so the original is never resent.
       const shown = inspectMessage(parsed.message, s.board);

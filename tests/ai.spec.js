@@ -41,7 +41,18 @@ test('contracts and strict response parsing', () => {
   for (const stop of ['length', 'tool_calls', 'content_filter', null]) expect(() => responseText('chat', { choices: [{ finish_reason: stop, message: { content: answer } }] })).toThrow();
   expect(() => responseText('chat', { choices: [{ finish_reason: 'stop', message: { content: answer, refusal: 'no' } }] })).toThrow(/拒否/);
   for (const stop of ['max_tokens', 'refusal', 'pause_turn', 'tool_use', 'model_context_window_exceeded', null]) expect(() => responseText('messages', { stop_reason: stop, content: [{ type: 'text', text: answer }] })).toThrow();
-  expect(() => responseText('messages', { stop_reason: 'end_turn', content: [{ type: 'text', text: answer }, { type: 'text', text: answer }] })).toThrow();
+  // Messages: every text block is joined; non-text blocks are ignored; no text block fails.
+  const meta = {};
+  expect(responseText('messages', { stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: 'x' }, { type: 'text', text: '以下が回答です。' }, { type: 'text', text: answer }] }, meta)).toBe('以下が回答です。\n' + answer);
+  expect(meta.blocks).toBe(2);
+  expect(() => responseText('messages', { stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: 'x' }] })).toThrow();
+  // Shared normalization: fences, surrounding prose, first '{' through its matching '}'.
+  for (const wrapped of ['```json\n' + answer + '\n```', '```\n' + answer + '```', '以下が回答です。\n' + answer + '\n以上です。', '  ' + answer + '  ', '以下が回答です。\n```json\n' + answer + '\n```\n以上です。']) expect(parseReply(wrapped).source).toBe(code);
+  expect(parseReply(reply('a{b} "c}"') + ' }').message).toBe('a{b} "c}"');
+  expect(() => parseReply('{broken', { blocks: 2 })).toThrow(/JSON不正、textブロック2個.*\n先頭200文字: \{broken/s);
+  expect(() => parseReply('```json\n{}\n```')).toThrow(/必須項目欠落、フェンス/);
+  expect(() => parseReply('説明 ' + JSON.stringify({ kind: 'answer', message: 'ok' }))).toThrow(/必須項目欠落、前後の文/);
+  expect(() => parseReply('x'.repeat(300))).toThrow(/JSON不正）.*先頭200文字: x{200}$/s);
 });
 
 
@@ -198,7 +209,7 @@ test('invalid envelopes and provider endings never apply or retry; recover on ne
     expect(await source(page)).toBe(original); await expect(page.locator('#ai-prompt')).toHaveValue(`変更依頼 ${i}`);
     await expect(page.locator('#ai-proposal')).toBeHidden(); expect(count).toBe(i+1);
   }
-  await expect(page.locator('#ai-history')).not.toContainText('{broken');
+  await expect(page.locator('#ai-history')).toContainText('JSON不正');
   await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了'); expect(count).toBe(bad.length+1);
 });
 
@@ -260,4 +271,24 @@ test('history contains concise pending discarded and stale proposal states, not 
   expect(JSON.parse(requests[2].input[1].content).codeChange).toBe('discarded'); expect(JSON.parse(requests[2].input[3].content).codeChange).toBe('discarded');
   await edit(page,'// manual change'); await send(page,'consult'); await expect(page.locator('#ai-proposal')).toBeVisible();
   expect(JSON.parse(requests[3].input[5].content).codeChange).toBe('stale');
+});
+
+test('Messages replies: joined text blocks, fenced and prefaced JSON parse; broken JSON reports the failure type and head', async ({ page }) => {
+  const claude = text => ({ stop_reason: 'end_turn', content: Array.isArray(text) ? text : [{ type: 'text', text }] });
+  const cases = [
+    claude([{ type: 'thinking', thinking: 'x' }, { type: 'text', text: '前置きです。' }, { type: 'text', text: reply('複数ブロックの回答') }]),
+    claude('```json\n' + reply('フェンス付きの回答') + '\n```'),
+    claude('以下が回答です。\n' + reply('前置き付きの回答') + '\n以上です。'),
+    claude('{"kind":"answer","message":"壊れた'),
+  ];
+  let count = 0;
+  await page.route('https://api.anthropic.com/**', r => r.fulfill({ json: cases[count++] }));
+  await ready(page); await settings(page, 'claude');
+  for (const expected of ['複数ブロックの回答', 'フェンス付きの回答', '前置き付きの回答']) {
+    await send(page); await expect(page.locator('#ai-status')).toContainText('回答完了');
+    await expect(page.locator('.ai-turn').last()).toContainText(expected); await expect(page.locator('#ai-history')).not.toContainText('"kind"');
+  }
+  await send(page); await expect(page.locator('#ai-status')).toContainText('回答形式を確認できませんでした（JSON不正）');
+  await expect(page.locator('.ai-turn').last()).toContainText('先頭200文字: {"kind":"answer","message":"壊れた');
+  expect(count).toBe(4); await expect(page.locator('#ai-proposal')).toBeHidden();
 });
