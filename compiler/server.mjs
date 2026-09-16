@@ -4,7 +4,8 @@
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
 // GET  /boards    -> [{ id, name, family, framework, core, artifact, browserFlash, serial, flashHint,
-//                       pins (generated from the PlatformIO variant header), pinNotes (sourced board notes) }]
+//                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
+//                       that table, where the variant is generic), pinNotes (sourced board notes) }]
 // GET  /health    -> { ok: true }
 //
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
@@ -28,7 +29,10 @@ const ESP_SHARED = path.join(here, 'pio-esp'); // build scripts shared by every 
 // silicon vendor's own datasheet are used; every note was read there before being written here.
 const SEEED_XIAO_RP2040 = 'https://wiki.seeedstudio.com/XIAO-RP2040/';
 const SEEED_XIAO_ESP32C3 = 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/';
-const SEEED_WIO_NODE = 'https://wiki.seeedstudio.com/Wio_Node/';
+// The Wio Node schematic is the only document that gives the board's own GPIO assignments; the
+// wiki page links it under Resources -> Hardware. The link target is on files.seeedstudio.com,
+// so the page that carries the link is named here, with the link's own text.
+const SEEED_WIO_NODE_SCHEMATIC = 'https://wiki.seeedstudio.com/Wio_Node/ の Resources → Hardware → Schematic File in PDF（Wio Node v1.0）';
 const RPI_PICO_DATASHEET = 'https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf';
 const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datasheet_en.pdf';
 const ESP8266_DATASHEET = 'https://documentation.espressif.com/0a-esp8266ex_datasheet_en.pdf';
@@ -53,7 +57,7 @@ const BOARDS = new Map([
       { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
     ] }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
+    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
     pinNotes: [
       { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
       { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_DATASHEET },
@@ -77,15 +81,17 @@ const BOARDS = new Map([
     ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH,
+    // Read before the pin table, because the table's own labels are the trap on this board.
+    pinTableNote: 'ピン表のD0からD10はNodeMCU汎用variantのマクロで、Wio Node基板の表記ではない。基板のPORT0（UART/I2C0/D0）とPORT1（Analog/I2C1/D1）にあるD0/D1はコネクタの名前であり、コードのD0/D1マクロ（GPIO16とGPIO5）とは別物。コードではGPIO番号を直接書くこと。',
     pinNotes: [
-      { text: '青のLEDはGPIO2に付いており、GPIO2はUART1のTXでもあるため書き込み中は点滅する', source: SEEED_WIO_NODE },
-      { text: 'Groveコネクタは2つあり、GroveインターフェースのVCCは1つにまとまっていてGPIO15で制御し、赤のLEDがGroveへの給電状態を示す。deep sleep中はGroveの電源も落ちる', source: SEEED_WIO_NODE },
-      { text: 'Groveコネクタ1はUART0/I2C0/D0、Groveコネクタ2はAnalog/I2C1/D1として仕様表に載っているが、各端子のGPIO番号はwikiに載っていない', source: SEEED_WIO_NODE },
-      { text: '動作電圧は3.3Vで、I/O 1本あたりのDC電流は最大12mA', source: SEEED_WIO_NODE },
-      { text: 'GPIO0、GPIO2、GPIO15（MTDO）はブートモードとSDIOモードの選択に使われる', source: ESP8266_DATASHEET },
-      { text: 'U0TXD（GPIO1）は電源投入時に外部からLowに引いてはならない', source: ESP8266_DATASHEET },
-      { text: 'アナログ入力A0はTOUT（6番ピン）という入力専用の端子で、外部接続時の入力電圧範囲は0Vから1.0V。GPIO番号は持たない', source: ESP8266_DATASHEET },
-      { text: 'I/OのHighレベル入力電圧の最大は3.6V、working voltageは2.5Vから3.6Vなので、5Vを直接加えると定格を超える', source: ESP8266_DATASHEET },
+      { text: '左のGroveコネクタPORT0（回路図のJ3）は、pin1（黄）がGPIO3（U0RXD）、pin2（白）がGPIO1（U0TXD）、pin3が3V3B、pin4がGND', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: '右のGroveコネクタPORT1（回路図のJ6）は、pin1（黄）がGPIO5、pin2（白）がGPIO4、pin3が3V3B、pin4がGND。上のピン表でSCLはGPIO5、SDAはGPIO4なので、I2CはこのPORT1に出ている', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: 'A0はPORT1 pin1から100k二本を直列に通してTOUTへ入り、TOUTは100kでGNDに落ちている。1/3の分圧なのでPORT1 pin1が3.3VのときA0の入力は約1.1V。PORT0側にアナログ入力は無い', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: 'GroveコネクタへのVCCである3V3Bは、GPIO15をHIGHにするとONになる。GPIO15は10kでプルダウンされているため、HIGHにしない限りGroveコネクタに電源は来ない', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: '青のLEDは3V3から2kを通してGPIO2に入っているのでGPIO2をLOWにすると点灯する（GPIO2は10kプルアップ）。赤のLEDは3V3B直結でGroveへの給電表示', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: 'FUNCボタンはGPIO0（10kプルアップ）、RSTボタンはRSTに繋がる。GPIO16は100ΩでRSTに接続されていてdeep sleepからの復帰に使う', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: 'micro USBは給電専用で、UARTもUSBシリアル変換チップも載っていない。GPIO12、GPIO13、GPIO14はテストパッド行きで利用者が使える端子ではない', source: SEEED_WIO_NODE_SCHEMATIC },
+      { text: '動作電圧は2.5Vから3.6V、I/O 1本あたりのDC電流は最大12mA、High入力電圧の最大は3.6Vなので5Vを直接加えると定格を超える。GPIO0、GPIO2、GPIO15はブートモードの選択にも使われ、U0TXD（GPIO1）は電源投入時に外部からLowに引いてはならない。A0のTOUTは入力専用で、外部接続時の入力電圧範囲は0Vから1.0V', source: ESP8266_DATASHEET },
     ] }],
 ]);
 // Pin labels are not written by hand: compiler/tools/generate-board-pins.mjs reads them out of the
@@ -95,7 +101,7 @@ const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${en
 // Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, framework: b.framework, core: b.core,
   artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint,
-  pins: boardPins(id), pinNotes: b.pinNotes }));
+  pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);

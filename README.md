@@ -4,7 +4,7 @@
 
 ## 今動くもの
 
-- `compiler/pio-rp2040/` — project 専用の PlatformIO project。XIAO RP2040(community platform + earlephilhower core)と Raspberry Pi Pico(公式 platform)で "hello" を Serial に出す `main.cpp` が build でき、`firmware.uf2` が生成される。global な lib_deps は無い。
+- `compiler/pio-rp2040/` — project 専用の PlatformIO project。XIAO RP2040 と Raspberry Pi Pico(どちらも community platform + earlephilhower arduino-pico core)で "hello" を Serial に出す `main.cpp` が build でき、`firmware.uf2` が生成される。global な lib_deps は無い。
 - `compiler/server.mjs` — 依存ゼロの Node サーバ。`POST /compile` に `{env, source, libraries, projectId, projectRevision}` を送ると RP2040は`.uf2`、ESP系（C3）はブラウザ書き込み用のJSON flash set（manifest項目＋各イメージのbase64、`compiler/pio-esp/package_firmware.py` が生成）を返す(compile 失敗は 422 + log)。`GET /` で `web/index.html` を配信。
 - `web/` — Monaco Editor(C++、行番号、自動インデント、Undo/Redo) + 名前付きプロジェクト管理・ブラウザ内自動保存・JSON入出力 + Build + UF2ダウンロード（RP2040）／esptool-jsによるブラウザ書き込み（ESP系、`web/flash.js`） + Web Serial monitor(VID 0x2e8a / 0x10C4 / 0x1A86 / 0x0403 / 0x303A でフィルタ)。
 

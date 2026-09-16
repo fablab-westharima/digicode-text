@@ -1,17 +1,17 @@
 {
   "env": "pico",
-  "platform": "raspberrypi",
-  "board": "pico",
+  "platform": "https://github.com/maxgerhardt/platform-raspberrypi.git",
+  "board": "rpipico",
   "mcu": "rp2040",
-  "core": "arduino",
-  "variant": "RASPBERRY_PI_PICO",
-  "frameworkPackage": "framework-arduino-mbed",
-  "frameworkVersion": "4.6.0",
+  "core": "earlephilhower",
+  "variant": "rpipico",
+  "frameworkPackage": "framework-arduinopico",
+  "frameworkVersion": "1.60000.0",
   "sources": {
     "platformioIni": "compiler/pio-rp2040/platformio.ini",
-    "boardDefinition": "platforms/raspberrypi/boards/pico.json",
-    "variantHeader": "packages/framework-arduino-mbed/variants/RASPBERRY_PI_PICO/pins_arduino.h",
-    "digitalLabelsFrom": "variant.cpp"
+    "boardDefinition": "platforms/raspberrypi@src-ff76a3915224135aafad379817f41edd/boards/rpipico.json",
+    "variantHeader": "packages/framework-arduinopico/variants/rpipico/pins_arduino.h",
+    "digitalLabelsFrom": "pins_arduino.h"
   },
   "pins": [
     {

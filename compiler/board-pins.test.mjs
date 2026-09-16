@@ -47,3 +47,21 @@ test('each pin file names the platformio.ini env and the variant header it came 
     await access(path.join(PIO_HOME, data.sources.boardDefinition));
   }
 });
+
+test('both RP2040 envs resolve to the same community platform and core', { skip: installed ? false : 'no PlatformIO install' }, async () => {
+  const [xiao, pico] = await Promise.all(['xiao_rp2040', 'pico'].map(async env => JSON.parse(await readFile(outFile(env), 'utf8'))));
+  for (const data of [xiao, pico]) {
+    assert.equal(data.core, 'earlephilhower');
+    assert.equal(data.frameworkPackage, 'framework-arduinopico');
+    assert.match(data.platform, /platform-raspberrypi/);
+  }
+  assert.equal(pico.board, 'rpipico');
+  assert.equal(pico.platform, xiao.platform);
+  assert.equal(pico.frameworkVersion, xiao.frameworkVersion);
+  // The generic rpipico variant defines its Dn/An labels through the core's shared common.h
+  // #ifdef GUARD/#else default idiom; the generator must still produce the whole table.
+  assert.equal(pico.sources.digitalLabelsFrom, 'pins_arduino.h');
+  assert.equal(pico.pins.filter(p => /^D\d+$/.test(p.label)).length, 30);
+  assert.deepEqual(pico.pins.filter(p => p.adc).map(p => p.adc), ['A0', 'A1', 'A2', 'A3']);
+  for (const p of pico.pins) assert.equal(p.gpio, p.pin); // every Pico pin number is its GPIO number
+});

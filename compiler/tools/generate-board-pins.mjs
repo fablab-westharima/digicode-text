@@ -101,8 +101,13 @@ function normalise(value) {
 }
 
 // Collect "#define NAME value" and "static const uintN_t NAME = value;" from a variant header,
-// following relative includes. The first definition of a name wins, which is what the
-// #ifndef NAME / #define NAME idiom used by these cores means.
+// following relative includes. Every definition of a name is kept in source order; the first one
+// that resolves to a number wins. That is what the two idioms these cores use both mean:
+//   #ifndef NAME / #define NAME <value>            -> the earlier definition is the effective one
+//   #ifdef  GUARD / NAME = GUARD / #else / NAME = <default>   (arduino-pico generic/common.h)
+//     -> when GUARD is not defined anywhere in the chain the #else default is the effective one.
+// Conditionals are not evaluated, so a header that defines the same name in two mutually
+// exclusive branches (common.h's RP2040 vs RP2350B blocks) yields the first branch's value.
 async function collectSymbols(file, seen = new Set(), out = new Map()) {
   const resolved = path.resolve(file);
   if (seen.has(resolved)) return out;
@@ -115,21 +120,26 @@ async function collectSymbols(file, seen = new Set(), out = new Map()) {
     const def = code.match(/^\s*#\s*define\s+([A-Za-z_]\w*)(?!\()\s+(\S.*?)\s*$/);
     const con = code.match(/^\s*static\s+const\s+u?int\d+_t\s+([A-Za-z_]\w*)\s*=\s*([^;]+);/);
     const m = def ?? con;
-    if (!m || out.has(m[1])) continue;
+    if (!m) continue;
     const value = normalise(m[2]);
-    if (value) out.set(m[1], { ...value, note, file: resolved });
+    if (!value) continue;
+    if (!out.has(m[1])) out.set(m[1], []);
+    out.get(m[1]).push({ ...value, note, file: resolved });
   }
   for (const inc of includes) if (await exists(inc)) await collectSymbols(inc, seen, out);
   return out;
 }
 
 function resolveSymbol(symbols, name, depth = 0) {
-  const entry = symbols.get(name);
-  if (!entry || depth > 8) return null;
-  if (entry.number !== undefined) return { gpio: entry.number, note: entry.note, via: name, file: entry.file };
-  const next = resolveSymbol(symbols, entry.alias, depth + 1);
-  // Keep every comment on the chain: the "not pinned out" style note is often on the PIN_* macro.
-  return next && { ...next, note: [entry.note, next.note].filter(Boolean).join(' / '), via: name };
+  const entries = symbols.get(name);
+  if (!entries || depth > 8) return null;
+  for (const entry of entries) {
+    if (entry.number !== undefined) return { gpio: entry.number, note: entry.note, via: name, file: entry.file };
+    const next = resolveSymbol(symbols, entry.alias, depth + 1);
+    // Keep every comment on the chain: the "not pinned out" style note is often on the PIN_* macro.
+    if (next) return { ...next, note: [entry.note, next.note].filter(Boolean).join(' / '), via: name };
+  }
+  return null;
 }
 
 // Cores without D0..Dn defines (Arduino mbed) carry the digital pin order in variant.cpp's
@@ -167,8 +177,15 @@ export async function generate(spec) {
     const r = resolveSymbol(symbols, name);
     if (r) labels.push({ label: name, pin: r.gpio, note: r.note });
   }
+  // How many pins of each kind this board's own header says it has.
+  const digitalCount = resolveSymbol(symbols, 'NUM_DIGITAL_PINS')?.gpio ?? null;
+  const analogCount = resolveSymbol(symbols, 'NUM_ANALOG_INPUTS')?.gpio ?? null;
   let digital = labels.filter(l => DIGITAL.test(l.label));
-  const analog = labels.filter(l => ANALOG.test(l.label));
+  let analog = labels.filter(l => ANALOG.test(l.label));
+  // A Dn/An label past the board's own count is not a pin of this board: arduino-pico's shared
+  // common.h also carries the wider RP2350B block (D30..D47, A4..A7), which this MCU does not have.
+  if (digitalCount !== null) digital = digital.filter(l => l.pin < digitalCount);
+  if (analogCount !== null) analog = analog.filter(l => Number(ANALOG.exec(l.label)[1]) < analogCount);
   const digitalFrom = digital.length ? 'pins_arduino.h' : 'variant.cpp';
   if (!digital.length) digital = await digitalFromVariantCpp(variantDir);
 
@@ -183,7 +200,6 @@ export async function generate(spec) {
   // The Arduino pin number written in a sketch is the GPIO number on all four cores, except
   // where the header's own NUM_DIGITAL_PINS shows the number is an index past the GPIO range
   // (the ESP8266 core numbers its dedicated ADC input that way). No GPIO is claimed there.
-  const digitalCount = resolveSymbol(symbols, 'NUM_DIGITAL_PINS')?.gpio ?? null;
   const gpioOf = pin => (digitalCount !== null && pin >= digitalCount ? null : pin);
   const order = (a, b) => a.pin - b.pin || a.label.localeCompare(b.label);
   const rows = new Map();

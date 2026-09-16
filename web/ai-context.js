@@ -47,7 +47,10 @@ function noteLines(notes) {
 }
 export function boardFacts(b) {
   const head = `選択ボードは${b.name}（${b.framework}、core系列は${b.core}）。${b.flashHint}Serialモニタは${b.serial ? '利用できる' : '利用できない'}。`;
-  return [head, ...(b.pins ? pinLines(b.pins) : []), ...(b.pinNotes?.length ? noteLines(b.pinNotes) : [])].join('\n');
+  // pinTableNote comes before the table because it says how to read it (Wio Node's generic
+  // variant labels are not the board's own markings). It is a board fact, so it lives in BOARDS.
+  return [head, ...(b.pinTableNote ? [b.pinTableNote] : []), ...(b.pins ? pinLines(b.pins) : []),
+    ...(b.pinNotes?.length ? noteLines(b.pinNotes) : [])].join('\n');
 }
 
 export const RESPONSE_RULES = `Answer the latest userMessage directly in plain Japanese. Be concise by default; give the depth explicitly requested, without fixed paragraph, item or suggestion counts.

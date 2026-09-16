@@ -47,8 +47,13 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
     expect(section).toBeDefined();
     const setting = key => section.match(new RegExp('^' + key.replaceAll('.', '\\.') + '\\s*=\\s*(.+)$', 'm'))?.[1].trim();
     expect(b.framework.toLowerCase()).toBe(setting('framework'));
-    if (env === 'xiao_rp2040') expect(b.core).toContain(setting('board_build.core'));
-    if (env === 'pico') expect(ini).toContain('mbed-based Arduino core');
+    // Both RP2040 boards build with the community platform's earlephilhower core, so the core
+    // series the AI is told must be the one the env actually sets.
+    if (b.family === 'rp2040') {
+      expect(setting('board_build.core')).toBe('earlephilhower');
+      expect(b.core).toContain('earlephilhower');
+      expect(setting('platform')).toContain('platform-raspberrypi');
+    }
     expect(() => validateContent({ name: 'test', env, source: '', libraries: [] })).not.toThrow();
   }
   expect(() => validateContent({ name: 'test', env: 'no_such_board', source: '', libraries: [] })).toThrow();
@@ -130,6 +135,38 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
       expect(facts, `${b.id} leaks ${key}`).not.toContain(key);
     expect(facts.length - bare.length, `${b.id} pin prose is too long`).toBeLessThanOrEqual(1500);
   }
+});
+
+test('the Pico is served as an earlephilhower arduino-pico board, with the pin table generated from that core', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const pico = boards.find(b => b.id === 'pico');
+  expect(pico.core).toContain('earlephilhower');
+  expect(boardFacts(pico)).toContain('core系列はearlephilhower arduino-pico');
+  // The pin table must come from the core this env builds with, not from the mbed core it used to use.
+  expect(pico.pins.core).toBe('earlephilhower');
+  expect(pico.pins.frameworkPackage).toBe('framework-arduinopico');
+  expect(pico.pins.variant).toBe('rpipico');
+  expect(boardFacts(pico)).toContain('variant「rpipico」');
+  // Same core as XIAO RP2040: one uf2 recipe for both RP2040 boards.
+  expect(pico.pins.platform).toBe(boards.find(b => b.id === 'xiao_rp2040').pins.platform);
+});
+
+test('Wio Node board facts give the connectors their real GPIO numbers and warn that the Dn labels are the generic variant\'s', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const wio = boards.find(b => b.id === 'wio_node');
+  const facts = boardFacts(wio);
+  // The caveat is read before the table it is about.
+  expect(facts.indexOf('NodeMCU汎用variant')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(facts).toContain('コードのD0/D1マクロ（GPIO16とGPIO5）とは別物');
+  // PORT0 is the UART pair, PORT1 the I2C/analog pair; both named with the GPIO numbers to write.
+  expect(facts).toMatch(/PORT0（回路図のJ3）は、pin1（黄）がGPIO3（U0RXD）、pin2（白）がGPIO1（U0TXD）/);
+  expect(facts).toMatch(/PORT1（回路図のJ6）は、pin1（黄）がGPIO5、pin2（白）がGPIO4/);
+  expect(facts).toContain('GPIO15をHIGHにするとONになる');
+  expect(facts).toContain('PORT0側にアナログ入力は無い');
+  // The old "no GPIO numbers are published" note is gone.
+  expect(facts).not.toContain('GPIO番号はwikiに載っていない');
+  // Every other board keeps the table without a caveat line.
+  for (const other of boards.filter(b => b.id !== 'wio_node')) expect(other.pinTableNote).toBe(null);
 });
 
 test('output check: external flashing command lines are replaced by the product sentence; prose-only misguidance passes', () => {
