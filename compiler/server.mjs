@@ -3,7 +3,8 @@
 //   -> 200 UF2 bytes for RP2040/Pico; JSON flash set (manifest + base64 images) for ESP boards
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
-// GET  /boards    -> [{ id, name, family, framework, core, artifact, browserFlash, serial, flashHint }]
+// GET  /boards    -> [{ id, name, family, framework, core, artifact, browserFlash, serial, flashHint,
+//                       pins (generated from the PlatformIO variant header), pinNotes (sourced board notes) }]
 // GET  /health    -> { ok: true }
 //
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
@@ -12,6 +13,7 @@
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile, writeFile, mkdir, mkdtemp, copyFile, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
@@ -22,26 +24,78 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const RP2040_PROJECT = path.join(here, 'pio-rp2040');
 const ESP_SHARED = path.join(here, 'pio-esp'); // build scripts shared by every ESP-family project
-// The only board definition. The UI select, project validation and the AI's board facts
-// are all generated from this table via GET /boards; nothing else lists boards.
+// Sources for the hand-written pin notes below. Only the board vendor's own wiki and the
+// silicon vendor's own datasheet are used; every note was read there before being written here.
+const SEEED_XIAO_RP2040 = 'https://wiki.seeedstudio.com/XIAO-RP2040/';
+const SEEED_XIAO_ESP32C3 = 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/';
+const SEEED_WIO_NODE = 'https://wiki.seeedstudio.com/Wio_Node/';
+const RPI_PICO_DATASHEET = 'https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf';
+const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datasheet_en.pdf';
+const ESP8266_DATASHEET = 'https://documentation.espressif.com/0a-esp8266ex_datasheet_en.pdf';
 const RP2040_FLASH = 'BOOTSELを押したままUSBに接続するとRPI-RP2ドライブが現れる（Macでは「NO NAME」と表示される場合がある）。Build成功後に「書き込み」ボタンを押してそのドライブを選ぶと書き込まれ、完了後にボードは自動で再起動する。';
 const ESP_FLASH = 'Build成功後に「書き込み」ボタンを押し、USB接続したボードのポートをブラウザのダイアログで選ぶ。';
 // Wio Node is flashed through the Grove USB-serial adapter, which carries no auto-reset line,
 // so the board is put into its flashing mode by hand before and after the same browser button.
 const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前にFUNCを押したままRSTを押して書き込みモードに入れる。Build成功後に「書き込み」ボタンを押してポートを選び、完了後にRSTを押す。';
+// The only board definition. The UI select, project validation and the AI's board facts
+// are all generated from this table via GET /boards; nothing else lists boards.
+// pinNotes hold what no header states: one sentence each, with the URL it was read from.
 const BOARDS = new Map([
   ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH }],
+    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
+    pinNotes: [
+      { text: 'MCUの動作電圧は3.3Vで、汎用I/Oピンに3.3Vより高い電圧を入力するとチップが破損することがある', source: SEEED_XIAO_RP2040 },
+      { text: 'USBとVIN/5Vピンから入れた5Vは基板上のDC-DCで3.3Vに落とされるため、5Vを受けられるのは電源ピンだけ', source: SEEED_XIAO_RP2040 },
+      { text: 'オンボードRGB LEDは赤がGPIO17、緑がGPIO16、青がGPIO25で、点灯させるにはピンをLowに引く', source: SEEED_XIAO_RP2040 },
+      { text: 'WS2812Bのデータ線GPIO12と電源イネーブルGPIO11は、wikiのピンマップではXIAO RP2040 Plusの列にだけ載っている', source: SEEED_XIAO_RP2040 },
+      { text: 'アナログ入力はA0からA3（GPIO26からGPIO29）の4本', source: SEEED_XIAO_RP2040 },
+      { text: '14ピンのフットプリントに引き出されているGPIOは11本', source: SEEED_XIAO_RP2040 },
+      { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
+    ] }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH }],
+    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'Arduino Mbed', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
+    pinNotes: [
+      { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
+      { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_DATASHEET },
+      { text: 'GPIO29はADC3としてVSYS/3の測定、GPIO25はユーザーLED、GPIO24はVBUS検出、GPIO23はオンボードSMPSのPower Save制御に基板内部で使われている', source: RPI_PICO_DATASHEET },
+      { text: 'ADCに使えるGPIO26からGPIO29はIOVDD（3V3）への内部逆方向ダイオードを持ち、入力電圧はIOVDDより約300mV高い値を超えてはならない', source: RPI_PICO_DATASHEET },
+      { text: 'デジタル専用のGPIO0からGPIO25とデバッグピンにはその制限がなく、RP2040が無給電でも電圧をかけて差し支えない', source: RPI_PICO_DATASHEET },
+      { text: 'BOOTSELを押したまま電源を入れるとUSBマスストレージとして現れ、uf2ファイルを置くとFlashに書かれて再起動する', source: RPI_PICO_DATASHEET },
+      { text: 'テストポイントTP4（GPIO23）は外部から使う想定がなく、TP5（GPIO25）はLEDの順方向電圧までしか振れないため使用は勧められていない', source: RPI_PICO_DATASHEET },
+    ] }],
   ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH }],
+    name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH,
+    pinNotes: [
+      { text: 'GPIO2、GPIO8、GPIO9はストラッピングピンで、起動時のレベルによってブートモードが変わる', source: ESP32C3_DATASHEET },
+      { text: 'ADC1はGPIO0からGPIO4（ADC1_CH0からADC1_CH4）、ADC2はGPIO5（ADC2_CH0）に割り当てられている', source: ESP32C3_DATASHEET },
+      { text: 'ADC1は工場校正済みだがADC2は校正されておらず、一部のチップリビジョンではADC2が動作しない', source: ESP32C3_DATASHEET },
+      { text: 'A3（GPIO5）はADC2を使うため誤ったサンプリングで使えなくなることがあり、確実に読むならADC1側のA0/A1/A2を使う', source: SEEED_XIAO_ESP32C3 },
+      { text: 'アナログ入力として使えるのはD0からD3（GPIO2からGPIO5）の4本', source: SEEED_XIAO_ESP32C3 },
+      { text: 'このボードにLED_BUILTINは無い', source: SEEED_XIAO_ESP32C3 },
+      { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
+      { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
+    ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH }],
+    name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH,
+    pinNotes: [
+      { text: '青のLEDはGPIO2に付いており、GPIO2はUART1のTXでもあるため書き込み中は点滅する', source: SEEED_WIO_NODE },
+      { text: 'Groveコネクタは2つあり、GroveインターフェースのVCCは1つにまとまっていてGPIO15で制御し、赤のLEDがGroveへの給電状態を示す。deep sleep中はGroveの電源も落ちる', source: SEEED_WIO_NODE },
+      { text: 'Groveコネクタ1はUART0/I2C0/D0、Groveコネクタ2はAnalog/I2C1/D1として仕様表に載っているが、各端子のGPIO番号はwikiに載っていない', source: SEEED_WIO_NODE },
+      { text: '動作電圧は3.3Vで、I/O 1本あたりのDC電流は最大12mA', source: SEEED_WIO_NODE },
+      { text: 'GPIO0、GPIO2、GPIO15（MTDO）はブートモードとSDIOモードの選択に使われる', source: ESP8266_DATASHEET },
+      { text: 'U0TXD（GPIO1）は電源投入時に外部からLowに引いてはならない', source: ESP8266_DATASHEET },
+      { text: 'アナログ入力A0はTOUT（6番ピン）という入力専用の端子で、外部接続時の入力電圧範囲は0Vから1.0V。GPIO番号は持たない', source: ESP8266_DATASHEET },
+      { text: 'I/OのHighレベル入力電圧の最大は3.6V、working voltageは2.5Vから3.6Vなので、5Vを直接加えると定格を超える', source: ESP8266_DATASHEET },
+    ] }],
 ]);
+// Pin labels are not written by hand: compiler/tools/generate-board-pins.mjs reads them out of the
+// PlatformIO variant header this machine builds with and writes compiler/boards/<env>.pins.json.
+// Only the committed JSON is read here, so a request never touches the PlatformIO install.
+const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${env}.pins.json`), 'utf8'));
 // Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, framework: b.framework, core: b.core,
-  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint }));
+  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint,
+  pins: boardPins(id), pinNotes: b.pinNotes }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);

@@ -11,13 +11,17 @@ const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
 async function compilerBoards() {
   const server = await read('compiler/server.mjs');
   const table = server.match(/const BOARDS = (new Map\([\s\S]*?\n\]\));/)[1];
-  const consts = Object.fromEntries([...server.matchAll(/^const ([A-Z0-9_]*FLASH[A-Z0-9_]*) = ('.*');$/gm)].map(m => [m[1], vm.runInNewContext(m[2])]));
+  // Every top-level string const the table refers to: the flash hints and the pin-note source URLs.
+  const consts = Object.fromEntries([...server.matchAll(/^const ([A-Z][A-Z0-9_]*) = ('[^']*');$/gm)].map(m => [m[1], vm.runInNewContext(m[2])]));
   return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', ...consts });
 }
 const NOT_IN_GUIDANCE = [/zip/i, /esptool/i, /0x[0-9a-f]+/i, /manifest/i, /DFU/];
 // Internal key names must not reach the model as words it could repeat to the user.
 const KEY_NAMES = ['boardDetails', 'artifact', 'browserFlash', 'flashHint', 'contextData', 'PRODUCT_INFO', 'productReference'];
-const c3 = { id: 'xiao_esp32c3', name: 'XIAO ESP32C3', family: 'esp', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: 'Build成功後に「書き込み」ボタンを押す。' };
+// Stand-in /boards entry: the shape app.js hands to projectContext, with a two-row pin table.
+const c3 = { id: 'xiao_esp32c3', name: 'XIAO ESP32C3', family: 'esp', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: 'Build成功後に「書き込み」ボタンを押す。',
+  pins: { variant: 'XIAO_ESP32C3', pins: [{ label: 'D0', pin: 2, gpio: 2, functions: [], adc: 'A0', note: null }, { label: 'D4', pin: 6, gpio: 6, functions: ['SDA'], adc: null, note: null }], unlabelledFunctions: [] },
+  pinNotes: [{ text: '試験用の注意文', source: 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/' }] };
 
 test('the compiler board table carries every fact the UI and AI need, and agrees with the templates', async () => {
   const boards = await compilerBoards();
@@ -29,6 +33,15 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
     expect(['uf2', 'flashset']).toContain(b.artifact);
     expect(b.browserFlash).toBe(true); // every board is flashed from the browser: flash sets via esptool-js, UF2 to the BOOTSEL drive (app.js)
     for (const re of NOT_IN_GUIDANCE) expect(b.flashHint).not.toMatch(re);
+    // Hand-written pin facts: one short sentence each, from the board or silicon vendor's own page.
+    expect(b.pinNotes.length, `${env}.pinNotes`).toBeGreaterThan(0);
+    expect(b.pinNotes.length).toBeLessThanOrEqual(8);
+    for (const note of b.pinNotes) {
+      expect(typeof note.text).toBe('string');
+      expect(note.text.length).toBeGreaterThan(0);
+      expect(note.text, `${env}: GPIO numbers are decimal`).not.toMatch(/0x/i);
+      expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com)\//);
+    }
     const ini = await read('compiler/' + path.basename(b.project) + '/platformio.ini');
     const section = ini.split(`[env:${env}]`)[1]?.split(/\n\[env:/)[0];
     expect(section).toBeDefined();
@@ -68,14 +81,45 @@ test('projectContext sends the board as one sentence built from the /boards entr
   expect(context.source).toBe(source);
   expect(context).not.toHaveProperty('boardDetails');
   expect(context.boardFacts).toBe(boardFacts(board));
-  expect(context.boardFacts).toBe('選択ボードはXIAO ESP32C3（Arduino、core系列はArduino ESP32）。Build成功後に「書き込み」ボタンを押す。Serialモニタは利用できる。');
+  expect(context.boardFacts).toBe(['選択ボードはXIAO ESP32C3（Arduino、core系列はArduino ESP32）。Build成功後に「書き込み」ボタンを押す。Serialモニタは利用できる。',
+    'ピンはcoreのvariant「XIAO_ESP32C3」の定義から生成した。各行はコードに書くラベル、GPIO番号、そのピンに割り当てられた既定の役割やアナログ名の順:',
+    'D0、GPIO2、A0', 'D4、GPIO6、SDA',
+    '注意点（末尾の番号は出所）:', '- 試験用の注意文 [1]',
+    '出所: [1] https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/'].join('\n'));
   expect(boardFacts({ ...board, serial: false })).toContain('Serialモニタは利用できない');
+  // A board entry without the generated table still yields the one sentence.
+  expect(boardFacts({ ...board, pins: undefined, pinNotes: [] })).toBe('選択ボードはXIAO ESP32C3（Arduino、core系列はArduino ESP32）。Build成功後に「書き込み」ボタンを押す。Serialモニタは利用できる。');
   for (const word of KEY_NAMES) expect(context.boardFacts).not.toContain(word);
   expect(context.framework).toBe('Arduino');
   expect(context).not.toHaveProperty('artifactContext');
   expect(context).not.toHaveProperty('manifest');
   expect(() => projectContext({ env: 'pico', source, board, libraries: [] }, null, 'auto')).toThrow('ボード情報');
   expect(() => projectContext({ env: 'pico', source, libraries: [] }, null, 'auto')).toThrow('ボード情報');
+});
+
+test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  expect(boards.length).toBeGreaterThan(0);
+  for (const b of boards) {
+    // Served straight from the committed file; the server never reads the PlatformIO install.
+    expect(b.pins).toEqual(JSON.parse(await read(`compiler/boards/${b.id}.pins.json`)));
+    expect(b.pins.pins.length).toBeGreaterThan(0);
+    expect(b.pinNotes.length).toBeGreaterThan(0);
+    const facts = boardFacts(b);
+    const bare = boardFacts({ ...b, pins: undefined, pinNotes: [] });
+    expect(facts.startsWith(bare)).toBe(true);
+    // One line per pin, label then GPIO number in decimal.
+    for (const pin of b.pins.pins)
+      expect(facts).toContain(`\n${pin.label}、${pin.gpio === null ? `GPIO番号なし（ピン番号${pin.pin}）` : `GPIO${pin.gpio}`}`);
+    for (const fn of b.pins.unlabelledFunctions) expect(facts).toContain(`\n${fn.name}、GPIO${fn.gpio}`);
+    for (const note of b.pinNotes) { expect(facts).toContain(note.text); expect(facts).toContain(note.source); }
+    expect(facts).toContain('注意点');
+    // Prose and a plain list: no JSON, and none of the key names the entry uses internally.
+    expect(facts).not.toMatch(/[{}]/);
+    for (const key of [...KEY_NAMES, 'pinNotes', 'unlabelledFunctions', 'frameworkPackage', 'frameworkVersion', 'variantHeader', 'boardDefinition', 'platformioIni', 'digitalLabelsFrom'])
+      expect(facts, `${b.id} leaks ${key}`).not.toContain(key);
+    expect(facts.length - bare.length, `${b.id} pin prose is too long`).toBeLessThanOrEqual(1500);
+  }
 });
 
 test('output check: external flashing command lines are replaced by the product sentence; prose-only misguidance passes', () => {

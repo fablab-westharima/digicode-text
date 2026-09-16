@@ -23,9 +23,31 @@ export function productReference() {
   const prose = { ...PRODUCT_INFO, serial: `${s.api}。通信速度は${s.baudRate} baud。${s.scope}` };
   return Object.entries(prose).map(([k, v]) => `${PRODUCT_LABELS[k]}: ${v}`).join('\n');
 }
-// One sentence per selected board, built from the /boards entry (flashHint already names the button).
+// Prose for the selected board, built from its /boards entry: one sentence, then the pin table the
+// compiler generated from the core's own variant header, then the sourced notes. Never JSON, and
+// never the key names the entry uses — the AI sees sentences and a plain list, as with PRODUCT_INFO.
+// One pin per line: label, GPIO number, then whatever the header also names for that pin.
+function pinLines(p) {
+  const lines = [`ピンはcoreのvariant「${p.variant}」の定義から生成した。各行はコードに書くラベル、GPIO番号、そのピンに割り当てられた既定の役割やアナログ名の順:`];
+  for (const pin of p.pins) {
+    const number = pin.gpio === null ? `GPIO番号なし（ピン番号${pin.pin}）` : `GPIO${pin.gpio}`;
+    const adc = pin.adc && pin.adc !== pin.label ? [pin.adc] : [];
+    lines.push([pin.label, number, ...pin.functions, ...adc].join('、'));
+  }
+  for (const f of p.unlabelledFunctions)
+    lines.push(`${f.name}、GPIO${f.gpio}、ラベル無し${f.note ? `（coreの注記: ${f.note}）` : ''}`);
+  return lines;
+}
+// The URL each note was read from is listed once at the end, so repeated sources cost one line.
+function noteLines(notes) {
+  const sources = [...new Set(notes.map(n => n.source))];
+  return ['注意点（末尾の番号は出所）:',
+    ...notes.map(n => `- ${n.text} [${sources.indexOf(n.source) + 1}]`),
+    '出所: ' + sources.map((url, i) => `[${i + 1}] ${url}`).join(' ')];
+}
 export function boardFacts(b) {
-  return `選択ボードは${b.name}（${b.framework}、core系列は${b.core}）。${b.flashHint}Serialモニタは${b.serial ? '利用できる' : '利用できない'}。`;
+  const head = `選択ボードは${b.name}（${b.framework}、core系列は${b.core}）。${b.flashHint}Serialモニタは${b.serial ? '利用できる' : '利用できない'}。`;
+  return [head, ...(b.pins ? pinLines(b.pins) : []), ...(b.pinNotes?.length ? noteLines(b.pinNotes) : [])].join('\n');
 }
 
 export const RESPONSE_RULES = `Answer the latest userMessage directly in plain Japanese. Be concise by default; give the depth explicitly requested, without fixed paragraph, item or suggestion counts.

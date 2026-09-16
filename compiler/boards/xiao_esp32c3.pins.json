@@ -1,0 +1,122 @@
+{
+  "env": "xiao_esp32c3",
+  "platform": "espressif32@7.0.1",
+  "board": "seeed_xiao_esp32c3",
+  "mcu": "esp32c3",
+  "core": "esp32",
+  "variant": "XIAO_ESP32C3",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.20017.241212+sha.dcc1105b",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32c3/platformio.ini",
+    "boardDefinition": "platforms/espressif32@7.0.1/boards/seeed_xiao_esp32c3.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/XIAO_ESP32C3/pins_arduino.h",
+    "digitalLabelsFrom": "pins_arduino.h"
+  },
+  "pins": [
+    {
+      "label": "D0",
+      "pin": 2,
+      "gpio": 2,
+      "functions": [],
+      "adc": "A0",
+      "note": null
+    },
+    {
+      "label": "D1",
+      "pin": 3,
+      "gpio": 3,
+      "functions": [],
+      "adc": "A1",
+      "note": null
+    },
+    {
+      "label": "D2",
+      "pin": 4,
+      "gpio": 4,
+      "functions": [],
+      "adc": "A2",
+      "note": null
+    },
+    {
+      "label": "D3",
+      "pin": 5,
+      "gpio": 5,
+      "functions": [],
+      "adc": "A3",
+      "note": null
+    },
+    {
+      "label": "D4",
+      "pin": 6,
+      "gpio": 6,
+      "functions": [
+        "SDA"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D5",
+      "pin": 7,
+      "gpio": 7,
+      "functions": [
+        "SCL"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D8",
+      "pin": 8,
+      "gpio": 8,
+      "functions": [
+        "SCK"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D9",
+      "pin": 9,
+      "gpio": 9,
+      "functions": [
+        "MISO"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D10",
+      "pin": 10,
+      "gpio": 10,
+      "functions": [
+        "MOSI"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D7",
+      "pin": 20,
+      "gpio": 20,
+      "functions": [
+        "RX",
+        "SS"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D6",
+      "pin": 21,
+      "gpio": 21,
+      "functions": [
+        "TX"
+      ],
+      "adc": null,
+      "note": null
+    }
+  ],
+  "unlabelledFunctions": []
+}
