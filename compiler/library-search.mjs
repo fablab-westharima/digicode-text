@@ -31,6 +31,12 @@ export async function collectCandidates(query, request) {
   for (const data of initial) for (const p of data.items) if (!unique.has(p.id)) unique.set(p.id, p);
   const items = [...unique.values()].sort((a,b) => nameRank(a.name,text) - nameRank(b.name,text) ||
     a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.owner.localeCompare(b.owner) || a.id-b.id);
+  // Candidates the caller could not represent, reported instead of vanishing (deduplicated).
+  const excluded = [], seen = new Set();
+  for (const data of initial) for (const p of data.excluded || []) {
+    const key = `${p.owner}/${p.name}`.toLowerCase();
+    if (!seen.has(key)) { seen.add(key); excluded.push(p); }
+  }
   return { items, total: items.length, scope: 'candidates', requestCount: requests.size,
-    limited: initial.some(data => data.total > data.items.length) };
+    limited: initial.some(data => data.total > data.items.length), excluded };
 }

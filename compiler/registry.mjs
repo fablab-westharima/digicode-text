@@ -31,7 +31,18 @@ export async function searchLibraries(query, page) {
   entry.promise = collectCandidates(text, async params => {
     const data = await get('/v3/search?' + new URLSearchParams(params));
     if (!Array.isArray(data.items) || !Number.isSafeInteger(data.total)) throw new Error('Registryの応答形式が不正です');
-    return { total: data.total, items: data.items.slice(0, 10).filter(p => p.type === 'library').flatMap(p => { try { return [item(p)]; } catch { return []; } }) };
+    // A candidate we cannot represent is dropped, but never silently: it is logged and reported.
+    const excluded = [];
+    const items = data.items.slice(0, 10).filter(p => p.type === 'library').flatMap(p => {
+      try { return [item(p)]; }
+      catch (error) {
+        const owner = String(p?.owner?.username ?? '').slice(0, 100), name = String(p?.name ?? '').slice(0, 100);
+        console.warn(`[libraries/search] 候補を除外: ${owner}/${name} — ${error.message}`);
+        excluded.push({ owner, name, reason: error.message });
+        return [];
+      }
+    });
+    return { total: data.total, items, excluded };
   }).catch(error => {
     if (searches.get(key) === entry) searches.delete(key);
     throw new Error('候補検索の一部または全部を取得できませんでした。再試行してください。' + error.message);
@@ -40,10 +51,13 @@ export async function searchLibraries(query, page) {
   return entry.promise;
 }
 export async function libraryDetails(owner, name) {
+  // Coordinates only: the version here is a placeholder so the shared owner/name checks can run.
   validateLibraries([{ id: 1, owner, name, version: '1.0.0' }]);
   const data = await get(`/v3/packages/${encodeURIComponent(owner)}/library/${encodeURIComponent(name)}`);
   if (data.type !== 'library') throw new Error('Registryのライブラリではありません');
   const result = item(data);
+  // The Registry's own version strings, verbatim and unnormalised ("2.8" stays "2.8"); only
+  // strings that fail the shared safety check are dropped.
   result.versions = [...new Set([data.version?.name, ...(data.versions || []).map(v => v.name)])].filter(version => {
     try { validateLibraries([{ id: result.id, owner: result.owner, name: result.name, version }]); return true; } catch { return false; }
   });
@@ -52,7 +66,11 @@ export async function libraryDetails(owner, name) {
 export async function verifyLibraries(libraries) {
   for (const p of libraries) {
     const actual = await libraryDetails(p.owner, p.name);
-    if (actual.id !== p.id || actual.owner !== p.owner || actual.name !== p.name || !actual.versions.includes(p.version))
-      throw new Error(`Registryの識別情報またはバージョンが一致しません: ${p.owner}/${p.name}@${p.version}`);
+    if (actual.id !== p.id || actual.owner !== p.owner || actual.name !== p.name)
+      throw new Error(`Registryの識別情報が一致しません: ${p.owner}/${p.name}`);
+    // Exact string match against the Registry's list: ranges ("^7.4"), aliases ("latest") and
+    // versions that do not exist are simply not in the list.
+    if (!actual.versions.includes(p.version))
+      throw new Error(`${p.owner}/${p.name}@${p.version} の版がRegistryの版一覧に見つかりません（利用可能: ${actual.versions.slice(0, 10).join(', ')}）`);
   }
 }

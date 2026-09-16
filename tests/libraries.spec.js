@@ -41,7 +41,9 @@ test('library CRUD, revision, reload, duplicate independence, switch, JSON and l
   const exported = JSON.parse(await readFile(file, 'utf8')); delete exported.libraries;
   await page.locator('#project-file').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
   await expect(page.locator('#project-name')).toHaveText('Library B'); expect((await saved(page)).libraries).toEqual([]);
-  for (const bad of [null, [lib, lib], [{ ...lib, version: 'latest' }], [{ ...lib, name: '../evil' }]]) {
+  // The browser cannot ask the Registry, so an import only rejects unusable coordinates and
+  // unsafe version strings; a non-existent version such as "latest" is caught at Build time.
+  for (const bad of [null, [lib, lib], [{ ...lib, version: '' }], [{ ...lib, version: '7.4.3\nextra_scripts=evil' }], [{ ...lib, name: '../evil' }]]) {
     const id = (await saved(page)).id;
     await page.locator('#project-file').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ ...exported, libraries: bad })) });
     await expect(page.locator('#project-notice')).not.toContainText('読み込みました'); expect((await saved(page)).id).toBe(id);
@@ -90,11 +92,33 @@ test('library save failure and second tab preserve rescue JSON', async ({ page, 
   await page.evaluate(() => { Storage.prototype.setItem = window.set; }); await page.click('#save-retry'); expect((await saved(page)).libraries).toEqual([lib]);
 });
 test('server rejects malformed dependencies before compilation', async ({ request }) => {
-  for (const libraries of [null, {}, [lib, lib], Array(33).fill(lib), [{ ...lib, id: '64' }], [{ ...lib, owner: 'https://x' }], [{ ...lib, name: 'x\nextra_scripts=evil' }], [{ ...lib, version: '^7.0.0' }], [{ ...lib, version: 'file:///tmp/x' }], [{ ...lib, extra_scripts: 'x' }]]) {
+  for (const libraries of [null, {}, [lib, lib], Array(33).fill(lib), [{ ...lib, id: '64' }], [{ ...lib, owner: 'https://x' }], [{ ...lib, name: 'x\nextra_scripts=evil' }], [{ ...lib, version: '' }], [{ ...lib, version: '7.4.3 extra' }], [{ ...lib, version: '7.4.3\nextra_scripts=evil' }], [{ ...lib, extra_scripts: 'x' }]]) {
     const res = await request.post('/compile', { data: { source, env: 'xiao_rp2040', libraries } }); expect(res.status()).toBe(400);
+  }
+  // Ranges, aliases, URLs and invented versions are safe strings that simply are not in the
+  // Registry's version list: they are refused before the build, with the real versions named.
+  for (const version of ['^7.0.0', 'file:///tmp/x', 'latest', '99.0.0']) {
+    const res = await request.post('/compile', { data: { source, env: 'xiao_rp2040', libraries: [{ ...lib, version }] } });
+    expect(res.status(), version).toBe(422);
+    const body = await res.json();
+    expect(body.stage).toBe('dependencies');
+    expect(body.log).toContain('版がRegistryの版一覧に見つかりません');
+    expect(body.log).toContain('利用可能: 7.4.3');
   }
   const res = await request.post('/compile', { data: { source, env: 'xiao_rp2040', libraries: [{ ...lib, id: 65 }] } });
   expect(res.status()).toBe(422); expect((await res.json()).stage).toBe('dependencies');
+});
+test('two-part Registry versions survive the search and details endpoints', async ({ request }) => {
+  const details = await request.get('/libraries/details?owner=knolleary&name=PubSubClient');
+  expect(details.status()).toBe(200);
+  const body = await details.json();
+  expect(body.id).toBe(89);
+  expect(body.versions).toContain('2.8'); // verbatim; never rewritten to 2.8.0
+  const search = await request.get('/libraries/search?q=PubSubClient');
+  expect(search.status()).toBe(200);
+  const found = await search.json();
+  expect(found.items.map(p => `${p.owner}/${p.name}`)).toContain('knolleary/PubSubClient');
+  expect(Array.isArray(found.excluded)).toBe(true); // dropped candidates are reported, not lost
 });
 test('Actual Registry add, RP2040 and C3 builds/downloads, deletion and concurrent project isolation', async ({ page, request }, info) => {
   test.setTimeout(1_200_000); await ready(page); await edit(page, source); await add(page); await page.click('#libraries-close');

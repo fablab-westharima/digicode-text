@@ -60,7 +60,15 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
   for (const source of ['FLASH_EXTRA_IMAGES', 'ESP32_APP_OFFSET', 'upload.offset_address', 'flashset.json']) expect(packager).toContain(source);
   for (const fixed of ['bootloader.bin', 'partitions.bin', 'boot_app0.bin']) expect(packager).not.toContain(fixed);
   expect(validateLibraries([{ id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' }])[0].version).toBe('7.4.3');
-  for (const invalid of [{url:'https://example.com/library.zip'}, {id:64,owner:'bblanchon',name:'ArduinoJson',version:'latest'}]) expect(() => validateLibraries([invalid])).toThrow();
+  // Real Registry versions are not always three-part: knolleary/PubSubClient publishes "2.8".
+  expect(validateLibraries([{ id: 89, owner: 'knolleary', name: 'PubSubClient', version: '2.8' }])[0].version).toBe('2.8');
+  // The shared check covers coordinates plus version safety only. Whether a version exists
+  // ("latest", "^7.4", "9.9.9") is decided against the Registry list — see compiler/registry.test.mjs.
+  for (const invalid of [{url:'https://example.com/library.zip'},
+    {id:64,owner:'bblanchon',name:'ArduinoJson',version:''},
+    {id:64,owner:'bblanchon',name:'ArduinoJson',version:'7.4.3 '},
+    {id:64,owner:'bblanchon',name:'ArduinoJson',version:'7.4.3\nlib_deps = https://example.com/evil.zip'}])
+    expect(() => validateLibraries([invalid])).toThrow();
   expect(RESPONSE_RULES).not.toMatch(/2[–〜-]3|3[–〜-]5/);
 });
 
