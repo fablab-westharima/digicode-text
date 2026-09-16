@@ -1,13 +1,12 @@
 // @board pico
-// @lib arduino-libraries/Servo@1.3.0
 // @lib bblanchon/ArduinoJson@7.4.3
-// @desc Serial から来た JSON で 2 軸サーボを動かし、現在角を JSON で返す
+// @desc Serial から来た JSON で 2 軸サーボを動かし、現在角を JSON で返す (Servo はコア同梱)
 
 #include <Arduino.h>
 #include <Servo.h>
 #include <ArduinoJson.h>
 
-// Mbed コアには Servo が同梱されていないため Registry の arduino-libraries/Servo を足す。
+// earlephilhower コア同梱の Servo (PIO 実装) を使うので @lib は要らない。
 static const uint8_t PAN_PIN = 10;   // GP10
 static const uint8_t TILT_PIN = 11;  // GP11
 

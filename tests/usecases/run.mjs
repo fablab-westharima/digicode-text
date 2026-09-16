@@ -4,7 +4,8 @@
  *
  * tests/usecases/<board>/<NN>-<slug>.cpp を走査し、各ファイル先頭のヘッダ宣言に従って
  * 稼働中の compiler サーバー (既定 http://127.0.0.1:3100) の POST /compile へ投げ、
- * 結果を JSON と summary.md に残す。製品コード (compiler/ web/ shared/) は読むだけで変更しない。
+ * 結果を JSON と summary に残す。製品コード (compiler/ web/ shared/) は読むだけで変更しない。
+ * summary は --board X 指定時が summary-X.md、指定なしが summary.md + board 別 summary-<board>.md。
  *
  * ヘッダ宣言 (ファイル先頭の // コメント行のみ。最初の非コメント行で打ち切り):
  *   // @board xiao_esp32c3          必須。1 ファイル 1 board。
@@ -493,12 +494,32 @@ async function main() {
   await Promise.all(workers);
 
   rows.sort((a, b) => a.case.localeCompare(b.case));
-  const summaryPath = path.join(resultsDir, 'summary.md');
-  await writeFile(summaryPath, buildSummary(rows, skipped, resultsDir, opts), 'utf8');
+
+  // summary の出し分け:
+  //   --board X あり … その board 分だけなので summary-X.md 1 本
+  //   --board なし   … 全体の summary.md に加え、board ごとの summary-<board>.md
+  const summaryPaths = [];
+  const writeSummary = async (name, theRows, theSkipped, theOpts) => {
+    const p = path.join(resultsDir, name);
+    await writeFile(p, buildSummary(theRows, theSkipped, resultsDir, theOpts), 'utf8');
+    summaryPaths.push(p);
+  };
+
+  if (opts.board) {
+    await writeSummary(`summary-${opts.board}.md`, rows, skipped, opts);
+  } else {
+    await writeSummary('summary.md', rows, skipped, opts);
+    for (const board of BOARDS) {
+      const boardRows = rows.filter(r => r.board === board);
+      const boardSkipped = skipped.filter(s => (s.board ?? s.dir) === board);
+      if (!boardRows.length && !boardSkipped.length) continue;
+      await writeSummary(`summary-${board}.md`, boardRows, boardSkipped, { ...opts, board });
+    }
+  }
 
   const ngCount = rows.filter(r => !r.ok).length;
   console.log(`\nok ${rows.length - ngCount} / ng ${ngCount} / skip ${skipped.length}`);
-  console.log(`summary: ${summaryPath}`);
+  for (const p of summaryPaths) console.log(`summary: ${p}`);
   return ngCount > 0 ? 1 : 0;
 }
 

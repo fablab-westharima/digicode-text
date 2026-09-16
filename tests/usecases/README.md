@@ -60,6 +60,8 @@ compiler サーバーは `/compile` を内部 queue で直列化しているた�
 - `<board>/<case>.json` — 1 ケース 1 ファイル。`ok` `httpStatus` `stage` `durationMs` `errorHead` など。
   `classification` は空文字で出力する。人が後から種別を書き込むための欄。
 - `summary.md` — 全体 ok/ng/skip、board 別の ok/ng と平均所要、ライブラリ別 ng (同じエラーはまとめて件数)、ng 一覧。
+- `summary-<board>.md` — 同じ内容をその board のケースだけで出したもの。`--board X` 指定時は `summary-X.md` だけ、
+  指定なしの全件実行では `summary.md` と合わせて board ごとに出る。
 
 compile に到達しなかったケースは `problem.kind` に理由が入る。
 

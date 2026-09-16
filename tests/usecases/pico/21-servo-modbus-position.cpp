@@ -1,5 +1,4 @@
 // @board pico
-// @lib arduino-libraries/Servo@1.3.0
 // @lib 4-20ma/ModbusMaster@2.0.1
 // @desc Modbus RTU の保持レジスタで指令された角度へサーボを動かし、実角度を書き戻す
 
@@ -30,7 +29,10 @@ void setup() {
   pinMode(RS485_DE, OUTPUT);
   digitalWrite(RS485_DE, LOW);
 
+  Serial1.setTX(0);
+  Serial1.setRX(1);
   Serial1.begin(9600);
+
   node.begin(SLAVE_ID, Serial1);
   node.preTransmission(preTransmission);
   node.postTransmission(postTransmission);
@@ -42,6 +44,7 @@ void setup() {
 void loop() {
   if (node.readHoldingRegisters(REG_SETPOINT, 1) == node.ku8MBSuccess) {
     const int setpoint = constrain((int)node.getResponseBuffer(0), 0, 180);
+    // 1 周あたり 3 度までに制限して急な突入を避ける。
     if (setpoint > current) current += min(3, setpoint - current);
     else if (setpoint < current) current -= min(3, current - setpoint);
     arm.write(current);

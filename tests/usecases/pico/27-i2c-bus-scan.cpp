@@ -1,8 +1,11 @@
 // @board pico
-// @desc ライブラリ無しで I2C バスを走査する。Mbed コアの Wire は GP4/GP5 固定で pin を移せない
+// @desc ライブラリ無しで I2C バスを走査する。earlephilhower の Wire.setSDA/setSCL で pin を移す
 
 #include <Arduino.h>
 #include <Wire.h>
+
+static const uint8_t SDA_PIN = 4;  // GP4 (I2C0 既定)
+static const uint8_t SCL_PIN = 5;  // GP5 (I2C0 既定)
 
 static uint8_t scanOnce() {
   uint8_t found = 0;
@@ -26,13 +29,12 @@ void setup() {
   Serial.begin(115200);
   delay(500);
 
-  // variant の PIN_WIRE_SDA=GP4 / PIN_WIRE_SCL=GP5 が固定で使われる。
+  if (!Wire.setSDA(SDA_PIN)) Serial.println("setSDA rejected");
+  if (!Wire.setSCL(SCL_PIN)) Serial.println("setSCL rejected");
   Wire.begin();
   Wire.setClock(100000);
-  Serial.print("i2c scan on SDA=");
-  Serial.print(PIN_WIRE_SDA);
-  Serial.print(" SCL=");
-  Serial.println(PIN_WIRE_SCL);
+  Wire.setTimeout(25);
+  Serial.println("i2c scan ready");
 }
 
 void loop() {
