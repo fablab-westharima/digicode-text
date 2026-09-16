@@ -72,6 +72,8 @@ test('the system prompt is prose: no external flashing procedure, no board facts
   expect(system).toContain(productReference());
   for (const value of Object.values(PRODUCT_INFO)) if (typeof value === 'string') { expect(system).toContain(value); for (const word of KEY_NAMES) expect(value).not.toContain(word); }
   expect(system).toContain('115200 baud');
+  // Attached board facts outrank the model's own knowledge, and the answer must say so.
+  expect(system).toContain('添付のボード事実（データシート・公式資料由来）とモデル自身の知識が食い違う場合は、添付の事実を優先し、回答の根拠として明示する。');
 });
 
 test('projectContext sends the board as one sentence built from the /boards entry, and nothing else about it', () => {
