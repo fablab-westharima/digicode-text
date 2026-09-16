@@ -3,9 +3,11 @@
 //   -> 200 UF2 bytes for RP2040/Pico; JSON flash set (manifest + base64 images) for ESP boards
 //   -> 422 application/json { error, log }            on compile failure
 // GET  /          -> web/index.html
-// GET  /boards    -> [{ id, name, family, framework, core, artifact, browserFlash, serial, flashHint,
+// GET  /libraries/incompat -> the compiler's library incompatibility table (compiler/library-incompat.mjs)
+// GET  /boards    -> [{ id, name, family, platform, framework, core, artifact, browserFlash, serial, flashHint,
 //                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
-//                       that table, where the variant is generic), pinNotes (sourced board notes) }]
+//                       that table, where the variant is generic), pinNotes (sourced board notes),
+//                       incompatibleLibraries (rows of the incompatibility table for this platform) }]
 // GET  /health    -> { ok: true }
 //
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
@@ -20,6 +22,7 @@ import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { validateLibraries } from '../shared/libraries.js';
 import { searchLibraries, libraryDetails, verifyLibraries } from './registry.mjs';
+import { LIBRARY_INCOMPAT, findIncompat, incompatFor } from './library-incompat.mjs';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -45,7 +48,7 @@ const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前に
 // are all generated from this table via GET /boards; nothing else lists boards.
 // pinNotes hold what no header states: one sentence each, with the URL it was read from.
 const BOARDS = new Map([
-  ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
+  ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
     name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
     pinNotes: [
       { text: 'MCUの動作電圧は3.3Vで、汎用I/Oピンに3.3Vより高い電圧を入力するとチップが破損することがある', source: SEEED_XIAO_RP2040 },
@@ -56,7 +59,7 @@ const BOARDS = new Map([
       { text: '14ピンのフットプリントに引き出されているGPIOは11本', source: SEEED_XIAO_RP2040 },
       { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
     ] }],
-  ['pico', { project: RP2040_PROJECT, family: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
+  ['pico', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
     name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
     pinNotes: [
       { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
@@ -67,7 +70,7 @@ const BOARDS = new Map([
       { text: 'BOOTSELを押したまま電源を入れるとUSBマスストレージとして現れ、uf2ファイルを置くとFlashに書かれて再起動する', source: RPI_PICO_DATASHEET },
       { text: 'テストポイントTP4（GPIO23）は外部から使う想定がなく、TP5（GPIO25）はLEDの順方向電圧までしか振れないため使用は勧められていない', source: RPI_PICO_DATASHEET },
     ] }],
-  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
+  ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH,
     pinNotes: [
       { text: 'GPIO2、GPIO8、GPIO9はストラッピングピンで、起動時のレベルによってブートモードが変わる', source: ESP32C3_DATASHEET },
@@ -79,7 +82,7 @@ const BOARDS = new Map([
       { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
     ] }],
-  ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', extension: 'json', contentType: 'application/json; charset=utf-8',
+  ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH,
     // Read before the pin table, because the table's own labels are the trap on this board.
     pinTableNote: 'ピン表のD0からD10はNodeMCU汎用variantのマクロで、Wio Node基板の表記ではない。基板のPORT0（UART/I2C0/D0）とPORT1（Analog/I2C1/D1）にあるD0/D1はコネクタの名前であり、コードのD0/D1マクロ（GPIO16とGPIO5）とは別物。コードではGPIO番号を直接書くこと。',
@@ -99,9 +102,12 @@ const BOARDS = new Map([
 // Only the committed JSON is read here, so a request never touches the PlatformIO install.
 const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${env}.pins.json`), 'utf8'));
 // Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
-const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, framework: b.framework, core: b.core,
+// incompatibleLibraries is the browser's only copy of the table: the Libraries view, the Build
+// output and the AI's board sentence all read it from the selected board's entry here.
+const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, platform: b.platform, framework: b.framework, core: b.core,
   artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint,
-  pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes }));
+  pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
+  incompatibleLibraries: incompatFor(b.platform).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);
@@ -185,9 +191,17 @@ const server = http.createServer(async (req, res) => {
       catch (error) { return json(res, 502, { error: error.message }); }
     }
     if (req.method === 'GET' && url.pathname === '/libraries/details') {
-      try { return json(res, 200, await libraryDetails(url.searchParams.get('owner'), url.searchParams.get('name'))); }
+      try {
+        const details = await libraryDetails(url.searchParams.get('owner'), url.searchParams.get('name'));
+        // board is optional. Without it, or where no row names that board's platform, the
+        // response is exactly what it has always been; the key is never added empty.
+        const board = BOARDS.get(url.searchParams.get('board'));
+        const row = board && findIncompat(details, board.platform);
+        return json(res, 200, row ? { ...details, incompatible: { reason: row.reason, alternative: row.alternative } } : details);
+      }
       catch (error) { return json(res, 502, { error: error.message }); }
     }
+    if (req.method === 'GET' && url.pathname === '/libraries/incompat') return json(res, 200, LIBRARY_INCOMPAT);
     if (req.method === 'GET' && req.url === '/boards') return json(res, 200, PUBLIC_BOARDS);
     if (req.method === 'GET' && req.url === '/health') return json(res, 200, { ok: true });
     if (req.method === 'GET' && req.url.startsWith('/assets/')) {

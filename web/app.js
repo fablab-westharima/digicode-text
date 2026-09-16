@@ -5,6 +5,7 @@ import './app.css';
 import './serial.js';
 import { parseFlashSet, flashEsp, flashUf2 } from './flash.js';
 import { setupLibraries } from './libraries.js';
+import { incompatibleDependencies } from './library-incompat.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
 import { setupLayout } from './layout.js';
@@ -121,6 +122,7 @@ mirror('ai-connection', 'status-model', text => text);
 let revision = 0;
 let building = false;
 let ai;
+let libs;
 let lastBuildFailure = null;
 let downloadUrl;
 let flashSet = null; // ESP flash set of the last successful build; cleared with the download on any edit
@@ -135,6 +137,8 @@ function invalidateDownload() {
   uf2 = null;
   $('flash').hidden = true;
   $('flash').disabled = true;
+  $('build-incompat').textContent = '';
+  $('build-incompat').hidden = true;
 }
 function flashStatus(message, state = '') {
   $('flash-status').textContent = message;
@@ -156,7 +160,7 @@ function changed() {
   ai?.changed();
 }
 editor.onDidChangeModelContent(changed);
-$('env').addEventListener('change', () => { showBoard(); changed(); });
+$('env').addEventListener('change', () => { showBoard(); changed(); libs?.boardChanged(); });
 $('build').disabled = false;
 $('status').textContent = 'Buildできます';
 
@@ -170,6 +174,12 @@ $('build').onclick = async () => {
   $('build').disabled = true;
   invalidateDownload();
   const snapshot = { projectId: store.current.id, name: store.current.name, source: editor.getValue(), env: $('env').value, libraries: structuredClone(store.current.libraries), revision, projectRevision: store.current.revision };
+  // What the compiler's table says about this board and these dependencies. It is evidence from
+  // the harness, not a check on this build, so the Build goes ahead and reports whatever happens.
+  const board = BOARDS.get(snapshot.env);
+  const unusable = incompatibleDependencies(board, snapshot.libraries);
+  $('build-incompat').textContent = unusable.map(r => `${r.library} は ${board.name} で使えません: ${r.reason}。代替: ${r.alternative}`).join('\n');
+  $('build-incompat').hidden = !unusable.length;
   const sameProject = () => store.current.id === snapshot.projectId && revision === snapshot.revision;
   const obsolete = () => {
     ui.setBuildState('changed');
@@ -420,7 +430,7 @@ $('save-retry').onclick = () => store.save();
 renderProjects();
 showBoard();
 
-setupLibraries(store, libraries => { store.current.libraries = libraries; changed(); });
+libs = setupLibraries(store, libraries => { store.current.libraries = libraries; changed(); }, BOARDS);
 
 function aiSnapshot() {
   const model = editor.getModel();

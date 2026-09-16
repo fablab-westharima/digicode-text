@@ -68,8 +68,11 @@ export function setupUI(layout) {
   for (const name of ['build', 'serial']) {
     $(`copy-${name}`).onclick = async () => {
       const output = $(name === 'build' ? 'log' : 'serial-log');
+      // The incompatibility notice sits above the build log and is part of what the user is
+      // asked to paste elsewhere, so a copy carries it whenever it is showing.
+      const notice = name === 'build' && !$('build-incompat').hidden ? $('build-incompat').textContent + '\n' : '';
       try {
-        await navigator.clipboard.writeText(output.textContent);
+        await navigator.clipboard.writeText(notice + output.textContent);
         $('ui-notice').textContent = 'ログをコピーしました';
       } catch {
         const selection = getSelection();

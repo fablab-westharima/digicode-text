@@ -50,8 +50,9 @@
 
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
         <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button></header>
-        <p class="current-project">操作対象：<strong id="library-target"></strong></p>
+        <p class="current-project">操作対象：<strong id="library-target"></strong><span id="library-board"></span></p>
         <form id="library-search-form"><label for="library-query">ライブラリを検索</label><span class="library-origin">PlatformIO Registry</span><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
+        <p class="library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
         <section class="library-added-section" aria-labelledby="library-added-label"><h3 id="library-added-label">追加済み</h3><ul id="library-added" aria-label="追加済みライブラリ"></ul></section>
         <p id="library-status" role="status"></p>
         <div id="library-suggestions" aria-label="近い名前の候補"></div>
@@ -127,6 +128,7 @@
       <div id="panel-body" hidden>
         <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
           <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
+          <p id="build-incompat" hidden></p>
           <p id="flash-status" role="status" hidden></p>
           <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
         </div>

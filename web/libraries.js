@@ -1,15 +1,22 @@
 import { nearbyNames } from './library-suggestions.js';
 import { descriptionText } from './library-description.js';
+import { incompatibleRow } from './library-incompat.js';
 import { validateLibraries } from '../shared/libraries.js';
 const $ = id => document.getElementById(id);
+// Which libraries the selected board cannot build is the compiler's statement, carried on the
+// board's /boards entry. Whether the user wants to see them at all is a per-browser convenience.
+const UI_KEY = 'digicode-text.libs-ui.v1';
 function element(tag, text, className) {
   const node = document.createElement(tag); node.textContent = text;
   if (className) node.className = className;
   return node;
 }
-export function setupLibraries(store, change) {
+export function setupLibraries(store, change, boards) {
   const dialog = $('libraries-dialog'), input = $('library-query'), results = $('library-results');
-  let generation = 0, controller, page = 1, query = '', items = [];
+  const showUnusable = $('library-show-incompatible');
+  const board = () => boards.get(store.current.env);
+  const unusable = p => incompatibleRow(board(), p);
+  let generation = 0, controller, page = 1, query = '', items = [], shown = 0;
   let candidates = [];
   const seen = new Map();
   let timer, pending, composing = false, compositionEnded = -Infinity;
@@ -35,11 +42,17 @@ export function setupLibraries(store, change) {
   }
   function renderAdded() {
     $('library-target').textContent = store.current.name;
+    // Everything this view hides or flags is the selected board's statement, so the view says
+    // which board it is talking about, right next to the project it is editing.
+    $('library-board').textContent = board() ? ` · ${board().name}` : '';
     const list = $('library-added'); list.replaceChildren();
     $('library-added-label').textContent = store.current.libraries.length ? '追加済み' : '追加済み：なし';
     for (const p of store.current.libraries) {
       const row = element('li', '', 'library-row');
-      row.append(element('div', `${p.owner}/${p.name} · ${p.version}`, 'library-title'));
+      const title = element('div', `${p.owner}/${p.name} · ${p.version}`, 'library-title');
+      const blocked = unusable(p);
+      if (blocked) title.append(element('p', `${board()?.name ?? 'このボード'}では使えません：${blocked.reason}。代替: ${blocked.alternative}`, 'library-incompatible'));
+      row.append(title);
       const remove = element('button', '削除');
       remove.setAttribute('aria-label', `${p.owner}/${p.name} を削除`);
       remove.onclick = () => { apply(store.current.libraries.filter(x => x.id !== p.id), 'プロジェクトから削除しました。'); input.focus(); };
@@ -76,24 +89,40 @@ export function setupLibraries(store, change) {
       if (current === generation && error.name !== 'AbortError') area.replaceChildren(element('p', error.message, 'library-error'));
     } finally { if (current === generation) button.disabled = false; }
   }
+  // The count states what is on screen, so it is taken from the rows this render actually makes:
+  // a row hidden as unusable is not a candidate the user can see.
+  function resultsMessage() {
+    message(`取得候補 ${shown}件 · ${page}/${Math.ceil(candidates.length / 10)}ページ（全件ではありません）`);
+  }
   function renderResults() {
     results.replaceChildren();
+    shown = 0;
     for (const p of items) {
+      const blocked = unusable(p);
+      if (blocked && !showUnusable.checked) continue;
       const row = element('li', '', 'library-result'); row.dataset.libraryId = p.id;
+      if (blocked) row.classList.add('library-unusable');
       const heading = element('div', '', 'library-row');
       const info = element('div', '', 'library-info');
-      info.append(element('strong', p.name), element('small', `提供者：${p.owner} · Registry #${p.id}`));
+      info.append(element('strong', p.name));
+      if (blocked) info.append(element('span', '使えません', 'library-badge'));
+      info.append(element('small', `提供者：${p.owner} · Registry #${p.id}`));
       const added = store.current.libraries.find(x => x.id === p.id);
       const button = element('button', added ? '追加済み · 版を変更' : 'バージョンを選択');
       const area = element('div', '', 'library-detail');
       button.onclick = () => details(p, area, button);
-      heading.append(info, button); row.append(heading, element('p', descriptionText(p.description), 'library-description'), area); results.append(row);
+      heading.append(info, button); row.append(heading, element('p', descriptionText(p.description), 'library-description'));
+      // Shown, not withheld: the reason and the alternative are here, and the add button stays.
+      if (blocked) row.append(element('p', `${blocked.reason}。代替: ${blocked.alternative}`, 'library-unusable-reason'));
+      row.append(area); results.append(row); shown++;
     }
+    // A checkbox or board change re-renders without a new search, and the count follows it.
+    if (candidates.length) resultsMessage();
   }
   function showPage(nextPage) {
     if (nextPage !== page) { cancel(); controller = new AbortController(); dialog.scrollTop = 0; }
-    page = nextPage; items = candidates.slice((page - 1) * 10, page * 10); renderResults();
-    message(candidates.length ? `取得候補 ${candidates.length}件 · ${page}/${Math.ceil(candidates.length / 10)}ページ（全件ではありません）` : '今回の候補取得では見つかりませんでした');
+    page = nextPage; items = candidates.slice((page - 1) * 10, page * 10); renderResults(); // sets the count
+    if (!candidates.length) message('今回の候補取得では見つかりませんでした');
     $('library-next').hidden = page * 10 >= candidates.length; $('library-prev').hidden = page <= 1;
     if (!candidates.length) {
       const suggestions = nearbyNames(query, seen.values());
@@ -153,4 +182,13 @@ export function setupLibraries(store, change) {
   };
   $('libraries-close').onclick = () => dialog.close();
   dialog.addEventListener('close', () => { cancel(); $('libraries-open').focus(); });
+  try { showUnusable.checked = Boolean(JSON.parse(localStorage.getItem(UI_KEY))?.showIncompatible); }
+  catch { /* an unreadable preference simply leaves the default: unusable libraries are hidden */ }
+  showUnusable.onchange = () => {
+    try { localStorage.setItem(UI_KEY, JSON.stringify({ showIncompatible: showUnusable.checked })); }
+    catch { /* the preference is a convenience; failing to store it must not stop the view */ }
+    renderResults();
+  };
+  // Both lists state something about the selected board, so a board change re-evaluates them.
+  return { boardChanged() { renderAdded(); renderResults(); } };
 }

@@ -274,6 +274,14 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 #library-suggestions p { width: 100%; margin: 8px 0 0; }
 #library-suggestions button { max-width: 100%; height: auto; min-height: var(--row); white-space: normal; overflow-wrap: anywhere; }
 .library-footnote { margin-top: 14px; font-size: 11px; }
+/* Libraries the compiler reports as unusable on the selected board. Search results are muted
+   and only shown when the toggle asks for them; a configured dependency is flagged outright. */
+.library-incompatible-toggle { margin: 8px 0 0; font-size: 12px; color: var(--fg-muted); line-height: 1.6; }
+.library-incompatible-toggle input { margin: 0 6px 0 0; vertical-align: -2px; }
+.library-result.library-unusable .library-info strong { color: var(--fg-muted); font-weight: 600; }
+.library-badge { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: 11px; color: var(--danger); background: transparent; vertical-align: 1px; }
+.library-unusable-reason { margin: 6px 0 0; color: var(--fg-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.library-incompatible { margin: 4px 0 0; color: var(--danger); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 
 /* ---- sidebar: boards ------------------------------------------------------------------ */
 .board-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0; font-size: 12px; }
@@ -338,6 +346,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .output-heading p { margin: 0; font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
 #status[data-state="error"] { color: var(--danger); }
 #status[data-state="success"] { color: var(--accent-2); }
+#build-incompat { margin: 0; padding: 6px 10px; font-size: 12px; color: var(--danger); background: var(--bg-editor); white-space: pre-wrap; overflow-wrap: anywhere; }
 #flash-status { margin: 0; padding: 6px 10px; font-size: 12px; background: var(--bg-editor); }
 #flash-status[data-state="error"] { color: var(--danger); white-space: pre-wrap; }
 #flash-status[data-state="complete"] { color: var(--accent-2); }

@@ -45,11 +45,20 @@ function noteLines(notes) {
     ...notes.map(n => `- ${n.text} [${sources.indexOf(n.source) + 1}]`),
     '出所: ' + sources.map((url, i) => `[${i + 1}] ${url}`).join(' ')];
 }
+// Libraries the compile harness saw fail to build on this board's platform. The rows arrive on
+// the board's /boards entry (compiler/library-incompat.mjs is where they are written), so this
+// stays a pure function of its argument: the browser and a test agree on the same sentence.
+function unusableLines(rows) {
+  return (rows ?? []).map(r => `使えないライブラリ: ${r.library}（${r.reason}。代替: ${r.alternative}）`);
+}
 export function boardFacts(b) {
   const head = `選択ボードは${b.name}（${b.framework}、core系列は${b.core}）。${b.flashHint}Serialモニタは${b.serial ? '利用できる' : '利用できない'}。`;
+  // The unusable libraries follow the opening sentence, before the pin material: they are about
+  // the board as a whole, and the reader should have them before the table it is easy to stop at.
   // pinTableNote comes before the table because it says how to read it (Wio Node's generic
   // variant labels are not the board's own markings). It is a board fact, so it lives in BOARDS.
-  return [head, ...(b.pinTableNote ? [b.pinTableNote] : []), ...(b.pins ? pinLines(b.pins) : []),
+  return [head, ...unusableLines(b.incompatibleLibraries),
+    ...(b.pinTableNote ? [b.pinTableNote] : []), ...(b.pins ? pinLines(b.pins) : []),
     ...(b.pinNotes?.length ? noteLines(b.pinNotes) : [])].join('\n');
 }
 
