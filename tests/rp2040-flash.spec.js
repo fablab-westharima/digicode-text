@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectBoard } from './shell.js';
 
 // RP2040 boards are flashed by writing the build's UF2 into the BOOTSEL drive the user picks.
 // Every test replaces window.showDirectoryPicker with a mock directory handle before the page
@@ -52,7 +53,7 @@ async function ready(page, env) {
     : route.fulfill({ status: 200, contentType: 'application/octet-stream', body: UF2 }));
   await page.goto('/');
   await expect(page.locator('#build')).toBeEnabled();
-  await page.selectOption('#env', env);
+  await selectBoard(page, env);
 }
 const mock = page => page.evaluate(() => window.__mock);
 async function built(page) {

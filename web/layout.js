@@ -1,0 +1,205 @@
+// The VS Code style shell: activity bar, sidebar views, editor column, right AI panel, status bar.
+// Everything here is placement and persistence — no Build, flash, serial or AI behaviour lives in
+// this file. The sidebar's Libraries and Settings sections keep the ids and the open/close protocol
+// that libraries.js and ai-settings.js were written against, so those modules are untouched.
+const $ = (id) => document.getElementById(id);
+
+export const LAYOUT_KEY = 'digicode-text.layout.v1';
+const NARROW = 900; // below this the sidebar and the AI panel float over the editor column
+const ACTIVITY = 56; // the activity bar's width in app.css; a floating panel never covers it
+const LIMITS = { sidebarWidth: [320, 640], aiWidth: [320, 720], panelHeight: [100, 500] };
+const DEFAULTS = { sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320, panelOpen: false, panelHeight: 220, aiOpen: false, aiWidth: 420 };
+// Views whose element answers the <dialog> protocol (open / showModal() / close() / 'close' event),
+// because libraries.js and ai-settings.js drive them through exactly that interface.
+const DIALOG_VIEWS = { libraries: 'libraries-dialog', settings: 'ai-settings' };
+const VIEWS = ['explorer', 'libraries', 'boards', 'settings', 'help'];
+
+const clamp = (value, [min, max]) => Math.round(Math.max(min, Math.min(max, value)));
+
+function readState() {
+  const state = { ...DEFAULTS };
+  try {
+    const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
+    if (saved && typeof saved === 'object') {
+      if (typeof saved.sidebarOpen === 'boolean') state.sidebarOpen = saved.sidebarOpen;
+      // Libraries and Settings are prepared by their own modules when their button is pressed, so
+      // they are never the view a reload opens on; the explorer is.
+      if (VIEWS.includes(saved.sidebarView) && !DIALOG_VIEWS[saved.sidebarView]) state.sidebarView = saved.sidebarView;
+      if (typeof saved.panelOpen === 'boolean') state.panelOpen = saved.panelOpen;
+      if (typeof saved.aiOpen === 'boolean') state.aiOpen = saved.aiOpen;
+      for (const key of ['sidebarWidth', 'aiWidth', 'panelHeight']) {
+        if (Number.isFinite(saved[key])) state[key] = clamp(saved[key], LIMITS[key]);
+      }
+    }
+  } catch { /* a broken layout record is replaced by the defaults; nothing else depends on it */ }
+  return state;
+}
+
+export function setupLayout() {
+  const state = readState();
+  const shell = $('shell'), sidebar = $('sidebar'), aiPane = $('ai-pane');
+  let panelResizeHandler = () => {};
+
+  function persist() {
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(state)); }
+    catch { /* layout is a convenience; losing it must never block editing */ }
+  }
+
+  // Which view element is currently showing, for the dialog-protocol 'close' event.
+  const dialogElement = (view) => DIALOG_VIEWS[view] ? $(DIALOG_VIEWS[view]) : null;
+  let shown = null;
+  // A window too narrow for three columns puts the sidebar over the editor. A browsing view
+  // (explorer / boards / help) steps aside on the way in and comes back when the window widens;
+  // Libraries and Settings stay, because they are the tasks that replaced modal dialogs.
+  let wasNarrow = null, hiddenByNarrow = null;
+
+  function render() {
+    const narrow = innerWidth < NARROW;
+    if (narrow !== wasNarrow) {
+      if (narrow && state.sidebarOpen && !DIALOG_VIEWS[state.sidebarView]) { hiddenByNarrow = state.sidebarView; state.sidebarOpen = false; }
+      else if (!narrow && hiddenByNarrow) { state.sidebarOpen = true; state.sidebarView = hiddenByNarrow; hiddenByNarrow = null; }
+      wasNarrow = narrow;
+    }
+    shell.dataset.narrow = String(narrow);
+    shell.style.setProperty('--sidebar-width', `${narrow ? Math.min(state.sidebarWidth, innerWidth - ACTIVITY) : state.sidebarWidth}px`);
+    shell.style.setProperty('--ai-width', `${narrow ? Math.min(state.aiWidth, innerWidth - ACTIVITY) : state.aiWidth}px`);
+    shell.style.setProperty('--panel-height', `${state.panelHeight}px`);
+    sidebar.hidden = !state.sidebarOpen;
+    $('sidebar-resize').hidden = !state.sidebarOpen;
+    $('sidebar-resize').setAttribute('aria-valuenow', String(state.sidebarWidth));
+    for (const view of VIEWS) {
+      const element = document.querySelector(`.sidebar-view[data-view="${view}"]`);
+      if (element) element.hidden = !(state.sidebarOpen && state.sidebarView === view);
+      const button = document.querySelector(`.activity-item[data-view="${view}"]`);
+      if (button) {
+        const selected = state.sidebarOpen && state.sidebarView === view;
+        button.setAttribute('aria-pressed', String(selected));
+        button.classList.toggle('selected', selected);
+      }
+    }
+    aiPane.hidden = !state.aiOpen;
+    $('ai-resize').hidden = !state.aiOpen;
+    $('ai-resize').setAttribute('aria-valuenow', String(state.aiWidth));
+    $('ai-open').setAttribute('aria-expanded', String(state.aiOpen));
+    $('ai-open').classList.toggle('selected', state.aiOpen);
+    // A view that just stopped showing gets the 'close' its module listens for.
+    const active = state.sidebarOpen ? state.sidebarView : null;
+    if (shown !== active) {
+      const previous = dialogElement(shown);
+      shown = active;
+      previous?.dispatchEvent(new Event('close'));
+    }
+    panelResizeHandler();
+  }
+
+  function showView(view) {
+    if (!VIEWS.includes(view)) return;
+    hiddenByNarrow = null;
+    state.sidebarOpen = true;
+    state.sidebarView = view;
+    render(); persist();
+  }
+  function collapseSidebar() {
+    hiddenByNarrow = null;
+    state.sidebarOpen = false;
+    render(); persist();
+  }
+  function toggleView(view) {
+    if (state.sidebarOpen && state.sidebarView === view) collapseSidebar();
+    else showView(view);
+  }
+  function setAI(open) {
+    state.aiOpen = open;
+    render(); persist();
+  }
+
+  // Activity bar. AI支援 only toggles the right panel; it never changes the sidebar selection.
+  for (const view of VIEWS) {
+    const button = document.querySelector(`.activity-item[data-view="${view}"]`);
+    if (!button) continue;
+    // Libraries and Settings are opened by their own modules (which prepare drafts and inputs
+    // first), so those buttons delegate instead of switching the view behind the module's back.
+    if (view === 'libraries') continue;
+    if (view === 'settings') { button.onclick = () => (state.sidebarOpen && state.sidebarView === 'settings' ? collapseSidebar() : $('ai-settings-open').click()); continue; }
+    button.onclick = () => toggleView(view);
+  }
+  // Pressing the showing view's own button folds the sidebar away — including Libraries, whose
+  // button otherwise belongs to libraries.js. Capturing on the bar keeps the click from reaching
+  // that module at all, so it never re-opens what the user just closed.
+  $('activity-bar').addEventListener('click', (event) => {
+    const button = event.target instanceof Element && event.target.closest('.activity-item[data-view="libraries"]');
+    if (!button || !state.sidebarOpen || state.sidebarView !== 'libraries') return;
+    event.stopPropagation();
+    event.preventDefault();
+    collapseSidebar();
+  }, true);
+
+  // The <dialog> protocol the sidebar's Libraries and Settings views answer to.
+  for (const [view, id] of Object.entries(DIALOG_VIEWS)) {
+    const element = $(id);
+    Object.defineProperty(element, 'open', { get: () => state.sidebarOpen && state.sidebarView === view, configurable: true });
+    element.showModal = () => showView(view);
+    element.close = () => { if (state.sidebarOpen && state.sidebarView === view) collapseSidebar(); };
+  }
+
+  // Escape closes the sidebar, the way the dialogs it replaces used to close. The editor, the AI
+  // panel and the remaining real dialogs keep their own Escape handling.
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.defaultPrevented || !state.sidebarOpen) return;
+    if (!DIALOG_VIEWS[state.sidebarView]) return; // only the two views that replaced modal dialogs
+    const target = event.target;
+    if (!(target instanceof Element)) { collapseSidebar(); return; }
+    if (target.closest('#editor') || target.closest('#ai-pane') || target.closest('dialog')) return;
+    if (!target.closest('#sidebar') && target !== document.body) return;
+    collapseSidebar();
+  });
+
+  // Drag / keyboard resizers. Widths are stored as the user set them; the narrow layout only
+  // caps what is rendered, so going back to a wide window restores the chosen width.
+  function dragHandle(handle, read, write, step, direction) {
+    handle.onkeydown = (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === 'Home') write(-Infinity);
+      else if (event.key === 'End') write(Infinity);
+      else write(read() + direction * (event.key === 'ArrowLeft' ? -step : step));
+    };
+    let drag;
+    handle.onpointerdown = (event) => {
+      if (event.button !== 0) return;
+      drag = { x: event.clientX, start: read() };
+      handle.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      handle.focus();
+    };
+    handle.onpointermove = (event) => { if (drag) write(drag.start + direction * (event.clientX - drag.x)); };
+    handle.onpointerup = handle.onpointercancel = () => { drag = undefined; };
+  }
+  // The sidebar grows when its handle is dragged right; the AI panel, being on the right, grows
+  // when its handle is dragged left.
+  dragHandle($('sidebar-resize'), () => state.sidebarWidth,
+    (next) => { state.sidebarWidth = clamp(next, LIMITS.sidebarWidth); render(); persist(); }, 24, 1);
+  dragHandle($('ai-resize'), () => state.aiWidth,
+    (next) => { state.aiWidth = clamp(next, LIMITS.aiWidth); render(); persist(); }, 24, -1);
+
+  addEventListener('resize', render);
+  render();
+
+  return {
+    showView, collapseSidebar, toggleView, setAI,
+    toggleAI: () => setAI(!state.aiOpen),
+    get aiOpen() { return state.aiOpen; },
+    get sidebarOpen() { return state.sidebarOpen; },
+    get sidebarView() { return state.sidebarView; },
+    get panelOpen() { return state.panelOpen; },
+    set panelOpen(open) { state.panelOpen = open; persist(); },
+    get panelHeight() { return state.panelHeight; },
+    set panelHeight(height) { state.panelHeight = clamp(height, LIMITS.panelHeight); shell.style.setProperty('--panel-height', `${state.panelHeight}px`); persist(); },
+    onResize(handler) { panelResizeHandler = handler; },
+    reset() {
+      Object.assign(state, DEFAULTS);
+      hiddenByNarrow = null;
+      render(); persist();
+    },
+  };
+}

@@ -94,8 +94,10 @@ export function setupAI(monaco, host) {
     if (candidate && !candidate.stale) { candidate.stale = staleReason(candidate.snapshot); if (candidate.stale) { candidate.entry.status.textContent = '古い提案です。適用できません'; showCandidate(); } }
     renderHistory();
   }
-  $('ai-open').onclick = () => { $('ai-pane').hidden = !$('ai-pane').hidden; $('ai-open').setAttribute('aria-expanded', String(!$('ai-pane').hidden)); if (!$('ai-pane').hidden) $('ai-prompt').focus(); };
-  $('ai-close').onclick = () => { $('ai-pane').hidden = true; $('ai-open').setAttribute('aria-expanded', 'false'); $('ai-open').focus(); };
+  // The panel's open state belongs to the shell layout (it is a grid column with a drag handle);
+  // this module only asks for it to be shown or hidden.
+  $('ai-open').onclick = () => { host.toggleAI(); if (!$('ai-pane').hidden) $('ai-prompt').focus(); };
+  $('ai-close').onclick = () => { host.setAI(false); $('ai-open').focus(); };
   $('ai-mode').onchange = () => { try { localStorage.setItem(modeKey, JSON.stringify({ mode: $('ai-mode').value })); } catch { say('適用モードを保存できませんでした'); } };
   function context(s, failure) { return JSON.stringify(projectContext(s, failure, s.mode ?? $('ai-mode').value), null, 2); }
   $('ai-context').onclick = () => { const s = host.snapshot(); buildChanged(); $('ai-context-text').textContent = context(s, $('ai-attach').checked ? host.failure(s) : null); $('ai-context-dialog').showModal(); };

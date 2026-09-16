@@ -1,74 +1,176 @@
 <!doctype html>
-<html lang="ja" data-theme="dark">
+<html lang="ja" data-theme="duotone-dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<style>html, body { background: #111821; color: #dbe5ef; }</style>
 <title>DigiCode Text</title>
 <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-<main class="workspace">
-<header class="toolbar">
-  <div class="brand"><span class="brand-mark" aria-hidden="true">&lt;/&gt;</span><h1>DigiCode <span>Text</span></h1></div>
-  <button id="projects-open" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
-  <button id="libraries-open" aria-haspopup="dialog" aria-controls="libraries-dialog">ライブラリ</button>
-  <button id="ai-open" aria-expanded="false" aria-controls="ai-pane">AI支援</button>
-  <span id="project-name" title="現在のプロジェクト"></span>
-  <div class="build-tools">
-    <label class="board-picker"><span>BOARD</span><select id="env" aria-label="ボード"></select></label>
-    <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
-    <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
-    <button id="flash" class="download" hidden disabled title="Build結果をUSB接続したボードへ書き込む"><span aria-hidden="true">⇥</span> 書き込み</button>
+<svg class="icon-defs" aria-hidden="true" focusable="false"><defs>
+  <g id="i-logo"><path d="M6 4 2 8l4 4"/><path d="M10 4l4 4-4 4"/></g>
+  <!-- Activity bar icons: Lucide (ISC) — see web/themes/LICENSE-lucide.txt. 24x24 grid, drawn at
+       20px with stroke-width 1.75 by .activity-item .icon in app.css. -->
+  <g id="i-explorer"><!-- lucide folder-tree --><path d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z"/><path d="M3 5a2 2 0 0 0 2 2h3"/><path d="M3 3v13a2 2 0 0 0 2 2h3"/></g>
+  <g id="i-libraries"><!-- lucide package --><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></g>
+  <g id="i-boards"><!-- lucide cpu --><path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></g>
+  <g id="i-ai"><!-- lucide sparkles --><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></g>
+  <g id="i-settings"><!-- lucide settings --><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g>
+  <g id="i-help"><!-- lucide circle-question-mark (the file behind the circle-help name) --><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></g>
+</defs></svg>
+
+<div class="shell" id="shell">
+  <nav class="activity-bar" id="activity-bar" aria-label="ビュー">
+    <span class="activity-logo" title="DigiCode Text"><svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><use href="#i-logo"/></svg></span>
+    <button class="activity-item" id="view-explorer" data-view="explorer" title="エクスプローラ" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-explorer"/></svg><span class="activity-label">ファイル</span></button>
+    <button class="activity-item" id="libraries-open" data-view="libraries" title="ライブラリ" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-libraries"/></svg><span class="activity-label">ライブラリ</span></button>
+    <button class="activity-item" id="view-boards" data-view="boards" title="ボード" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-boards"/></svg><span class="activity-label">ボード</span></button>
+    <button class="activity-item" id="ai-open" title="AI開発支援" aria-expanded="false" aria-controls="ai-pane"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ai"/></svg><span class="activity-label">AI</span></button>
+    <span class="activity-spacer"></span>
+    <button class="activity-item" id="view-settings" data-view="settings" title="設定" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"/></svg><span class="activity-label">設定</span></button>
+    <button class="activity-item" id="view-help" data-view="help" title="ヘルプ" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-help"/></svg><span class="activity-label">ヘルプ</span></button>
+  </nav>
+
+  <aside class="sidebar" id="sidebar" aria-label="サイドバー">
+    <div class="sidebar-scroll" id="sidebar-scroll">
+      <section class="sidebar-view" id="explorer-view" data-view="explorer" aria-labelledby="explorer-title" hidden>
+        <header class="view-header"><h2 id="explorer-title">エクスプローラ</h2>
+          <button id="projects-open" class="quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
+        </header>
+        <p class="storage-hint">このブラウザ内に保存します。同期・バックアップではありません。</p>
+        <p class="current-project">編集中：<strong id="project-target"></strong></p>
+        <p id="project-save-message" role="status"></p>
+        <p id="project-notice" role="status"></p>
+        <h3 class="view-section-title">プロジェクト</h3>
+        <div id="project-list" aria-label="保存したプロジェクト"></div>
+        <h3 class="view-section-title">ファイル</h3>
+        <ul class="file-tree"><li><button id="file-main" class="tree-row" aria-current="true"><span class="file-kind" aria-hidden="true">C++</span>main.cpp</button></li></ul>
+      </section>
+
+      <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
+        <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button></header>
+        <p class="current-project">操作対象：<strong id="library-target"></strong></p>
+        <form id="library-search-form"><label for="library-query">ライブラリを検索</label><span class="library-origin">PlatformIO Registry</span><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
+        <section class="library-added-section" aria-labelledby="library-added-label"><h3 id="library-added-label">追加済み</h3><ul id="library-added" aria-label="追加済みライブラリ"></ul></section>
+        <p id="library-status" role="status"></p>
+        <div id="library-suggestions" aria-label="近い名前の候補"></div>
+        <ul id="library-results" aria-label="検索結果"></ul>
+        <div class="library-controls"><button id="library-prev" hidden>前のページ</button><button id="library-next" hidden>次のページ</button></div>
+        <p class="storage-hint library-footnote">ライブラリはビルド時に取得します。WiFi.hなどの標準ライブラリは追加不要です。</p>
+      </section>
+
+      <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>
+        <header class="view-header"><h2 id="boards-title">ボード</h2></header>
+        <label class="field" for="env">ビルド対象のボード</label>
+        <select id="env" aria-label="ボード"></select>
+        <p class="storage-hint">以下は compiler が返すボード事実です。AI にも同じ内容を渡しています。編集はできません。</p>
+        <div id="board-facts" aria-live="polite"></div>
+      </section>
+
+      <section class="sidebar-view" id="ai-settings" data-view="settings" aria-labelledby="ai-settings-title" hidden>
+        <header class="view-header"><h2 id="ai-settings-title">設定</h2><button id="ai-settings-close" class="quiet">閉じる</button></header>
+        <h3 class="view-section-title">外観</h3>
+        <label class="field" for="theme-select">テーマ</label>
+        <select id="theme-select"></select>
+        <p class="storage-hint">DuoTone（simurai、MIT）を基にした4配色です。</p>
+        <button id="layout-reset">レイアウトを初期化</button>
+        <h3 class="view-section-title">AI API設定</h3>
+        <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
+        <label class="field" for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
+        <label class="field" for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false">
+        <label class="field" for="ai-model-choice">モデル</label><select id="ai-model-choice"></select>
+        <details id="ai-advanced"><summary>詳細設定</summary>
+          <label class="field" for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
+          <label class="field" for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
+          <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
+          <p class="storage-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
+          <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
+        </details>
+        <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
+        <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button><button id="ai-default">既定にする</button></div>
+        <p class="storage-hint">「既定にする」は、いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
+        <button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button><p id="ai-settings-status" role="status"></p>
+      </section>
+
+      <section class="sidebar-view" id="help-view" data-view="help" aria-labelledby="help-title" hidden>
+        <header class="view-header"><h2 id="help-title">ヘルプ</h2></header>
+        <p class="storage-hint">準備中</p>
+      </section>
+    </div>
+    <aside id="ad-slot" class="ad-slot" aria-label="広告"><div id="ad-slot-inner">広告</div></aside>
+  </aside>
+  <div class="split split-v" id="sidebar-resize" role="separator" tabindex="0" aria-label="サイドバーの幅（左右矢印で調整）" aria-orientation="vertical" aria-controls="sidebar" aria-valuemin="320" aria-valuemax="640" aria-valuenow="320"></div>
+
+  <div class="editor-column" id="editor-column">
+    <div class="tab-bar">
+      <div class="tab-strip" id="tab-strip" role="tablist" aria-label="開いているファイル"></div>
+      <div class="tab-actions">
+        <button id="project-name" class="quiet project-chip" title="現在のプロジェクト"></button>
+        <span id="save-status" role="status">このブラウザに自動保存：読み込み中…</span>
+        <button id="save-retry" class="quiet" hidden>再試行</button>
+        <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
+        <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
+        <button id="flash" class="download" hidden disabled title="Build結果をUSB接続したボードへ書き込む"><span aria-hidden="true">⇥</span> 書き込み</button>
+      </div>
+    </div>
+    <div id="editor" aria-labelledby="editor-label"></div>
+    <div id="panel-resize" role="separator" tabindex="0" aria-label="出力パネルの高さ（上下矢印で調整）" aria-orientation="horizontal" aria-controls="panel-body" aria-valuemin="100" aria-valuemax="500" aria-valuenow="220" hidden></div>
+    <section id="panel" class="panel" data-open="false" aria-label="出力パネル">
+      <div class="panel-header">
+        <div role="tablist" aria-label="出力の種類">
+          <button id="build-tab" role="tab" aria-controls="build-output" aria-selected="true">ビルド結果 <span id="build-phase" data-state="ready">待機</span></button>
+          <button id="serial-tab" role="tab" aria-controls="serial-output" aria-selected="false" tabindex="-1">シリアル <span class="serial-dot" aria-hidden="true"></span></button>
+        </div>
+        <button id="panel-toggle" class="quiet" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開閉">開く ⌃</button>
+      </div>
+      <div id="panel-body" hidden>
+        <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
+          <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
+          <p id="flash-status" role="status" hidden></p>
+          <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
+        </div>
+        <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>
+          <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="copy-serial" class="quiet">コピー</button></div></div>
+          <p id="serial-empty" class="empty-message">シリアルモニタは未接続です。接続ボタンからポートを選択できます。</p>
+          <pre id="serial-log" tabindex="0" aria-label="シリアルログ"></pre>
+        </div>
+      </div>
+    </section>
   </div>
-</header>
-<input id="project-file" type="file" accept=".json,application/json" hidden>
-<p id="project-notice" role="status"></p>
-<div class="work-area">
-<section class="editor-pane" aria-label="コード編集">
-  <div class="file-header"><div class="file-name"><span class="file-icon" aria-hidden="true">C++</span><span id="editor-label">main.cpp</span></div><div class="save-indicator"><span id="save-status" role="status">このブラウザに自動保存：読み込み中…</span><button id="save-retry" class="quiet" hidden>再試行</button></div></div>
-  <div id="editor" aria-labelledby="editor-label"></div>
-</section>
-<aside id="ai-pane" aria-label="AI開発支援" hidden>
-  <div class="ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open">API設定</button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
-  <p id="ai-connection"></p>
-  <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
-  <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>
-  <div class="ai-composer">
-    <div id="ai-apply-mode" class="ai-actions"><label for="ai-mode">コード変更時</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
-    <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled aria-describedby="ai-attach-note">Buildエラーを含めて送信</label><small id="ai-attach-note"></small>
-    <label for="ai-prompt" class="sr-only">メッセージ</label>
-    <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力（Enterで送信、Shift＋Enterで改行）"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
-    <button id="ai-context" class="quiet">AIに送る内容を確認</button>
-    <p id="ai-status" role="status">説明や変更の依頼を入力してください。</p>
-  </div>
-</aside>
+
+  <div class="split split-v" id="ai-resize" role="separator" tabindex="0" aria-label="AIパネルの幅（左右矢印で調整）" aria-orientation="vertical" aria-controls="ai-pane" aria-valuemin="320" aria-valuemax="720" aria-valuenow="420" hidden></div>
+  <aside id="ai-pane" aria-label="AI開発支援" hidden>
+    <!-- The model display is itself the way into the settings view; there is no separate API設定
+         button, because 設定 in the activity bar opens the same view. It keeps the id
+         ai-settings-open, which is the hook ai-settings.js (unchanged) binds its opener to. -->
+    <div class="ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
+    <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
+    <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>
+    <div class="ai-composer">
+      <div id="ai-apply-mode" class="ai-actions"><label for="ai-mode">コード変更時</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
+      <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled aria-describedby="ai-attach-note">Buildエラーを含めて送信</label><small id="ai-attach-note"></small>
+      <label for="ai-prompt" class="sr-only">メッセージ</label>
+      <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力（Enterで送信、Shift＋Enterで改行）"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
+      <button id="ai-context" class="quiet">AIに送る内容を確認</button>
+      <p id="ai-status" role="status">説明や変更の依頼を入力してください。</p>
+    </div>
+  </aside>
+
+  <footer class="status-bar">
+    <button id="status-board" class="status-item" title="ボードビューを開く"></button>
+    <span id="status-build" class="status-item" data-state="ready">待機</span>
+    <span id="status-serial" class="status-item">Serial: 未接続</span>
+    <span id="ui-notice" role="status"></span>
+    <span class="status-spacer"></span>
+    <span id="status-model" class="status-item"></span>
+    <span id="cursor-position" class="status-item">行 1、列 1</span>
+    <span class="status-item">C++</span>
+    <span class="status-item">UTF-8</span>
+  </footer>
 </div>
-<section id="panel" class="panel" data-open="false" aria-label="出力パネル">
-  <div id="panel-resize" role="separator" tabindex="0" aria-label="出力パネルの高さ（上下矢印で調整）" aria-orientation="horizontal" aria-controls="panel-body" aria-valuemin="100" aria-valuemax="500" aria-valuenow="240" hidden></div>
-  <div class="panel-header">
-    <div role="tablist" aria-label="出力の種類">
-      <button id="build-tab" role="tab" aria-controls="build-output" aria-selected="true">ビルド結果 <span id="build-phase" data-state="ready">待機</span></button>
-      <button id="serial-tab" role="tab" aria-controls="serial-output" aria-selected="false" tabindex="-1">シリアル <span class="serial-dot" aria-hidden="true"></span></button>
-    </div>
-    <button id="panel-toggle" class="quiet" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開閉">開く ⌃</button>
-  </div>
-  <div id="panel-body" hidden>
-    <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
-      <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
-      <p id="flash-status" role="status" hidden></p>
-      <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
-    </div>
-    <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>
-      <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="copy-serial" class="quiet">コピー</button></div></div>
-      <p id="serial-empty" class="empty-message">シリアルモニタは未接続です。接続ボタンからポートを選択できます。</p>
-      <pre id="serial-log" tabindex="0" aria-label="シリアルログ"></pre>
-    </div>
-  </div>
-</section>
-<footer class="status-bar"><span>DigiCode Text <span class="footer-divider">/</span> <span id="cursor-position">行 1、列 1</span></span><span id="ui-notice" role="status"></span><span>C++ <span class="footer-divider">·</span> UTF-8</span></footer>
-</main>
+
+<input id="project-file" type="file" accept=".json,application/json" hidden>
 <div id="file-menu" role="menu" aria-label="ファイル" hidden>
   <button id="project-new" role="menuitem" tabindex="-1">新規プロジェクト…</button>
   <button id="project-open-list" role="menuitem" tabindex="-1">プロジェクトを開く…</button>
@@ -81,47 +183,11 @@
   <hr role="separator">
   <button id="project-delete" role="menuitem" tabindex="-1" class="danger">プロジェクトを削除…</button>
 </div>
-<dialog id="projects-dialog" aria-labelledby="projects-title">
-  <div class="dialog-heading"><h2 id="projects-title">プロジェクトを開く</h2><button id="projects-close" class="quiet">閉じる</button></div>
-  <p class="storage-hint">このブラウザ内に保存します。同期・バックアップではありません。</p>
-  <p class="current-project">編集中：<strong id="project-target"></strong></p>
-  <p id="project-save-message" role="status"></p>
-  <div id="project-list" aria-label="保存したプロジェクト"></div>
-</dialog>
 <dialog id="name-dialog" aria-labelledby="name-title"><form id="name-form">
   <h2 id="name-title"></h2><label for="name-input">名前（1〜80文字）</label>
   <input id="name-input" autocomplete="off"><p id="name-error" role="alert"></p>
   <div class="manage-actions"><button type="button" id="name-cancel">キャンセル</button><button type="submit" class="primary">確定</button></div>
 </form></dialog>
-<dialog id="libraries-dialog" aria-labelledby="libraries-title">
-  <div class="dialog-heading"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close">閉じる</button></div>
-  <p class="current-project">操作対象：<strong id="library-target"></strong></p>
-  <form id="library-search-form"><label for="library-query">ライブラリを検索</label><span class="library-origin">PlatformIO Registry</span><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
-  <section class="library-added-section" aria-labelledby="library-added-label"><h3 id="library-added-label">追加済み</h3><ul id="library-added" aria-label="追加済みライブラリ"></ul></section>
-  <p id="library-status" role="status"></p>
-  <div id="library-suggestions" aria-label="近い名前の候補"></div>
-  <ul id="library-results" aria-label="検索結果"></ul>
-  <div class="library-controls"><button id="library-prev" hidden>前のページ</button><button id="library-next" hidden>次のページ</button></div>
-  <p class="storage-hint library-footnote">ライブラリはビルド時に取得します。WiFi.hなどの標準ライブラリは追加不要です。</p>
-</dialog>
-<dialog id="ai-settings" aria-labelledby="ai-settings-title">
-  <div class="dialog-heading"><h2 id="ai-settings-title">AI API設定</h2><button id="ai-settings-close">閉じる</button></div>
-  <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
-  <label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
-  <label for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false">
-  <label for="ai-model-choice">モデル</label><select id="ai-model-choice"></select>
-  <details id="ai-advanced"><summary>詳細設定</summary>
-    <label for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
-    <label for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
-    <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
-    <p class="storage-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
-    <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
-  </details>
-  <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
-  <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button><button id="ai-default">既定にする</button></div>
-  <p class="storage-hint">「既定にする」は、いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
-  <button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button><p id="ai-settings-status" role="status"></p>
-</dialog>
 <dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
 <div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>
 <script type="module" src="/assets/app.js"></script>

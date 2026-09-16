@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { selectBoard } from './shell.js';
 
 // Wio Node (ESP8266) runs the same browser path as the C3: one flash set from the server,
 // flashed by esptool-js. Only the flash set differs (one image at 0x0), so this test asserts
@@ -9,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 test('Actual Wio Node hello build, flash set metadata and image checks', async ({ page }, info) => {
   test.setTimeout(900000);
   await page.goto('/'); await expect(page.locator('#build')).toBeEnabled();
-  await page.selectOption('#env', 'wio_node'); await page.reload();
+  await selectBoard(page, 'wio_node'); await page.reload();
   await expect(page.locator('#env')).toHaveValue('wio_node');
   const response = page.waitForResponse(r => r.url().endsWith('/compile'));
   await page.click('#build');
@@ -26,5 +27,5 @@ test('Actual Wio Node hello build, flash set metadata and image checks', async (
   console.log('wio_node: ' + result.trim());
   await page.screenshot({ path: info.outputPath('real-wio-node.png') });
   // Switching away invalidates the artifact for this board too; nothing here is board-specific in the UI.
-  await page.selectOption('#env', 'pico'); await expect(page.locator('#flash')).toBeHidden();
+  await selectBoard(page, 'pico'); await expect(page.locator('#flash')).toBeHidden();
 });

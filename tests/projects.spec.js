@@ -1,9 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { openExplorer, selectBoard } from './shell.js';
 const key = 'digicode-text.projects.v1';
 const old = 'digicode-text.draft.v1';
-async function closeList(page) { if (await page.locator('#projects-dialog').isVisible()) await page.click('#projects-close'); }
-async function openMenu(page) { await closeList(page); if (!await page.locator('#file-menu').isVisible()) await page.click('#projects-open'); }
+// The project list is part of the Explorer view now, so there is no list dialog to close.
+async function closeList() {}
+async function openMenu(page) { await openExplorer(page); if (!await page.locator('#file-menu').isVisible()) await page.click('#projects-open'); }
 async function action(page, id) { await openMenu(page); await page.click('#' + id); }
 
 async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); }
@@ -18,15 +20,12 @@ async function name(page, action, value) {
   await page.fill('#name-input', value); await page.locator('#name-form button[type=submit]').click();
 }
 async function select(page, name) {
-  if (!await page.locator('#projects-dialog').isVisible()) await openMenu(page);
   await action(page, 'project-open-list');
   await page.locator('.project-item').filter({ has: page.locator('span', { hasText: new RegExp('^' + name + '$') }) }).click();
 }
 async function exportFile(page, info) {
-  if (!await page.locator('#projects-dialog').isVisible()) await openMenu(page);
   const wait = page.waitForEvent('download'); await action(page, 'project-export');
   const download = await wait; const path = info.outputPath('project.json'); await download.saveAs(path);
-  await closeList(page);
   return JSON.parse(await readFile(path, 'utf8'));
 }
 async function importFile(page, value) {
@@ -44,7 +43,7 @@ test('CRUD, duplicate independence, same names, board restoration, model undo is
   await ready(page); const originalId = (await data(page)).activeId;
   await name(page, 'rename', '点滅テスト'); await closeList(page);
   expect((await data(page)).activeId).toBe(originalId);
-  await edit(page, '// project A'); await page.selectOption('#env', 'pico');
+  await edit(page, '// project A'); await selectBoard(page, 'pico');
   await name(page, 'duplicate', '点滅テスト');
   const duplicateId = (await data(page)).activeId; expect(duplicateId).not.toBe(originalId);
   await edit(page, '// independent duplicate');
@@ -65,15 +64,12 @@ test('CRUD, duplicate independence, same names, board restoration, model undo is
   await page.fill('#name-input', 'a'.repeat(81)); await page.locator('#name-form button[type=submit]').click();
   await expect(page.locator('#name-error')).toContainText('1〜80'); await page.click('#name-cancel');
   page.on('dialog', dialog => { expect(dialog.message()).toContain('削除'); dialog.accept(); });
-  for (let i = 0; i < 3; i++) {
-    if (!await page.locator('#projects-dialog').isVisible()) await openMenu(page);
-    await action(page, 'project-delete');
-  }
+  for (let i = 0; i < 3; i++) await action(page, 'project-delete');
   expect((await data(page)).projects).toHaveLength(1);
   await expect(page.locator('.view-lines')).toContainText('hello');
 });
 test('export/import roundtrip, validation, HTML inert', async ({ page }, info) => {
-  await ready(page); await edit(page, '// <script>alert(1)</script>'); await page.selectOption('#env', 'pico');
+  await ready(page); await edit(page, '// <script>alert(1)</script>'); await selectBoard(page, 'pico');
   await name(page, 'rename', '<img src=x onerror=alert(1)>'); await closeList(page);
   const first = (await data(page)).activeId; const value = await exportFile(page, info);
   expect(Object.keys(value).sort()).toEqual(['env','format','libraries','name','source','version']);
@@ -89,7 +85,7 @@ test('export/import roundtrip, validation, HTML inert', async ({ page }, info) =
 test('quota failure retains edits, blocks switching/new/delete and allows export then retry', async ({ page }, info) => {
   await ready(page); await name(page, 'new', 'second');
   await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new DOMException('full', 'QuotaExceededError'); }; });
-  await edit(page, '// rescue this'); await page.selectOption('#env', 'pico');
+  await edit(page, '// rescue this'); await selectBoard(page, 'pico');
   await expect(page.locator('#save-status')).toContainText('保存できません');
   expect((await exportFile(page, info)).source).toBe('// rescue this');
   await select(page, 'はじめてのプロジェクト'); await expect(page.locator('#project-name')).toHaveText('second');

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openAI, selectBoard } from './shell.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -217,14 +218,14 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
     const libraries = [{id:64,owner:'bblanchon',name:'ArduinoJson',version:'7.4.3'}];
     await page.locator('#project-file').setInputFiles({name:'dummy.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({format:'digicode-text-project',version:1,name:'独立ダミー',source,env:'xiao_esp32c3',libraries}))});
     await expect(page.locator('#env')).toHaveValue('xiao_esp32c3');
-    await page.click('#ai-open'); await page.click('#ai-settings-open'); await page.selectOption('#ai-provider',provider);
+    await openAI(page); await page.click('#ai-settings-open'); await page.selectOption('#ai-provider',provider);
     await page.fill('#ai-key','dummy-product-test-only'); await page.selectOption('#ai-model-choice',model); await page.click('#ai-use');
     const prompts = ['このコードをこのアプリでビルドして書き込む手順を教えて', 'manifestは未確認です。一般例でよいので書き込みコマンドとアプリ内Serialの手順を教えて', 'このコードを簡単に説明して', '改善案だけ教えて。まだ変更しないで'];
     // C3 with cleared history before/after mocked Build, then both RP2040 boards.
     // These assert transmission and non-application, NOT the quality of model replies.
     const envs = ['xiao_esp32c3','xiao_esp32c3','pico','xiao_rp2040'];
     for (let i=0;i<prompts.length;i++) {
-      const env = envs[i], board = byId[env]; await page.selectOption('#env',env);
+      const env = envs[i], board = byId[env]; await selectBoard(page, env);
       const mode = i === 1 ? 'review' : 'auto'; await page.selectOption('#ai-mode',mode);
       if (i > 0) {
         await page.click('#build');
@@ -271,8 +272,8 @@ test('actual UI withholds an external flashing command in the answer, keeps the 
     return route.fulfill({json:{status:'completed',output:[{type:'message',role:'assistant',status:'completed',content:[{type:'output_text',text}]}]}});
   });
   await page.goto('/'); await expect(page.locator('#build')).toBeEnabled();
-  await page.selectOption('#env', 'xiao_esp32c3');
-  await page.click('#ai-open'); await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai');
+  await selectBoard(page, 'xiao_esp32c3');
+  await openAI(page); await page.click('#ai-settings-open'); await page.selectOption('#ai-provider','openai');
   await page.fill('#ai-key','dummy-product-test-only'); await page.selectOption('#ai-model-choice','gpt-5-mini'); await page.click('#ai-use');
   const expected = `書き込みはこのアプリの操作で行う。${board.flashHint}`;
   await page.selectOption('#ai-mode','review');

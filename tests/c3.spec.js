@@ -2,21 +2,22 @@ import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { openExplorer, selectBoard } from './shell.js';
 const key = 'digicode-text.projects.v1';
 // Mock of the server's ESP flash set (format shared with compiler/pio-esp/package_firmware.py).
 const mockSet = JSON.stringify({ format: 'digicode-text-flash-set', version: 2, board: 'seeed_xiao_esp32c3', chip: 'esp32c3', flashMode: 'dio', flashFrequency: '80m', flashSize: '4MB',
   images: [{ file: 'bootloader.bin', address: '0x0', size: 4, sha256: '', data: Buffer.from('mock').toString('base64') }] });
 const sample = new URL('../examples/xiao-esp32c3-wifi.digicode.json', import.meta.url);
 async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); }
-async function open(page) { await page.click('#projects-open'); }
+async function open(page) { await openExplorer(page); await page.click('#projects-open'); }
 async function saved(page) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)), key); }
 
 test('C3 menu keyboard, restore, duplicate, import/export, narrow layout and stale artifacts (mock)', async ({ page }, info) => {
   await ready(page); await expect(page.locator('#save-retry')).toBeHidden();
-  await page.locator('#projects-open').focus(); await page.keyboard.press('Enter');
+  await openExplorer(page); await page.locator('#projects-open').focus(); await page.keyboard.press('Enter');
   await expect(page.locator('#file-menu')).toBeVisible();
   await page.keyboard.press('Escape'); await expect(page.locator('#file-menu')).toBeHidden();
-  await page.selectOption('#env', 'xiao_esp32c3'); await page.reload();
+  await selectBoard(page, 'xiao_esp32c3'); await page.reload();
   await expect(page.locator('#env')).toHaveValue('xiao_esp32c3');
   await open(page); await page.click('#project-duplicate'); await page.fill('#name-input', 'C3 無線テスト ' + '長い名前'.repeat(12));
   await page.locator('#name-form button[type=submit]').click();
@@ -32,14 +33,14 @@ test('C3 menu keyboard, restore, duplicate, import/export, narrow layout and sta
   let release;
   await page.route('**/compile', async route => { await new Promise(r => { release = r; }); await route.fulfill({ status: 200, contentType:'application/json',body:mockSet }); });
   await page.click('#build'); await expect.poll(() => Boolean(release)).toBe(true);
-  await page.selectOption('#env','pico'); release();
+  await selectBoard(page, 'pico'); release();
   await expect(page.locator('#status')).toContainText('再Build'); await expect(page.locator('#download')).toBeHidden(); await expect(page.locator('#flash')).toBeHidden();
-  await page.selectOption('#env','xiao_esp32c3'); release = undefined; await page.click('#build');
+  await selectBoard(page, 'xiao_esp32c3'); release = undefined; await page.click('#build');
   await expect.poll(() => Boolean(release)).toBe(true); release();
   await expect(page.locator('#flash')).toBeEnabled(); await expect(page.locator('#download')).toBeHidden();
   await expect(page.locator('#log')).toContainText('bootloader.bin @ 0x0 (4 bytes)');
-  await page.selectOption('#env','pico'); await expect(page.locator('#flash')).toBeHidden();
-  await page.selectOption('#env','xiao_esp32c3');
+  await selectBoard(page, 'pico'); await expect(page.locator('#flash')).toBeHidden();
+  await selectBoard(page, 'xiao_esp32c3');
   await page.click('#panel-toggle');
   for (const width of [1440, 1100, 390]) {
     await page.setViewportSize({width,height:850});
@@ -59,7 +60,7 @@ test('Actual C3 hello and WiFi builds, flash set metadata and image checks', asy
   const main = new URL('../compiler/pio-esp32c3/src/main.cpp', import.meta.url);
   const original = await readFile(main);
   try {
-    await ready(page); await page.selectOption('#env','xiao_esp32c3');
+    await ready(page); await selectBoard(page, 'xiao_esp32c3');
     for (const kind of ['hello','wifi']) {
       if (kind === 'wifi') { await page.locator('#project-file').setInputFiles(sample.pathname); await expect(page.locator('#project-notice')).toContainText('読み込みました'); }
       await page.reload(); await expect(page.locator('#env')).toHaveValue('xiao_esp32c3');

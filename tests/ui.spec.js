@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openBoards, selectBoard } from './shell.js';
 
 async function ready(page) {
   await page.goto('/');
@@ -8,18 +9,26 @@ async function fits(page) {
   const size = await page.evaluate(() => ({ w: innerWidth, h: innerHeight, sw: document.documentElement.scrollWidth, sh: document.documentElement.scrollHeight }));
   expect(size.sw).toBeLessThanOrEqual(size.w);
   expect(size.sh).toBeLessThanOrEqual(size.h);
+  // The board select is a Boards view control now, so bring that view forward to measure it and
+  // put the sidebar back the way it was found (a narrow window keeps it out of the editor's way).
+  // Wait until the shell's resize handler has caught up with the current window width before
+  // reading the sidebar's state; right after setViewportSize it may not have run yet.
+  await expect(page.locator('#shell')).toHaveAttribute('data-narrow', String(size.w < 900));
+  const sidebarWasOpen = await page.locator('#sidebar').isVisible();
+  await openBoards(page);
   for (const id of ['env', 'build', 'panel-toggle']) {
     const r = await page.locator('#' + id).boundingBox();
     expect(r.x).toBeGreaterThanOrEqual(0);
     expect(r.x + r.width).toBeLessThanOrEqual(size.w);
     expect(r.y + r.height).toBeLessThanOrEqual(size.h);
   }
+  if (!sidebarWasOpen) await page.click('#view-boards');
 }
 
-test('Dark is fixed despite light OS and legacy preference; draft and layout survive', async ({ page }, info) => {
+test('A dark DuoTone theme is fixed despite light OS and legacy preference; draft and layout survive', async ({ page }, info) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await ready(page);
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
   await expect(page.locator('#theme-toggle')).toHaveCount(0);
   await expect(page.locator('.monaco-editor')).toHaveClass(/vs-dark/);
   await page.screenshot({ path: info.outputPath('dark-fixed.png') });
@@ -31,7 +40,7 @@ test('Dark is fixed despite light OS and legacy preference; draft and layout sur
   }, draft);
   await page.reload();
   await expect(page.locator('#build')).toBeEnabled();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
   await expect(page.locator('.monaco-editor')).toHaveClass(/vs-dark/);
   await expect(page.locator('.view-lines')).toContainText('existing draft');
   await expect(page.locator('#env')).toHaveValue('pico');

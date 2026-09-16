@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { contract, responseText, parseReply, REPLY_SCHEMA, REPLY_SCHEMA_STRICT, REPLY_SCHEMA_GEMINI, REPLY_SCHEMA_NAME } from '../web/ai-client.js';
 import { systemFor } from '../web/ai.js';
+import { openAI, openExplorer, selectBoard } from './shell.js';
 const code = '#include <Arduino.h>\nvoid setup() {}\nvoid loop() { delay(42); }\n';
 const reply = (message, source = null) => JSON.stringify({ kind: source === null ? 'answer' : 'change', message, source });
 const answer = reply('変更しました。', code);
@@ -14,7 +15,7 @@ const geminiFormat = { text: { mimeType: 'APPLICATION_JSON', schema: REPLY_SCHEM
 const geminiReply = (parts, finishReason = 'STOP') => ({ candidates: [{ content: { parts: Array.isArray(parts) ? parts : [{ text: parts }] }, finishReason }] });
 async function source(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId).source; }, projectKey); }
 async function edit(page, text) { await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.insertText(text); }
-async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await page.click('#ai-open'); }
+async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); await openAI(page); }
 async function settings(page, provider = 'openai') {
   await page.click('#ai-settings-open'); await page.selectOption('#ai-provider', provider);
   await page.fill('#ai-key', `dummy-${provider}-test-only`); await page.click('#ai-save');
@@ -160,7 +161,7 @@ test('Build attachment eligibility, both operations, snapshots, new Build unchec
   await page.uncheck('#ai-attach'); await send(page, 'consult'); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[1].input.at(-1).content).not.toContain('unique-error-log');
   await page.check('#ai-attach'); await send(page, 'generate'); await expect(page.locator('#ai-status')).toContainText('適用済み'); expect(requests[2].input.at(-1).content).toContain('unique-error-log'); await expect(page.locator('#ai-attach')).not.toBeChecked(); await expect(page.locator('#ai-attach')).toBeDisabled();
   await page.click('#build'); await expect(page.locator('#ai-attach')).toBeEnabled(); await page.check('#ai-attach'); buildHold = true; await page.click('#build'); await expect(page.locator('#ai-attach')).not.toBeChecked(); await expect(page.locator('#ai-attach')).toBeDisabled(); await expect.poll(() => Boolean(finishBuild)).toBe(true); finishBuild(); await expect(page.locator('#ai-attach')).toBeEnabled();
-  await page.check('#ai-attach'); await page.selectOption('#env','pico'); await expect(page.locator('#ai-attach')).not.toBeChecked();
+  await page.check('#ai-attach'); await selectBoard(page, 'pico'); await expect(page.locator('#ai-attach')).not.toBeChecked();
 });
 
 test('API settings draft, candidate mapping, custom restoration, save failure, immediate deletion', async ({ page }) => {
@@ -190,7 +191,7 @@ test('captured modes, review/auto apply, Undo/Redo, artifacts, stale edits and A
   await page.click('#ai-apply'); expect(await source(page)).toBe(code); await page.click('#build'); await expect(page.locator('#download')).toBeVisible();
   await page.locator('#editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+Z'); expect(await source(page)).toBe(original); await expect(page.locator('#download')).toBeHidden(); await page.keyboard.press('ControlOrMeta+Shift+Z'); expect(await source(page)).toBe(code);
   await send(page,'generate'); await expect.poll(() => count).toBe(2); await edit(page,'// manual'); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); await expect(page.locator('#ai-apply')).toBeDisabled();
-  await send(page,'generate'); await expect.poll(() => count).toBe(3); await page.click('#projects-open'); await page.click('#project-new'); await page.fill('#name-input','B'); await page.locator('#name-form button[type=submit]').click(); await page.click('#projects-open'); await page.click('#project-open-list'); await page.locator('.project-item').filter({hasText:'はじめてのプロジェクト'}).click(); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); expect(await source(page)).toBe('// manual');
+  await send(page,'generate'); await expect.poll(() => count).toBe(3); await openExplorer(page); await page.click('#projects-open'); await page.click('#project-new'); await page.fill('#name-input','B'); await page.locator('#name-form button[type=submit]').click(); await openExplorer(page); await page.click('#projects-open'); await page.click('#project-open-list'); await page.locator('.project-item').filter({hasText:'はじめてのプロジェクト'}).click(); release(); await expect(page.locator('#ai-status')).toContainText('古い提案'); expect(await source(page)).toBe('// manual');
 });
 
 test('failure recovery and save failure keep input/code', async ({ page }) => {
@@ -276,7 +277,7 @@ test('review preference restored; candidate recheck, setting cancellation and ti
   const pending = []; let count=0;
   await page.route('https://api.openai.com/**', async r => { count++; await new Promise(resolve => pending.push(async () => { await r.fulfill({json:response(answer)}).catch(()=>{}); resolve(); })); });
   await ready(page); await settings(page); await page.selectOption('#ai-mode','review');
-  await page.reload(); await page.click('#ai-open'); await expect(page.locator('#ai-mode')).toHaveValue('review');
+  await page.reload(); await openAI(page); await expect(page.locator('#ai-mode')).toHaveValue('review');
   await send(page,'generate'); await expect.poll(()=>count).toBe(1); await pending[0](); await expect(page.locator('#ai-proposal')).toBeVisible();
   await edit(page,'// edited after proposal'); await expect(page.locator('#ai-apply')).toBeDisabled(); expect(await source(page)).toBe('// edited after proposal');
   await send(page,'generate'); await expect.poll(()=>count).toBe(2); await page.click('#ai-settings-open'); await page.click('#ai-delete'); await page.click('#ai-settings-close');

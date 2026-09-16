@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExplorer } from './shell.js';
 
 test('File dropdown order, keyboard, dismissal, focus and viewport placement', async ({page}, info) => {
   await page.goto('/'); await expect(page.locator('#build')).toBeEnabled();
@@ -14,14 +15,15 @@ test('File dropdown order, keyboard, dismissal, focus and viewport placement', a
   await page.keyboard.press('ArrowUp'); await expect(page.locator('#project-delete')).toBeFocused();
   await page.keyboard.press('Home'); await expect(page.locator('#project-new')).toBeFocused();
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
-  await expect(menu).toBeHidden(); await expect(page.locator('#projects-dialog')).toBeVisible();
-  await page.keyboard.press('Escape'); await expect(trigger).toBeFocused();
+  // 「プロジェクトを開く…」 now brings the Explorer's own list forward instead of a dialog.
+  await expect(menu).toBeHidden(); await expect(page.locator('#project-list .project-item').first()).toBeFocused();
+  await trigger.focus();
   await page.keyboard.press('Enter'); await page.keyboard.press('End'); await expect(page.locator('#project-delete')).toBeFocused();
   await page.keyboard.press('Escape'); await expect(trigger).toBeFocused(); await expect(menu).toBeHidden();
-  await trigger.click(); await page.locator('#env').focus(); await expect(menu).toBeHidden();
-  await trigger.click(); await page.locator('#editor-label').click(); await expect(menu).toBeHidden(); await expect(trigger).toBeFocused();
+  await trigger.click(); await page.locator('#build').focus(); await expect(menu).toBeHidden();
+  await trigger.click(); await page.locator('#explorer-title').click(); await expect(menu).toBeHidden(); await expect(trigger).toBeFocused();
   for (const [width,height] of [[1440,850],[390,700],[320,350]]) {
-    await page.setViewportSize({width,height}); await trigger.click();
+    await page.setViewportSize({width,height}); await openExplorer(page); await trigger.click();
     const a=await trigger.boundingBox(), b=await menu.boundingBox();
     expect(b.y).toBeGreaterThanOrEqual(a.y+a.height);
     expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x+b.width).toBeLessThanOrEqual(width);

@@ -1,31 +1,22 @@
 const $ = (id) => document.getElementById(id);
 
-export function setupUI(monaco) {
-  monaco.editor.defineTheme('digicode-dark', {
-    base: 'vs-dark', inherit: true, rules: [], colors: {
-      'editor.background': '#17212C', 'editor.foreground': '#DBE5EF',
-      'editorLineNumber.foreground': '#718396', 'editorLineNumber.activeForeground': '#52D6B8',
-      'editor.lineHighlightBackground': '#1D2936', 'editor.lineHighlightBorder': '#1D2936',
-      'editor.selectionBackground': '#28534E', 'editorCursor.foreground': '#52D6B8',
-    },
-  });
-  monaco.editor.setTheme('digicode-dark');
+const PHASE = { ready: '待機', changed: '未Build', building: '実行中', success: '✓ 成功', error: '! 失敗' };
 
-  let panelOpen = false;
+// The output panel lives inside the editor column, so opening it never narrows the editor and the
+// AI panel keeps its own full height. Height, open state and the active tab are owned here; the
+// persisted numbers live in layout.js.
+export function setupUI(layout) {
   let activeTab = 'build';
-  let height = 230;
-  function resize(next = height) {
-    const reserved = document.querySelector('.toolbar').offsetHeight
-      + document.querySelector('.file-header').offsetHeight
-      + document.querySelector('.status-bar').offsetHeight + 130;
-    const max = Math.max(100, Math.min(innerHeight * .6, innerHeight - reserved));
-    height = Math.round(Math.max(100, Math.min(next, max)));
-    $('panel-body').style.setProperty('--panel-height', `${height}px`);
+
+  function resize(next = layout.panelHeight) {
+    const column = $('editor-column').clientHeight;
+    const max = Math.max(100, Math.min(innerHeight * 0.6, column - 35 - 35 - 80));
+    layout.panelHeight = Math.max(100, Math.min(next, max));
     $('panel-resize').setAttribute('aria-valuemax', String(Math.round(max)));
-    $('panel-resize').setAttribute('aria-valuenow', String(height));
+    $('panel-resize').setAttribute('aria-valuenow', String(layout.panelHeight));
   }
   function setOpen(open) {
-    panelOpen = open;
+    layout.panelOpen = open;
     $('panel').dataset.open = String(open);
     $('panel-body').hidden = !open;
     $('panel-resize').hidden = !open;
@@ -52,25 +43,27 @@ export function setupUI(monaco) {
       $(tab + '-tab').focus();
     };
   }
-  $('panel-toggle').onclick = () => setOpen(!panelOpen);
+  $('panel-toggle').onclick = () => setOpen(!layout.panelOpen);
+
   const handle = $('panel-resize');
   handle.onkeydown = e => {
     if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
     e.preventDefault();
-    resize(e.key === 'Home' ? 100 : e.key === 'End' ? innerHeight : height + (e.key === 'ArrowUp' ? 24 : -24));
+    resize(e.key === 'Home' ? 100 : e.key === 'End' ? innerHeight : layout.panelHeight + (e.key === 'ArrowUp' ? 24 : -24));
   };
   let drag;
   handle.onpointerdown = e => {
     if (e.button !== 0) return;
-    drag = { y: e.clientY, height };
+    drag = { y: e.clientY, height: layout.panelHeight };
     handle.setPointerCapture(e.pointerId);
     e.preventDefault();
     handle.focus();
   };
   handle.onpointermove = e => { if (drag) resize(drag.height + drag.y - e.clientY); };
   handle.onpointerup = handle.onpointercancel = () => { drag = undefined; };
-  window.addEventListener('resize', () => resize());
-  resize();
+  layout.onResize(() => resize());
+  addEventListener('resize', () => resize());
+  setOpen(layout.panelOpen);
 
   for (const name of ['build', 'serial']) {
     $(`copy-${name}`).onclick = async () => {
@@ -89,10 +82,13 @@ export function setupUI(monaco) {
   }
   return {
     openPanel,
+    applyPanel: () => setOpen(layout.panelOpen),
     setBuildState(state) {
       $('build-phase').dataset.state = state;
-      $('build-phase').textContent = { ready: '待機', changed: '未Build', building: '実行中', success: '✓ 成功', error: '! 失敗' }[state];
+      $('build-phase').textContent = PHASE[state];
       $('status').dataset.state = state;
+      $('status-build').dataset.state = state;
+      $('status-build').textContent = `Build: ${PHASE[state]}`;
       $('build').innerHTML = state === 'building' ? '<span aria-hidden="true">◷</span> Build中' : '<span aria-hidden="true">▷</span> Build';
     },
   };

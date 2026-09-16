@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
+import { selectBoard } from './shell.js';
 
 const key = 'digicode-text.draft.v1';
 async function ready(page) {
@@ -37,7 +38,7 @@ test('Monaco editing, indentation, undo/redo, resize, draft/board/empty restorat
   expect((await saved(page)).source).not.toBe(beforeUndo);
   await page.keyboard.press('ControlOrMeta+Shift+Z');
   expect((await saved(page)).source).toBe(beforeUndo);
-  await page.selectOption('#env', 'pico');
+  await selectBoard(page, 'pico');
   await page.reload();
   await expect(page.locator('#save-status')).toContainText('復元');
   await expect(page.locator('#env')).toHaveValue('pico');
@@ -99,12 +100,12 @@ test('UF2 links invalidated by code/board changes, including edits during Build'
   await expect(page.locator('#download')).not.toHaveAttribute('href');
   await page.click('#build');
   await expect(page.locator('#download')).toBeVisible();
-  await page.selectOption('#env', 'pico');
+  await selectBoard(page, 'pico');
   await expect(page.locator('#download')).toBeHidden();
   delayed = true;
   for (const change of ['code', 'board']) {
     release = undefined;
-    await page.selectOption('#env', 'xiao_rp2040');
+    await selectBoard(page, 'xiao_rp2040');
     await page.click('#build');
     await expect.poll(() => Boolean(release)).toBe(true);
     await expect(page.locator('#build')).toBeDisabled();
@@ -113,7 +114,7 @@ test('UF2 links invalidated by code/board changes, including edits during Build'
     expect(calls).toBe(count);
     expect(sent.env).toBe('xiao_rp2040');
     if (change === 'code') await edit(page, '// changed during build');
-    else await page.selectOption('#env', 'pico');
+    else await selectBoard(page, 'pico');
     release();
     await expect(page.locator('#status')).toContainText('再Build');
     await expect(page.locator('#build')).toBeEnabled();

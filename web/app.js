@@ -7,6 +7,9 @@ import { parseFlashSet, flashEsp, flashUf2 } from './flash.js';
 import { setupLibraries } from './libraries.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
+import { setupLayout } from './layout.js';
+import { setupThemes, THEMES } from './themes/duotone.js';
+import { renderBoardFacts } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, setBoards, MAX_FILE } from './projects.js';
 
 self.MonacoEnvironment = {
@@ -14,7 +17,9 @@ self.MonacoEnvironment = {
 };
 
 const $ = (id) => document.getElementById(id);
-const ui = setupUI(monaco);
+const layout = setupLayout();
+const themes = setupThemes(monaco);
+const ui = setupUI(layout);
 const HELLO = `#include <Arduino.h>
 
 void setup() {
@@ -28,10 +33,17 @@ void loop() {
 `;
 function saveStatus(message, error = false) {
   $('save-status').textContent = `このブラウザに自動保存：${message}`;
+  $('save-status').title = message;
   $('save-status').dataset.error = String(error);
   $('save-retry').hidden = !error;
   $('project-save-message').textContent = error ? message : '';
 }
+
+// Appearance and layout controls live in the Settings view, next to the API settings.
+$('theme-select').replaceChildren(...THEMES.map(t => new Option(t.name, t.id)));
+$('theme-select').value = themes.current;
+$('theme-select').onchange = () => themes.apply($('theme-select').value, { save: true });
+$('layout-reset').onclick = () => { layout.reset(); ui.applyPanel(); $('theme-select').focus(); };
 
 // The compiler's board table is the only board list: select options, project validation
 // and the AI's boardDetails are generated from it.
@@ -46,10 +58,10 @@ const editor = monaco.editor.create($('editor'), {
   value: store.current.source,
   language: 'cpp',
   automaticLayout: true,
-  fontSize: 14,
-  lineHeight: 23,
-  fontFamily: 'SFMono-Regular, Menlo, Consolas, monospace',
-  padding: { top: 18, bottom: 18 },
+  fontSize: 13,
+  lineHeight: 20,
+  fontFamily: '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace',
+  padding: { top: 12, bottom: 12 },
   smoothScrolling: false,
   cursorBlinking: 'solid',
   lineNumbers: 'on',
@@ -58,12 +70,53 @@ const editor = monaco.editor.create($('editor'), {
   insertSpaces: true,
   minimap: { enabled: false },
   scrollBeyondLastLine: false,
+  renderLineHighlight: 'all',
   ariaLabel: 'main.cpp コードエディタ',
 });
 
 editor.onDidChangeCursorPosition(({ position }) => {
   $('cursor-position').textContent = `行 ${position.lineNumber}、列 ${position.column}`;
 });
+
+// One tab today, drawn from a list so a second file only needs another entry.
+const TABS = [{ id: 'main.cpp', label: 'main.cpp', kind: 'C++', labelId: 'editor-label' }];
+function renderTabs(activeId = TABS[0].id) {
+  $('tab-strip').replaceChildren(...TABS.map(tab => {
+    const button = document.createElement('button');
+    button.className = 'tab';
+    button.type = 'button';
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(tab.id === activeId));
+    const kind = document.createElement('span');
+    kind.className = 'file-kind'; kind.textContent = tab.kind; kind.setAttribute('aria-hidden', 'true');
+    const label = document.createElement('span');
+    if (tab.labelId) label.id = tab.labelId;
+    label.textContent = tab.label;
+    button.append(kind, label);
+    button.onclick = () => editor.focus();
+    return button;
+  }));
+}
+renderTabs();
+$('file-main').onclick = () => editor.focus();
+
+function showBoard() {
+  const board = BOARDS.get($('env').value);
+  renderBoardFacts(board);
+  $('status-board').textContent = board?.name ?? '';
+  $('status-board').title = `ボード: ${board?.name ?? ''}`;
+}
+$('status-board').onclick = () => layout.showView('boards');
+
+// The status bar mirrors what the Serial panel and the AI panel already say, so those modules
+// keep owning their own text and nothing here duplicates their logic.
+function mirror(from, to, format) {
+  const update = () => { $(to).textContent = format($(from).textContent); };
+  new MutationObserver(update).observe($(from), { childList: true, characterData: true, subtree: true });
+  update();
+}
+mirror('serial-status', 'status-serial', text => `Serial: ${text}`);
+mirror('ai-connection', 'status-model', text => text);
 
 let revision = 0;
 let building = false;
@@ -103,7 +156,7 @@ function changed() {
   ai?.changed();
 }
 editor.onDidChangeModelContent(changed);
-$('env').addEventListener('change', changed);
+$('env').addEventListener('change', () => { showBoard(); changed(); });
 $('build').disabled = false;
 $('status').textContent = 'Buildできます';
 
@@ -225,7 +278,7 @@ function renderProjects() {
     date.textContent = `${p.id === store.current.id ? '編集中 · ' : ''}${new Date(p.updatedAt).toLocaleString('ja-JP')}`;
     button.append(name, date);
     button.onclick = () => {
-      if (p.id === store.current.id) { $('projects-dialog').close(); return; }
+      if (p.id === store.current.id) return;
       if (store.transact(data => { data.activeId = p.id; })) activate();
     };
     list.append(button);
@@ -237,6 +290,7 @@ function activate() {
   editor.setModel(monaco.editor.createModel(store.current.source, 'cpp'));
   previous.dispose();
   $('env').value = store.current.env;
+  showBoard();
   switching = false;
   revision++;
   lastBuildFailure = null;
@@ -245,7 +299,6 @@ function activate() {
   $('status').textContent = building ? '以前のプロジェクトをBuild中です' : 'Buildできます';
   $('log').textContent = '';
   renderProjects();
-  $('projects-dialog').close();
   editor.focus();
   ai?.changed();
 }
@@ -307,13 +360,10 @@ document.addEventListener('focusin', event => {
   if (!menu.hidden && !menu.contains(event.target) && event.target !== menuButton) closeMenu(false);
 });
 window.addEventListener('resize', () => { if (!menu.hidden) positionMenu(); });
-$('project-open-list').onclick = () => { renderProjects(); $('projects-dialog').showModal(); };
-for (const id of ['projects-dialog', 'name-dialog']) {
-  $(id).addEventListener('close', () => {
-    if (document.activeElement === document.body || document.activeElement === menuButton) menuButton.focus();
-  });
-}
-$('projects-close').onclick = () => $('projects-dialog').close();
+$('project-open-list').onclick = () => { renderProjects(); layout.showView('explorer'); $('project-list').querySelector('.project-item')?.focus(); };
+$('name-dialog').addEventListener('close', () => {
+  if (document.activeElement === document.body || document.activeElement === menuButton) menuButton.focus();
+});
 $('name-cancel').onclick = () => $('name-dialog').close();
 $('project-new').onclick = () => askName('new', '新しいプロジェクト', '新しいプロジェクト');
 $('project-rename').onclick = () => askName('rename', '名前を変更', store.current.name);
@@ -368,6 +418,7 @@ $('project-file').onchange = async event => {
 };
 $('save-retry').onclick = () => store.save();
 renderProjects();
+showBoard();
 
 setupLibraries(store, libraries => { store.current.libraries = libraries; changed(); });
 
@@ -384,6 +435,8 @@ function matchesAI(s) {
 }
 ai = setupAI(monaco, {
   snapshot: aiSnapshot, matches: matchesAI, dirty: () => store.dirty,
+  toggleAI: () => layout.toggleAI(),
+  setAI: (open) => layout.setAI(open),
   failure: s => lastBuildFailure && lastBuildFailure.projectId === s.projectId && lastBuildFailure.revision === s.revision && lastBuildFailure.projectRevision === s.projectRevision ? lastBuildFailure : null,
   apply: source => {
     editor.pushUndoStop();

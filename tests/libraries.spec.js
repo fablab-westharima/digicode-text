@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { fileMenu, selectBoard } from './shell.js';
 const lib = { id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' };
 const item = { ...lib, description: 'JSON serialization library', frameworks: ['*'], platforms: ['*'] };
 const key = 'digicode-text.projects.v1';
 const source = '#include <Arduino.h>\n#include <ArduinoJson.h>\nvoid setup(){ Serial.begin(115200); }\nvoid loop(){ JsonDocument doc; doc["message"]="DigiCode library test"; doc["value"]=42; serializeJson(doc, Serial); Serial.println(); delay(1000); }\n';
 async function ready(page) { await page.goto('/'); await expect(page.locator('#build')).toBeEnabled(); }
 async function saved(page) { return page.evaluate(key => { const d = JSON.parse(localStorage.getItem(key)); return d.projects.find(p => p.id === d.activeId); }, key); }
-async function menu(page, id) { await page.click('#projects-open'); await page.click('#project-' + id); }
+async function menu(page, id) { await fileMenu(page, 'project-' + id); }
 async function named(page, action, name) { await menu(page, action); await page.fill('#name-input', name); await page.locator('#name-form button[type=submit]').click(); }
 async function edit(page, text) { await page.locator('.monaco-editor .view-lines').click(); await page.keyboard.press('ControlOrMeta+A'); await page.keyboard.insertText(text); }
 async function mocks(page) {
@@ -123,7 +124,7 @@ test('two-part Registry versions survive the search and details endpoints', asyn
 test('Actual Registry add, RP2040 and C3 builds/downloads, deletion and concurrent project isolation', async ({ page, request }, info) => {
   test.setTimeout(1_200_000); await ready(page); await edit(page, source); await add(page); await page.click('#libraries-close');
   for (const env of ['xiao_rp2040', 'xiao_esp32c3']) {
-    await page.selectOption('#env', env);
+    await selectBoard(page, env);
     const response = page.waitForResponse(r => r.url().endsWith('/compile'), { timeout: 600_000 });
     await page.click('#build');
     let bytes;
