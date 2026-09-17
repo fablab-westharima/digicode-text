@@ -134,6 +134,7 @@
         <div role="tablist" aria-label="出力の種類">
           <button id="build-tab" role="tab" aria-controls="build-output" aria-selected="true">ビルド結果 <span id="build-phase" data-state="ready">待機</span></button>
           <button id="serial-tab" role="tab" aria-controls="serial-output" aria-selected="false" tabindex="-1">シリアル <span class="serial-dot" aria-hidden="true"></span></button>
+          <button id="plotter-tab" role="tab" aria-controls="plotter-output" aria-selected="false" tabindex="-1">プロッタ</button>
         </div>
         <button id="panel-toggle" class="quiet" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開閉">開く ⌃</button>
       </div>
@@ -146,9 +147,14 @@
           <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
         </div>
         <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>
-          <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="copy-serial" class="quiet">コピー</button></div></div>
+          <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><label for="serial-baud" class="sr-only">ボーレート</label><select id="serial-baud" title="ボーレート（切断中に変更できます）"></select><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="serial-forget" class="quiet" title="選んだUSBポートの許可を解除して、次回選び直せるようにする">USBポートを解除</button><button id="copy-serial" class="quiet">コピー</button></div></div>
           <p id="serial-empty" class="empty-message">シリアルモニタは未接続です。接続ボタンからポートを選択できます。</p>
           <pre id="serial-log" tabindex="0" aria-label="シリアルログ"></pre>
+        </div>
+        <div id="plotter-output" role="tabpanel" aria-labelledby="plotter-tab" hidden>
+          <div class="output-heading"><p id="plot-status" role="status">数値の行を待っています。「12, 34」や「temp:25.5 hum:40」の形で送ってください</p><div class="serial-actions"><label for="plot-samples" class="sr-only">表示するサンプル数</label><input id="plot-samples" type="number" min="100" max="5000" step="100" value="500" title="表示するサンプル数（100〜5000）"><button id="plot-pause" aria-pressed="false">一時停止</button><button id="plot-clear" class="quiet">クリア</button></div></div>
+          <div id="plot-legend"></div>
+          <div id="plot-area"><canvas id="plot-canvas" aria-label="シリアルの数値グラフ" role="img"></canvas></div>
         </div>
       </div>
     </section>

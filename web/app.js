@@ -2,8 +2,9 @@ import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
 import 'monaco-editor/esm/vs/editor/editor.all.js';
 import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
-import './serial.js';
-import { parseFlashSet, flashEsp, flashUf2 } from './flash.js';
+import { monitorPort, disconnectForFlash } from './serial.js';
+import { setupPlotter } from './plotter.js';
+import { parseFlashSet, flashEsp, flashUf2, ESP_VENDOR_IDS } from './flash.js';
 import { setupFlashGuide } from './flash-guide.js';
 import { setupLibraries } from './libraries.js';
 import { incompatibleDependencies } from './library-incompat.js';
@@ -22,6 +23,7 @@ const $ = (id) => document.getElementById(id);
 const layout = setupLayout();
 const themes = setupThemes(monaco);
 const ui = setupUI(layout);
+setupPlotter(); // 出力パネルのプロッタタブ。シリアルモニタの受信テキストを自分で受け取る。
 const HELLO = `#include <Arduino.h>
 
 void setup() {
@@ -282,7 +284,17 @@ function startFlash() {
   $('build').disabled = true;
   ui.openPanel('build');
   const report = ({ stage, percent, message }) => flashStatus(percent === null ? message : `書き込み ${percent}%：${message}`, stage);
-  (set ? flashEsp(set, report) : flashUf2(image, report))
+  // ESP系は書き込みもモニタも同じポートを使う。モニタが持っているポートがあれば選択なしでそれへ書き、
+  // 開いていれば先に切断を待つ（黙って切れたように見えないようビルド結果とシリアルタブに1行ずつ）。
+  // 書き込み後は自動でつながない。ブラウザがポートを握ると PlatformIO monitor などが開けなくなる。
+  // window.__flashEsp はテスト専用の差し替え口（esptool-js の成功経路はモックのポートでは通せない）。
+  const esp = async () => {
+    const held = monitorPort(ESP_VENDOR_IDS);
+    const buildLog = $('log');
+    if (await disconnectForFlash()) buildLog.textContent += (buildLog.textContent && !buildLog.textContent.endsWith('\n') ? '\n' : '') + 'シリアルを切断して書き込みます\n';
+    await (window.__flashEsp ?? flashEsp)(set, report, held);
+  };
+  (set ? esp() : flashUf2(image, report))
     .catch(error => flashStatus(String(error?.message ?? error), 'error'))
     .finally(() => {
       flashing = false;

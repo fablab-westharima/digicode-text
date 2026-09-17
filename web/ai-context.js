@@ -21,7 +21,7 @@ export const PRODUCT_INFO = {
 const PRODUCT_LABELS = { editor: 'エディタ', build: 'Build', flashing: '書き込み', serial: 'Serialモニタ', projectStorage: 'プロジェクト保存', ai: 'AI支援', userOperations: '利用者の操作', libraryAdditionPolicy: 'ライブラリ追加', libraryEvidence: '依存の根拠', versionEvidence: '版の根拠' };
 export function productReference() {
   const s = PRODUCT_INFO.serial;
-  const prose = { ...PRODUCT_INFO, serial: `${s.api}。通信速度は${s.baudRate} baud。${s.scope}` };
+  const prose = { ...PRODUCT_INFO, serial: `${s.api}。通信速度は既定 ${s.baudRate} baud。シリアルタブのボーレートで変更可。${s.scope}` };
   return Object.entries(prose).map(([k, v]) => `${PRODUCT_LABELS[k]}: ${v}`).join('\n');
 }
 // Where the controls are, as sentences — the same form as boardFacts, and sent the same way

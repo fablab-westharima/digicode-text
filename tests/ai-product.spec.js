@@ -60,7 +60,7 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
   }
   expect(() => validateContent({ name: 'test', env: 'no_such_board', source: '', libraries: [] })).toThrow();
   const serial = await read('web/serial.js');
-  expect(serial).toContain(`baudRate: ${PRODUCT_INFO.serial.baudRate}`);
+  expect(serial).toContain(`DEFAULT_BAUD = ${PRODUCT_INFO.serial.baudRate}`); // 選択式になった。AIに伝えるのは既定値
   const packager = await read('compiler/pio-esp/package_firmware.py');
   // Images and their addresses come from the build environment, so no image list is fixed here:
   // espressif32 packages four images, espressif8266 one at the environment's own application offset.

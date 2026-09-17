@@ -1,6 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
 const PHASE = { ready: '待機', changed: '未Build', building: '実行中', success: '✓ 成功', error: '! 失敗' };
+// 出力パネルのタブ。左から並べた順がそのまま Home / End / 矢印キーの順になる。
+const TABS = ['build', 'serial', 'plotter'];
 
 // The output panel lives inside the editor column, so opening it never narrows the editor and the
 // AI panel keeps its own full height. Height, open state and the active tab are owned here; the
@@ -26,19 +28,21 @@ export function setupUI(layout) {
   }
   function openPanel(tab = activeTab) {
     activeTab = tab;
-    for (const name of ['build', 'serial']) {
+    for (const name of TABS) {
       $(name + '-tab').setAttribute('aria-selected', String(name === tab));
       $(name + '-tab').tabIndex = name === tab ? 0 : -1;
       $(name + '-output').hidden = name !== tab;
     }
     setOpen(true);
   }
-  for (const name of ['build', 'serial']) {
+  for (const name of TABS) {
     $(name + '-tab').onclick = () => openPanel(name);
     $(name + '-tab').onkeydown = e => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
-      const tab = e.key === 'Home' ? 'build' : e.key === 'End' ? 'serial' : name === 'build' ? 'serial' : 'build';
+      const index = TABS.indexOf(name);
+      const tab = e.key === 'Home' ? TABS[0] : e.key === 'End' ? TABS.at(-1)
+        : TABS[(index + (e.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length];
       openPanel(tab);
       $(tab + '-tab').focus();
     };

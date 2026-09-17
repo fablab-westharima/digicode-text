@@ -163,6 +163,16 @@
 
 :root {
   color-scheme: dark;
+  /* プロッタの系列色。テーマごとの色は書かず、そのテーマの accent(duo)と uno の階調から作る。
+     plotter.js が --plot-1 … --plot-8 を読んで Canvas に使う。 */
+  --plot-1: var(--accent);
+  --plot-2: var(--uno-1);
+  --plot-3: var(--accent-2);
+  --plot-4: var(--uno-3);
+  --plot-5: var(--accent-3);
+  --plot-6: var(--uno-2);
+  --plot-7: var(--uno-4);
+  --plot-8: var(--fg-muted);
   --ui-font: -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --code-font: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
   --row: 28px;
@@ -331,9 +341,12 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* ---- output panel (inside the editor column, never full width) ------------------------- */
 .panel { min-width: 0; background: var(--bg-panel); border-top: 1px solid var(--border); }
-.panel-header { height: 35px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-[role="tablist"] { display: flex; align-self: stretch; gap: 14px; }
-[role="tab"] { height: 100%; padding: 0 2px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: var(--fg-muted); font-size: 12px; }
+.panel-header { height: 35px; min-width: 0; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* エディタ列が狭いとタブ3枚が入りきらない。タブ列だけを縮めて横に流し、パネル自体は列から
+   はみ出させない(はみ出すと出力パネルがサイドバーの下に潜る)。 */
+[role="tablist"] { display: flex; align-self: stretch; gap: 14px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+[role="tablist"]::-webkit-scrollbar { display: none; }
+[role="tab"] { flex: none; height: 100%; padding: 0 2px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: var(--fg-muted); font-size: 12px; }
 [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 #build-phase { display: inline-flex; align-items: center; padding: 1px 6px; font-size: 10px; line-height: 15px; border-radius: 3px; background: var(--bg-raised); color: var(--fg-muted); }
 #build-phase[data-state="building"] { color: var(--accent); }
@@ -342,7 +355,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .serial-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg-muted); }
 #panel-body { height: var(--panel-height); min-height: 0; }
 [role="tabpanel"] { height: 100%; display: flex; flex-direction: column; min-width: 0; }
-.output-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border); background: var(--bg-panel); flex: none; }
+/* 狭い画面では見出しの操作ボタンを折り返す。横スクロールを出さないための逃げ道。 */
+.output-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border); background: var(--bg-panel); flex: none; }
 .output-heading p { margin: 0; font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
 #status[data-state="error"] { color: var(--danger); }
 #status[data-state="success"] { color: var(--accent-2); }
@@ -350,8 +364,17 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 #flash-status { margin: 0; padding: 6px 10px; font-size: 12px; background: var(--bg-editor); }
 #flash-status[data-state="error"] { color: var(--danger); white-space: pre-wrap; }
 #flash-status[data-state="complete"] { color: var(--accent-2); }
-.serial-actions { display: flex; gap: 6px; }
+.serial-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .serial-actions button { height: 24px; font-size: 12px; }
+.serial-actions input { height: 24px; width: 72px; padding: 0 4px; font-size: 12px; }
+.serial-actions select { height: 24px; padding: 0 4px; font-size: 12px; }
+/* ---- plotter ---- */
+#plot-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 10px; font-size: 12px; background: var(--bg-editor); }
+#plot-legend:empty { display: none; }
+.plot-series { display: inline-flex; align-items: center; gap: 5px; color: var(--fg-muted); font-family: var(--code-font); }
+.plot-series i { width: 9px; height: 2px; border-radius: 1px; }
+#plot-area { flex: 1; min-height: 0; background: var(--bg-editor); }
+#plot-canvas { display: block; width: 100%; height: 100%; }
 pre { flex: 1; min-height: 0; margin: 0; padding: 10px 12px; overflow: auto; white-space: pre; font: 13px/1.6 var(--code-font); color: var(--fg); background: var(--bg-editor); tab-size: 2; }
 pre:empty { padding-top: 0; }
 .empty-message { margin: 0; padding: 14px 12px 0; color: var(--fg-muted); font-size: 12px; background: var(--bg-editor); }

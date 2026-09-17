@@ -23,7 +23,12 @@ test('File dropdown order, keyboard, dismissal, focus and viewport placement', a
   await trigger.click(); await page.locator('#build').focus(); await expect(menu).toBeHidden();
   await trigger.click(); await page.locator('#explorer-title').click(); await expect(menu).toBeHidden(); await expect(trigger).toBeFocused();
   for (const [width,height] of [[1440,850],[390,700],[320,350]]) {
-    await page.setViewportSize({width,height}); await openExplorer(page); await trigger.click();
+    await page.setViewportSize({width,height});
+    // 幅を変えた直後はシェルの resize ハンドラがまだ走っていないことがある。走る前に Explorer を
+    // 見に行くと「今は見えている」で素通りし、直後に狭いレイアウトがサイドバーを畳んで
+    // #projects-open が消え、click が待ち続ける。ui.spec.js の fits() と同じ待ち方で揃える。
+    await expect(page.locator('#shell')).toHaveAttribute('data-narrow', String(width<900));
+    await openExplorer(page); await trigger.click();
     const a=await trigger.boundingBox(), b=await menu.boundingBox();
     expect(b.y).toBeGreaterThanOrEqual(a.y+a.height);
     expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x+b.width).toBeLessThanOrEqual(width);

@@ -3,6 +3,7 @@
 // but every address and image comes from the build's own flash set — nothing is hard-coded.
 import { ESPLoader, Transport } from 'esptool-js';
 import { disconnectSerial } from './serial.js';
+import { hardResetPulse } from './esp-reset.js';
 
 // Same vendor filter as the donor: CP210x, CH340, FTDI, Espressif USB JTAG/serial.
 export const ESP_VENDOR_IDS = [0x10c4, 0x1a86, 0x0403, 0x303a];
@@ -20,11 +21,12 @@ export function parseFlashSet(json) {
 }
 
 // Must be called from a user gesture (requestPort). Reports through onProgress({ stage, percent, message }).
-export async function flashEsp(flashSet, onProgress) {
+export async function flashEsp(flashSet, onProgress, heldPort) {
   if (!('serial' in navigator)) throw new Error('このブラウザはWeb Serialに対応していません。ChromeまたはEdgeを使用してください');
   const report = (stage, percent, message) => onProgress({ stage, percent, message });
-  report('connecting', 0, 'ポートを選択してください…');
-  const port = await navigator.serial.requestPort({ filters: ESP_VENDOR_IDS.map(usbVendorId => ({ usbVendorId })) });
+  // A port the monitor already holds is reused, so the chooser only appears when there is none.
+  if (!heldPort) report('connecting', 0, 'ポートを選択してください…');
+  const port = heldPort ?? await navigator.serial.requestPort({ filters: ESP_VENDOR_IDS.map(usbVendorId => ({ usbVendorId })) });
   await disconnectSerial(); // the monitor may hold the same port
   const transport = new Transport(port, false);
   const lines = [];
@@ -47,6 +49,7 @@ export async function flashEsp(flashSet, onProgress) {
     });
     report('resetting', 95, 'ボードをリセット中…');
     await loader.after('hard_reset');
+    await hardResetPulse(transport); // esptool-js's hard reset leaves RTS untouched; this is the pulse that restarts the board
     report('complete', 100, `書き込み完了（${chipName}、${flashSet.images.length} イメージ、${total} bytes）`);
   } catch (error) {
     const detail = lines.filter(Boolean).slice(-5).join('\n');
