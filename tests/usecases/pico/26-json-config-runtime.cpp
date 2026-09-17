@@ -1,12 +1,12 @@
 // @board pico
 // @lib bblanchon/ArduinoJson@7.4.3
-// @desc Mbed コアには EEPROM ライブラリが無いので、設定は Serial の JSON で受けて RAM に保持する
+// @desc 不揮発化せず、設定を Serial の JSON で受けて RAM にだけ保持する
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-// earlephilhower コアの EEPROM (フラッシュ擬似) に相当するものが Mbed コアの
-// libraries には無い。ここでは起動時の既定値 + Serial からの上書きだけで運用する。
+// arduino-pico には EEPROM (フラッシュ擬似) が同梱されているが、このケースでは使わず、
+// 起動時の既定値 + Serial からの上書きだけで運用する。EEPROM 版は 45-eeprom-recipe-json.cpp。
 struct Config {
   uint32_t intervalMs;
   float thresholdC;

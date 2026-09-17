@@ -1,6 +1,6 @@
 // @board pico
 // @lib bblanchon/ArduinoJson@7.4.3
-// @desc Mbed コア上で ArduinoJson の直列化・逆直列化とフィルタを回す
+// @desc arduino-pico コア上で ArduinoJson の直列化・逆直列化とフィルタを回す
 
 #include <Arduino.h>
 #include <ArduinoJson.h>

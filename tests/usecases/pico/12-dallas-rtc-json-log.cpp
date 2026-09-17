@@ -29,7 +29,7 @@ void setup() {
   Serial.begin(115200);
   delay(200);
 
-  // Mbed コアの Wire は GP4 (SDA) / GP5 (SCL) 固定。
+  // arduino-pico では setSDA/setSCL で移せるが、ここは既定の GP4 (SDA) / GP5 (SCL) を使う。
   Wire.begin();
 
   rtcReady = rtc.begin(&Wire);

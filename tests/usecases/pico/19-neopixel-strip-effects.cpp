@@ -1,6 +1,6 @@
 // @board pico
 // @lib adafruit/Adafruit NeoPixel@1.15.5
-// @desc 外付け 16 球ストリップで虹・追いかけ・呼吸の 3 効果を切り替える (Mbed コア側の対応確認)
+// @desc 外付け 16 球ストリップで虹・追いかけ・呼吸の 3 効果を切り替える (arduino-pico 側の対応確認)
 
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>

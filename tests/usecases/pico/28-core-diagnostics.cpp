@@ -1,10 +1,10 @@
 // @board pico
-// @desc ライブラリ無しで Mbed コアの素の API (ADC 分解能・PWM・ループ周期) を測る
+// @desc ライブラリ無しで arduino-pico の素の API (ADC 分解能・PWM・ループ周期) を測る
 
 #include <Arduino.h>
 
-// earlephilhower コアの rp2040.* ヘルパ (getFreeHeap / wdt_begin など) は
-// Mbed コアには無い。ここは ArduinoCore-API の範囲だけで書く。
+// arduino-pico には rp2040.* ヘルパ (getFreeHeap / wdt_begin など) があるが、
+// ここはあえて ArduinoCore-API の範囲だけで書く。rp2040.* は 44-watchdog-supervisor.cpp で使う。
 static uint32_t loops = 0;
 static uint32_t worstJitterUs = 0;
 static uint32_t lastTick = 0;

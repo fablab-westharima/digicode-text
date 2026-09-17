@@ -34,7 +34,7 @@ static const char* statusText(uint8_t code) {
 }
 
 void setup() {
-  // Mbed コアの Serial は USB CDC。ホストが開くまで少し待つ。
+  // arduino-pico の Serial は USB CDC。ホストが開くまで少し待つ。
   Serial.begin(115200);
   const uint32_t deadline = millis() + 3000;
   while (!Serial && millis() < deadline) delay(10);

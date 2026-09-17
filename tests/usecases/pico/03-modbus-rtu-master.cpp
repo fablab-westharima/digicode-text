@@ -1,12 +1,12 @@
 // @board pico
 // @lib 4-20ma/ModbusMaster@2.0.1
-// @desc RS485 変換器経由の Modbus RTU master。Mbed コアの Serial1 は GP0/GP1 固定で pin を移せない
+// @desc RS485 変換器経由の Modbus RTU master。Serial1 は既定の GP0/GP1 を使う
 
 #include <Arduino.h>
 #include <ModbusMaster.h>
 
-// Pico の Mbed コアは variant の PIN_SERIAL_TX/RX (GP0/GP1) で Serial1 が固定される。
-// earlephilhower の setTX/setRX に相当する API は無い。
+// arduino-pico の Serial1 は setTX/setRX で pin を移せるが、ここでは variant 既定の
+// PIN_SERIAL1_TX/RX (GP0/GP1) をそのまま使う。pin 移動は 36-max31855-modbus-oven.cpp で試す。
 static const uint8_t RS485_DE = 2;  // GP2 で MAX485 の DE/RE を駆動
 static const uint8_t SLAVE_ID = 1;
 

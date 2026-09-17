@@ -1,7 +1,7 @@
 // @board pico
 // @lib bogde/HX711@0.7.5
 // @lib marcoschwartz/LiquidCrystal_I2C@1.1.4
-// @desc HX711 の重量を I2C キャラクタ LCD に表示する。Mbed コアの Wire は GP4/GP5 固定
+// @desc HX711 の重量を I2C キャラクタ LCD に表示する。Wire は既定の GP4/GP5 を使う
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -20,7 +20,8 @@ void setup() {
   Serial.begin(115200);
   pinMode(TARE_BUTTON, INPUT_PULLUP);
 
-  // Mbed コアの Wire は variant の PIN_WIRE_SDA/SCL (GP4/GP5) 固定。setSDA/setSCL は無い。
+  // arduino-pico には Wire.setSDA/setSCL があるが、ここでは variant 既定の
+  // PIN_WIRE0_SDA/SCL (GP4 = SDA / GP5 = SCL) をそのまま使う。
   Wire.begin();
   Wire.setClock(100000);
 

@@ -4,7 +4,7 @@
 
 #include <Arduino.h>
 
-// Mbed コアの WebServer 相当は WiFi / Ethernet のバックエンドが要る。
+// arduino-pico の WebServer は WiFi (Pico W) / Ethernet のバックエンドが要る。
 // 無印 Pico 単体では成立しないため対象外。
 
 void setup() {
