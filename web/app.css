@@ -306,7 +306,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 #ai-settings .ai-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 #ai-settings-status { color: var(--accent); line-height: 1.6; }
 #ai-delete { margin-top: 12px; }
-#layout-reset { margin-top: 8px; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
 /* ---- sidebar: ad slot ----------------------------------------------------------------- */
 .ad-slot { flex: none; width: 100%; height: 250px; display: grid; place-items: center; border-top: 1px solid var(--border); background: var(--bg-sidebar); overflow: hidden; }
@@ -414,6 +414,9 @@ button.status-item:hover:not(:disabled) { color: var(--fg-strong); background: v
 .shell[data-narrow="true"] .split-v { display: none; }
 .shell[data-narrow="true"] .project-chip { max-width: 90px; }
 .shell[data-narrow="true"] #save-status { display: none; }
+/* 狭い画面ではタブバーにBuildと書き込みだけを残す。接続手順はヘルプの「接続手順を見る」から開く
+   （書き込みボタンを押したときのモーダルは幅にかかわらず出る）。 */
+.shell[data-narrow="true"] #flash-guide-open { display: none; }
 
 /* ---- dialogs that stayed dialogs ------------------------------------------------------ */
 dialog { color: var(--fg); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 20px; width: min(540px, calc(100% - 24px)); max-height: calc(100dvh - 40px); }
@@ -425,6 +428,44 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 .manage-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 #ai-context-dialog { width: min(850px, calc(100% - 24px)); }
 #ai-context-text { max-height: 55dvh; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---- 書き込み前の接続手順 ---------------------------------------------------------------- */
+#flash-guide-dialog { overflow-y: auto; }
+.flash-guide-steps { margin: 10px 0 0; padding-left: 20px; line-height: 1.7; }
+.flash-guide-steps li { margin-bottom: 14px; }
+.flash-guide-steps p { margin: 6px 0 0; }
+.flash-guide-skip { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--fg-muted); font-size: 12px; }
+/* 図は線画だけ。色はここでしか与えず、SVGファイル自身は色を持たない。
+   塗りの階調もテーマ変数の使い分けだけで作る（生の色値はここにも図にも書かない）。
+   暗い順: --bg-sidebar < --bg-panel < --bg-editor（図の地）< --bg-raised < --border */
+.flash-figure { width: min(240px, 100%); padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-editor); }
+.flash-figure svg { display: block; width: 100%; height: auto; fill: none; stroke: var(--fg-muted); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.flash-figure .fig-board { fill: var(--bg-panel); }  /* 基板、くぼみ、窓の地 */
+.flash-figure .fig-part { fill: var(--bg-raised); }  /* 樹脂ハウジング、ボタン、部品 */
+.flash-figure .fig-face { fill: var(--border); }     /* 金属シールド、ラベル面 */
+.flash-figure .fig-pad { fill: var(--border); stroke: none; } /* ピンのパッド */
+.flash-figure .fig-thin { stroke-width: 1.5; }
+.flash-figure .fig-accent { stroke: var(--accent); }
+.flash-figure .fig-hit { fill: var(--accent-soft); stroke: var(--accent); } /* その手順で触る所 */
+.flash-figure text { fill: var(--fg-muted); stroke: none; font-family: var(--ui-font); font-size: 17px; }
+.flash-figure text.fig-small { font-size: 13px; }
+.flash-figure .fig-accent text, .flash-figure text.fig-accent { fill: var(--accent); stroke: none; }
+@keyframes fig-cable { 0%, 15% { transform: translateX(-26px); } 55%, 100% { transform: translateX(0); } }
+/* 図の左端に部品がある場合の短い動き（動き始めでも viewBox から出ない）。 */
+@keyframes fig-cable-near { 0%, 15% { transform: translateX(-12px); } 55%, 100% { transform: translateX(0); } }
+@keyframes fig-press { 0%, 30% { transform: translateY(0); } 45%, 80% { transform: translateY(6px); } 95%, 100% { transform: translateY(0); } }
+@keyframes fig-appear { 0%, 25% { opacity: 0; } 45%, 90% { opacity: 1; } 100% { opacity: 0; } }
+.flash-figure .fig-cable { animation: fig-cable 2s ease-in-out infinite; }
+.flash-figure .fig-cable-near { animation: fig-cable-near 2s ease-in-out infinite; }
+.flash-figure .fig-press { animation: fig-press 2s ease-in-out infinite; }
+.flash-figure .fig-appear { animation: fig-appear 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .flash-figure .fig-cable, .flash-figure .fig-cable-near, .flash-figure .fig-press, .flash-figure .fig-appear { animation: none; opacity: 1; }
+}
+
+/* ---- ヘルプ ----------------------------------------------------------------------------- */
+.help-steps { margin: 6px 0; padding-left: 20px; line-height: 1.8; }
+#help-view p { margin: 8px 0; line-height: 1.7; }
 
 /* ---- file menu ------------------------------------------------------------------------ */
 #file-menu { position: fixed; z-index: 100; width: min(240px, calc(100vw - 16px)); padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); overflow-y: auto; }

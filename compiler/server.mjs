@@ -5,6 +5,7 @@
 // GET  /          -> web/index.html
 // GET  /libraries/incompat -> the compiler's library incompatibility table (compiler/library-incompat.mjs)
 // GET  /boards    -> [{ id, name, family, platform, framework, core, artifact, browserFlash, serial, flashHint,
+//                       flashGuide (the steps shown before flashing; compiler/flash-guides.mjs),
 //                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
 //                       that table, where the variant is generic), pinNotes (sourced board notes),
 //                       incompatibleLibraries (rows of the incompatibility table for this platform) }]
@@ -23,6 +24,7 @@ import { createHash } from 'node:crypto';
 import { validateLibraries } from '../shared/libraries.js';
 import { searchLibraries, libraryDetails, verifyLibraries } from './registry.mjs';
 import { LIBRARY_INCOMPAT, findIncompat, incompatFor } from './library-incompat.mjs';
+import { FLASH_GUIDES } from './flash-guides.mjs';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -49,7 +51,7 @@ const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前に
 // pinNotes hold what no header states: one sentence each, with the URL it was read from.
 const BOARDS = new Map([
   ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
+    name: 'XIAO RP2040', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.xiao_rp2040,
     pinNotes: [
       { text: 'MCUの動作電圧は3.3Vで、汎用I/Oピンに3.3Vより高い電圧を入力するとチップが破損することがある', source: SEEED_XIAO_RP2040 },
       { text: 'USBとVIN/5Vピンから入れた5Vは基板上のDC-DCで3.3Vに落とされるため、5Vを受けられるのは電源ピンだけ', source: SEEED_XIAO_RP2040 },
@@ -60,7 +62,7 @@ const BOARDS = new Map([
       { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
     ] }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH,
+    name: 'Raspberry Pi Pico', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico,
     pinNotes: [
       { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
       { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_DATASHEET },
@@ -71,7 +73,7 @@ const BOARDS = new Map([
       { text: 'テストポイントTP4（GPIO23）は外部から使う想定がなく、TP5（GPIO25）はLEDの順方向電圧までしか振れないため使用は勧められていない', source: RPI_PICO_DATASHEET },
     ] }],
   ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH,
+    name: 'XIAO ESP32C3', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c3,
     pinNotes: [
       { text: 'GPIO2、GPIO8、GPIO9はストラッピングピンで、起動時のレベルによってブートモードが変わる', source: ESP32C3_DATASHEET },
       { text: 'ADC1はGPIO0からGPIO4（ADC1_CH0からADC1_CH4）、ADC2はGPIO5（ADC2_CH0）に割り当てられている', source: ESP32C3_DATASHEET },
@@ -83,7 +85,7 @@ const BOARDS = new Map([
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
     ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH,
+    name: 'Wio Node', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
     // Read before the pin table, because the table's own labels are the trap on this board.
     pinTableNote: 'ピン表のD0からD10はNodeMCU汎用variantのマクロで、Wio Node基板の表記ではない。基板のPORT0（UART/I2C0/D0）とPORT1（Analog/I2C1/D1）にあるD0/D1はコネクタの名前であり、コードのD0/D1マクロ（GPIO16とGPIO5）とは別物。コードではGPIO番号を直接書くこと。',
     pinNotes: [
@@ -105,7 +107,7 @@ const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${en
 // incompatibleLibraries is the browser's only copy of the table: the Libraries view, the Build
 // output and the AI's board sentence all read it from the selected board's entry here.
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, family: b.family, platform: b.platform, framework: b.framework, core: b.core,
-  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint,
+  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint, flashGuide: b.flashGuide,
   pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
   incompatibleLibraries: incompatFor(b.platform).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');

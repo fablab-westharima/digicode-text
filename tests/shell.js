@@ -29,6 +29,12 @@ export async function openSettings(page) {
   if (!await page.locator('#ai-settings').isVisible()) await page.click('#view-settings');
 }
 
+/** Press 書き込み the way a user does: the connection guide comes first, and OK goes on to flash. */
+export async function flash(page) {
+  await page.click('#flash');
+  if (await page.locator('#flash-guide-dialog').isVisible()) await page.click('#flash-guide-ok');
+}
+
 /** Show the AI panel. Its open state is part of the saved layout, so #ai-open is a toggle. */
 export async function openAI(page) {
   if (!await page.locator('#ai-pane').isVisible()) await page.click('#ai-open');

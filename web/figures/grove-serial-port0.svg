@@ -1,0 +1,33 @@
+<!-- Wio Node の表面（Groveコネクタ側）に、GroveのUSBシリアルをPORT0へ挿す。
+     28mm角の四隅を落とした外形。左辺がPORT0、右辺がPORT1、右下の斜辺にmicroUSB、下辺中央に電池コネクタ。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <path class="fig-board" d="M171,59 H247 L280,92 V145 L244,181 H194 L158,145 V72 Z"/>
+  <!-- Groveのはんだパッド -->
+  <path class="fig-pad" d="M176,92h14v5h-14zM176,102h14v5h-14zM176,112h14v5h-14zM176,122h14v5h-14z"/>
+  <path class="fig-pad" d="M238,92h14v5h-14zM238,102h14v5h-14zM238,112h14v5h-14zM238,122h14v5h-14z"/>
+  <!-- 下辺中央の電池コネクタ -->
+  <rect class="fig-part" x="206" y="171" width="26" height="22" rx="3"/>
+  <path class="fig-thin" d="M213,169 V159 M225,169 V159"/>
+  <!-- 右下の斜辺にmicroUSB -->
+  <g transform="rotate(-45 262 163)">
+    <rect class="fig-part" x="248" y="155" width="28" height="16" rx="2"/>
+    <rect class="fig-board fig-thin" x="254" y="159" width="16" height="8" rx="2"/>
+  </g>
+  <!-- 右辺のPORT1（空き） -->
+  <rect class="fig-part" x="280" y="95" width="26" height="36" rx="3"/>
+  <rect class="fig-board fig-thin" x="292" y="101" width="10" height="24" rx="2"/>
+  <text class="fig-small" x="314" y="78" text-anchor="end">PORT1</text>
+  <!-- 挿す先: 左辺のPORT0。プラグは背を低く描いてソケットに入っているのが分かるようにする。 -->
+  <rect class="fig-part fig-accent" x="142" y="95" width="32" height="36" rx="3"/>
+  <text class="fig-accent fig-small" x="138" y="78" text-anchor="end">PORT0</text>
+  <!-- GroveのUSBシリアル: USB-Aプラグ + 変換基板 + 4芯のGroveケーブル + Groveプラグ。
+       左端のUSB-Aプラグが x=16 にあるので、動き始めでも枠から出ない fig-cable-near を使う。 -->
+  <g class="fig-cable-near">
+    <rect class="fig-face" x="16" y="101" width="24" height="24" rx="2"/>
+    <rect class="fig-board fig-thin" x="21" y="107" width="12" height="6" rx="1"/>
+    <rect class="fig-part" x="40" y="93" width="38" height="40" rx="4"/>
+    <path class="fig-thin fig-accent" d="M78,105 H110 M78,113 H110 M78,121 H110"/>
+    <rect class="fig-part fig-accent" x="110" y="101" width="38" height="24" rx="3"/>
+  </g>
+</svg>

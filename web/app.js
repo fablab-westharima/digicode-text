@@ -4,6 +4,7 @@ import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
 import './app.css';
 import './serial.js';
 import { parseFlashSet, flashEsp, flashUf2 } from './flash.js';
+import { setupFlashGuide } from './flash-guide.js';
 import { setupLibraries } from './libraries.js';
 import { incompatibleDependencies } from './library-incompat.js';
 import { setupAI } from './ai.js';
@@ -53,6 +54,15 @@ if (!boardsRes.ok) throw new Error('ボード一覧を取得できません');
 const BOARDS = new Map((await boardsRes.json()).map(b => [b.id, b]));
 setBoards(BOARDS.keys());
 $('env').replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
+// ヘルプの対応ボードもボード表から書く。ボード一覧を手で書く場所はどこにも作らない。
+$('help-boards').textContent = [...BOARDS.values()].map(b => b.name).join(' / ');
+// 書き込み前の接続手順。手順文と図の指定は各ボードの /boards の項目にある。
+const flashGuide = setupFlashGuide();
+const showFlashGuide = () => flashGuide.show(BOARDS.get($('env').value));
+$('flash-guide-open').onclick = showFlashGuide;
+$('help-flash-guide').onclick = showFlashGuide;
+// 設定から、ボードごとに保存した「次回から表示しない」をまとめて解除する。
+$('flash-guide-reset').onclick = () => flashGuide.resetSkipped();
 const store = await openProjects(HELLO, saveStatus);
 $('env').value = store.current.env;
 const editor = monaco.editor.create($('editor'), {
@@ -140,6 +150,8 @@ function invalidateDownload() {
   $('build-incompat').textContent = '';
   $('build-incompat').hidden = true;
 }
+// 「ビルド結果」がまだ空のときの1行。Buildを始めると消え、ログが空に戻ると出る。
+const buildEmpty = (show) => { $('build-empty').hidden = !show; };
 function flashStatus(message, state = '') {
   $('flash-status').textContent = message;
   $('flash-status').dataset.state = state;
@@ -188,6 +200,7 @@ $('build').onclick = async () => {
   };
   $('status').textContent = 'Build中…';
   $('log').textContent = '';
+  buildEmpty(false);
   const t0 = performance.now();
   try {
     const res = await fetch('/compile', {
@@ -255,7 +268,13 @@ $('build').onclick = async () => {
 // Flash the last build: ESP boards through esptool-js, RP2040 boards by writing the UF2 to the
 // BOOTSEL drive the user picks. Disabled again by any edit (invalidateDownload). Not async:
 // showDirectoryPicker needs this click's user gesture, so nothing may be awaited before it.
+// The connection guide runs first: it either calls startFlash straight away (this board is set to
+// skip it) or from its own OK click, which is a user gesture again. flash.js itself is untouched.
 $('flash').onclick = () => {
+  if (flashing || !(flashSet || uf2)) return;
+  flashGuide.confirm(BOARDS.get($('env').value), startFlash);
+};
+function startFlash() {
   if (flashing || !(flashSet || uf2)) return;
   flashing = true;
   const set = flashSet, image = uf2;
@@ -270,7 +289,7 @@ $('flash').onclick = () => {
       $('build').disabled = building;
       $('flash').disabled = set ? flashSet !== set : uf2 !== image; // keep enabled unless the build was invalidated meanwhile
     });
-};
+}
 
 function renderProjects() {
   $('project-name').textContent = store.current.name;
@@ -308,6 +327,7 @@ function activate() {
   ui.setBuildState(building ? 'building' : 'ready');
   $('status').textContent = building ? '以前のプロジェクトをBuild中です' : 'Buildできます';
   $('log').textContent = '';
+  buildEmpty(!building);
   renderProjects();
   editor.focus();
   ai?.changed();

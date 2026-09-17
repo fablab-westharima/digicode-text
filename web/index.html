@@ -75,7 +75,10 @@
         <label class="field" for="theme-select">テーマ</label>
         <select id="theme-select"></select>
         <p class="storage-hint">DuoTone（simurai、MIT）を基にした4配色です。</p>
-        <button id="layout-reset">レイアウトを初期化</button>
+        <div class="settings-actions">
+          <button id="layout-reset">レイアウトを初期化</button>
+          <button id="flash-guide-reset">接続手順の非表示をすべて解除</button>
+        </div>
         <h3 class="view-section-title">AI API設定</h3>
         <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
         <label class="field" for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
@@ -96,7 +99,15 @@
 
       <section class="sidebar-view" id="help-view" data-view="help" aria-labelledby="help-title" hidden>
         <header class="view-header"><h2 id="help-title">ヘルプ</h2></header>
-        <p class="storage-hint">準備中</p>
+        <ol class="help-steps">
+          <li>「ボード」でボードを選び、main.cpp を編集する</li>
+          <li>「Build」を押す</li>
+          <li>「書き込み」でボードへ書き込み、「シリアル」タブで出力を見る</li>
+        </ol>
+        <p>対応ボード：<span id="help-boards"></span></p>
+        <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
+        <p>使い方は右の AI に聞けます（API キーが必要）。</p>
+        <button id="help-flash-guide">接続手順を見る</button>
       </section>
     </div>
     <aside id="ad-slot" class="ad-slot" aria-label="広告"><div id="ad-slot-inner">広告</div></aside>
@@ -113,6 +124,7 @@
         <button id="build" class="primary" disabled><span aria-hidden="true">▷</span> Build</button>
         <a id="download" class="button download" hidden download><span aria-hidden="true">↓</span> UF2 ダウンロード</a>
         <button id="flash" class="download" hidden disabled title="Build結果をUSB接続したボードへ書き込む"><span aria-hidden="true">⇥</span> 書き込み</button>
+        <button id="flash-guide-open" class="quiet" title="選択中のボードの接続手順を見る">接続手順</button>
       </div>
     </div>
     <div id="editor" aria-labelledby="editor-label"></div>
@@ -128,6 +140,7 @@
       <div id="panel-body" hidden>
         <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
           <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
+          <p id="build-empty" class="empty-message">Build → 書き込み → シリアルで確認。困ったら右の AI へ</p>
           <p id="build-incompat" hidden></p>
           <p id="flash-status" role="status" hidden></p>
           <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
@@ -190,6 +203,14 @@
   <input id="name-input" autocomplete="off"><p id="name-error" role="alert"></p>
   <div class="manage-actions"><button type="button" id="name-cancel">キャンセル</button><button type="submit" class="primary">確定</button></div>
 </form></dialog>
+<dialog id="flash-guide-dialog" aria-labelledby="flash-guide-title">
+  <div class="dialog-heading"><h2 id="flash-guide-title"></h2></div>
+  <p id="flash-guide-lead" class="storage-hint"></p>
+  <ol id="flash-guide-steps" class="flash-guide-steps"></ol>
+  <ul id="flash-guide-notes" class="board-notes" hidden></ul>
+  <label class="flash-guide-skip"><input type="checkbox" id="flash-guide-skip">このボードでは次回から表示しない</label>
+  <div class="manage-actions"><button type="button" id="flash-guide-cancel">キャンセル</button><button type="button" id="flash-guide-ok" class="primary">OK</button></div>
+</dialog>
 <dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
 <div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>
 <script type="module" src="/assets/app.js"></script>

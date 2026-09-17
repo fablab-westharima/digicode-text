@@ -1,0 +1,19 @@
+<!-- ブラウザのドライブ選択ダイアログ。左の一覧でドライブを選ぶ。行の名前は画面で実際に見える文字列。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="34" y="46" width="252" height="148" rx="6"/>
+  <path class="fig-thin" d="M34,76 H286"/>
+  <path class="fig-thin" d="M50,62 H150"/>
+  <path class="fig-thin" d="M144,76 V194"/>
+  <!-- 選ぶドライブの行 -->
+  <g class="fig-appear fig-accent">
+    <rect class="fig-hit" x="40" y="84" width="98" height="26" rx="3"/>
+    <rect class="fig-thin" x="46" y="91" width="14" height="12" rx="2"/>
+    <text class="fig-small" x="66" y="102">RPI-RP2</text>
+  </g>
+  <path class="fig-thin" d="M46,126 H116 M46,146 H104 M46,166 H110"/>
+  <!-- 中身と決定ボタン -->
+  <rect class="fig-part" x="158" y="92" width="26" height="32" rx="2"/>
+  <rect class="fig-part" x="194" y="92" width="26" height="32" rx="2"/>
+  <rect class="fig-part fig-accent" x="196" y="158" width="74" height="24" rx="4"/>
+</svg>

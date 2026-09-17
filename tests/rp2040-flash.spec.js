@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { selectBoard } from './shell.js';
+import { flash, selectBoard } from './shell.js';
 
 // RP2040 boards are flashed by writing the build's UF2 into the BOOTSEL drive the user picks.
 // Every test replaces window.showDirectoryPicker with a mock directory handle before the page
@@ -65,7 +65,7 @@ test('a folder without INFO_UF2.TXT is refused and nothing is written', async ({
   await ready(page, 'xiao_rp2040');
   await page.evaluate(() => { window.__mock.marker = false; });
   await built(page);
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('RPI-RP2ドライブではありません');
   await expect(page.locator('#flash-status')).toHaveAttribute('data-state', 'error');
   const m = await mock(page);
@@ -76,7 +76,7 @@ test('a folder without INFO_UF2.TXT is refused and nothing is written', async ({
   await expect(page.locator('#flash')).toBeEnabled(); // the build is still there; the user can retry
   // Cancelling the picker ends quietly, without an error state.
   await page.evaluate(() => { window.__mock.abort = true; });
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('中止');
   await expect(page.locator('#flash-status')).toHaveAttribute('data-state', '');
   expect((await mock(page)).written).toEqual([]);
@@ -85,7 +85,7 @@ test('a folder without INFO_UF2.TXT is refused and nothing is written', async ({
 test('the build artifact is written to firmware.uf2 byte for byte', async ({ page }) => {
   await ready(page, 'pico');
   await built(page);
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('書き込み完了');
   await expect(page.locator('#flash-status')).toContainText('Serialタブで接続できます');
   await expect(page.locator('#flash-status')).toHaveAttribute('data-state', 'complete');
@@ -100,7 +100,7 @@ test('close() failing after the whole image was written counts as success', asyn
   await ready(page, 'xiao_rp2040');
   await page.evaluate(() => { window.__mock.failClose = true; });
   await built(page);
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('書き込み完了');
   await expect(page.locator('#flash-status')).toHaveAttribute('data-state', 'complete');
   const m = await mock(page);
@@ -112,7 +112,7 @@ test('a write that fails part way through is reported as a failure', async ({ pa
   await ready(page, 'xiao_rp2040');
   await page.evaluate(() => { window.__mock.failWrite = true; });
   await built(page);
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('書き込みに失敗しました');
   await expect(page.locator('#flash-status')).toContainText('drive removed mid write');
   await expect(page.locator('#flash-status')).toHaveAttribute('data-state', 'error');
@@ -123,7 +123,7 @@ test('a browser without showDirectoryPicker gets the download instead', async ({
   await ready(page, 'xiao_rp2040');
   await page.evaluate(() => { window.__mock.supported = false; });
   await built(page);
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('ChromeまたはEdge');
   await expect(page.locator('#flash-status')).toContainText('UF2 ダウンロード');
   expect((await mock(page)).picked).toBe(0);
@@ -138,7 +138,7 @@ test('an ESP board still takes the port path, never the directory picker', async
   await ready(page, 'xiao_esp32c3');
   await built(page);
   await expect(page.locator('#download')).toBeHidden();
-  await page.click('#flash');
+  await flash(page);
   await expect(page.locator('#flash-status')).toContainText('port dialog blocked by the test');
   const m = await mock(page);
   expect(m.serialRequests).toBe(1);

@@ -1,0 +1,29 @@
+<!-- Wio Node の裏面（ESP-WROOM-02とボタンの側）。表面を裏返した外形で、左上の斜辺にFUNC、
+     右下の斜辺にRST、左下の斜辺にmicroUSB、右寄りに無線モジュール。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <path class="fig-board" d="M127,45 H219 L235,61 V151 L191,195 H129 L85,151 V87 Z"/>
+  <!-- 無線モジュール（上がアンテナ、下が金属シールド） -->
+  <rect class="fig-part" x="137" y="56" width="79" height="79" rx="3"/>
+  <rect class="fig-face" x="142" y="78" width="69" height="53" rx="2"/>
+  <!-- 左下の斜辺にmicroUSB -->
+  <g transform="rotate(45 107 173)">
+    <rect class="fig-part" x="88" y="163" width="38" height="22" rx="3"/>
+    <rect class="fig-board fig-thin" x="96" y="169" width="22" height="10" rx="2"/>
+  </g>
+  <!-- 押したままにするボタン: FUNC（左上の斜辺）。二重の輪郭で「押し続ける」を表す。 -->
+  <g transform="rotate(-45 106 66)">
+    <rect class="fig-hit" x="91" y="55" width="30" height="22" rx="4"/>
+    <rect class="fig-accent fig-thin" x="83" y="47" width="46" height="38" rx="8"/>
+  </g>
+  <text class="fig-accent fig-small" x="76" y="70" text-anchor="end">FUNC</text>
+  <!-- 押して離すボタン: RST（右下の斜辺） -->
+  <g class="fig-press fig-accent">
+    <g transform="rotate(-45 213 173)">
+      <rect class="fig-hit" x="198" y="162" width="30" height="22" rx="4"/>
+    </g>
+    <path d="M260,126 L232,154"/>
+    <path d="M245,151 L230,156 L235,141"/>
+  </g>
+  <text class="fig-accent fig-small" x="246" y="190" text-anchor="start">RST</text>
+</svg>

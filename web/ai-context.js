@@ -1,3 +1,4 @@
+import { UI_FACTS } from './product-facts.js';
 // Product facts sent to the AI as plain Japanese sentences (never as JSON with key names).
 // Board facts are NOT written here: the compiler's BOARDS table (compiler/server.mjs, GET /boards)
 // is the only board definition, and app.js hands the selected board's entry to projectContext,
@@ -23,6 +24,13 @@ export function productReference() {
   const prose = { ...PRODUCT_INFO, serial: `${s.api}。通信速度は${s.baudRate} baud。${s.scope}` };
   return Object.entries(prose).map(([k, v]) => `${PRODUCT_LABELS[k]}: ${v}`).join('\n');
 }
+// Where the controls are, as sentences — the same form as boardFacts, and sent the same way
+// (projectContext). The sentences themselves live in web/product-facts.js next to the element ids
+// they name, so a control that moves is fixed in one place; what those controls do is PRODUCT_INFO.
+export function productFacts() {
+  return ['画面の場所:', ...UI_FACTS.map(f => f.text)].join('\n');
+}
+
 // Prose for the selected board, built from its /boards entry: one sentence, then the pin table the
 // compiler generated from the core's own variant header, then the sourced notes. Never JSON, and
 // never the key names the entry uses — the AI sees sentences and a plain list, as with PRODUCT_INFO.
@@ -84,7 +92,7 @@ export function projectContext(s, failure, applicationMode) {
   const board = s.board;
   if (!board || board.id !== s.env) throw new Error('AIに渡すボード情報がありません');
   return { application: 'DigiCode Text', file: 'main.cpp', source: s.source,
-    board: s.env, framework: board.framework, boardFacts: boardFacts(board),
+    board: s.env, framework: board.framework, boardFacts: boardFacts(board), productFacts: productFacts(),
     directDependencyStatus: 'configured; acquisition, Build and hardware verification status not provided', libraries: s.libraries,
     codeChangeApplication: applicationMode,
     ...(failure ? { buildFailure: { stage: failure.stage, log: failure.log } } : {}) };

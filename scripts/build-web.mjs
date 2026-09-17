@@ -9,6 +9,7 @@ await build({
   bundle: true,
   format: 'esm',
   minify: true,
-  loader: { '.ttf': 'file' },
+  // 書き込み前ガイドの線画は web/figures/*.svg をそのまま文字列として取り込み、DOM へ差し込む。
+  loader: { '.ttf': 'file', '.svg': 'text' },
   logLevel: 'info',
 });

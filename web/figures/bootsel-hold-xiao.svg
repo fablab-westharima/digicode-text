@@ -1,0 +1,30 @@
+<!-- XIAO RP2040 を上から見た平面図。USB-Cは基板上辺の中央、下辺は左からRボタン・RGB LED・Bボタン。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="112" y="92" width="96" height="113" rx="5"/>
+  <path class="fig-pad" d="M107,104h10v9h-10zM107,116h10v9h-10zM107,128h10v9h-10zM107,140h10v9h-10zM107,152h10v9h-10zM107,164h10v9h-10zM107,176h10v9h-10z"/>
+  <path class="fig-pad" d="M203,104h10v9h-10zM203,116h10v9h-10zM203,128h10v9h-10zM203,140h10v9h-10zM203,152h10v9h-10zM203,164h10v9h-10zM203,176h10v9h-10z"/>
+  <rect class="fig-face" x="126" y="106" width="68" height="50" rx="3"/>
+  <!-- 下辺: Rボタン / RGB LED / Bボタン -->
+  <rect class="fig-part" x="120" y="180" width="22" height="20" rx="4"/>
+  <circle class="fig-face" cx="131" cy="190" r="6"/>
+  <rect class="fig-face" x="152" y="183" width="16" height="14" rx="2"/>
+  <!-- 挿す先: USB-Cコネクタ -->
+  <rect class="fig-part fig-accent" x="134" y="78" width="52" height="28" rx="5"/>
+  <rect class="fig-board fig-accent fig-thin" x="143" y="85" width="34" height="9" rx="4.5"/>
+  <!-- 押すボタン: B -->
+  <g class="fig-press fig-accent">
+    <rect class="fig-hit" x="170" y="180" width="22" height="20" rx="4"/>
+    <path d="M181,160 V172"/>
+    <path d="M175,167 L181,174 L187,167"/>
+  </g>
+  <text class="fig-accent" x="181" y="228" text-anchor="middle">B</text>
+  <!-- USB-Cケーブルは上から差し込む -->
+  <g transform="rotate(90 160 60)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="144" y="46" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="116" y="53" width="30" height="14" rx="6"/>
+      <path d="M122,60 L70,60"/>
+    </g>
+  </g>
+</svg>

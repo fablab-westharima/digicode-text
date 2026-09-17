@@ -1,0 +1,23 @@
+<!-- PCのファイル表示の窓に、新しいドライブが現れる様子。名前は画面で実際に見える文字列を書く
+     （Windowsなどでは RPI-RP2、Macでは NO NAME）。線画のみ。色は app.css の .flash-figure が
+     変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="36" y="48" width="248" height="150" rx="6"/>
+  <path class="fig-thin" d="M36,78 H284"/>
+  <circle class="fig-pad" cx="52" cy="63" r="3.5"/>
+  <circle class="fig-pad" cx="66" cy="63" r="3.5"/>
+  <circle class="fig-pad" cx="80" cy="63" r="3.5"/>
+  <!-- 左は場所の一覧 -->
+  <path class="fig-thin" d="M108,78 V198"/>
+  <path class="fig-thin" d="M50,98 H94 M50,118 H84 M50,138 H96"/>
+  <!-- 現れるドライブ。名前は環境で変わるので、画面で見える両方の表示を書く。 -->
+  <g class="fig-appear">
+    <g class="fig-accent">
+      <rect class="fig-hit" x="168" y="98" width="56" height="38" rx="4"/>
+      <path class="fig-thin" d="M208,102 V132"/>
+      <path class="fig-thin" d="M176,110 H198 M176,124 H190"/>
+      <text class="fig-small" x="196" y="156" text-anchor="middle">RPI-RP2</text>
+    </g>
+    <text class="fig-small" x="196" y="176" text-anchor="middle">NO NAME</text>
+  </g>
+</svg>

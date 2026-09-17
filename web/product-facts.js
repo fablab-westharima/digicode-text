@@ -1,0 +1,18 @@
+// 画面のどこに何があるか、という事実。AI には ai-context.js の productFacts() が文として渡す。
+// ここは「場所」だけを書く。何が起きるか（Build・書き込み・保存・AI の決まり）は ai-context.js の
+// PRODUCT_INFO にあり、同じことを二度書かない。
+//
+// ids は、その文が指している実際の要素の id。tests/flash-guide.spec.js が DOM と照合するので、
+// 画面に無いものをここに書くと落ちる。文言を足すときは必ず対応する id を書く。
+export const UI_FACTS = [
+  { ids: ['build', 'download', 'flash'], text: 'エディタ上部のタブバーの右にBuildボタンがあり、Build成功後にその右へ「書き込み」ボタンが出る（RP2040系ではその手前に「UF2 ダウンロード」も出る）。' },
+  { ids: ['flash-guide-open', 'flash-guide-dialog', 'help-flash-guide'], text: '書き込みボタンを押すと、そのボードの接続手順が先に出る。「このボードでは次回から表示しない」にしたあとも、タブバーの「接続手順」ボタン（画面が狭いときはヘルプの「接続手順を見る」）からいつでも開ける。' },
+  { ids: ['panel-toggle', 'build-tab', 'serial-tab', 'monitor'], text: '画面下の出力パネルに「ビルド結果」と「シリアル」のタブがあり、シリアルタブの「接続」ボタンでポートを選ぶ。' },
+  { ids: ['libraries-open', 'library-query', 'library-show-incompatible'], text: '左のアクティビティバーの「ライブラリ」で検索して追加する。そのボードで使えないライブラリは既定で伏せられ、「このボードで使えないライブラリも表示」で出せる。' },
+  { ids: ['view-boards', 'env', 'board-facts'], text: '左のアクティビティバーの「ボード」でビルド対象のボードを選ぶ。同じ画面にピン表と注意点が出る。' },
+  { ids: ['ai-open', 'ai-context'], text: '右のAIパネルはアクティビティバーの「AI」で開き、「AIに送る内容を確認」で送信内容を見られる。' },
+  { ids: ['view-settings', 'ai-key', 'ai-delete'], text: '左のアクティビティバーの「設定」にAPIキーの欄がある。キーの保存先は利用者のブラウザだけで、「キー・保存設定を削除（即時）」で消せる。' },
+  { ids: ['theme-select', 'layout-reset'], text: '「設定」の外観でテーマを選び、「レイアウトを初期化」で幅・高さ・表示状態を戻せる。' },
+  { ids: ['flash-guide-reset'], text: '「レイアウトを初期化」の隣の「接続手順の非表示をすべて解除」で、ボードごとに「次回から表示しない」にした接続手順を全部出るように戻せる。' },
+  { ids: ['view-help'], text: '左のアクティビティバー下の「ヘルプ」に、流れ・対応ボード・ブラウザ要件がある。' },
+];

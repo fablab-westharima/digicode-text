@@ -3,7 +3,8 @@ import { openAI, selectBoard } from './shell.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import vm from 'node:vm';
-import { PRODUCT_INFO, RESPONSE_RULES, projectContext, systemFor, productReference, boardFacts, inspectMessage, EXTERNAL_FLASH_COMMAND, WITHHELD_NOTE } from '../web/ai-context.js';
+import { PRODUCT_INFO, RESPONSE_RULES, projectContext, systemFor, productReference, productFacts, boardFacts, inspectMessage, EXTERNAL_FLASH_COMMAND, WITHHELD_NOTE } from '../web/ai-context.js';
+import { FLASH_GUIDES } from '../compiler/flash-guides.mjs';
 import { validateContent, setBoards } from '../web/projects.js';
 import { validateLibraries } from '../shared/libraries.js';
 const read = name => readFile(new URL('../' + name, import.meta.url), 'utf8');
@@ -14,7 +15,7 @@ async function compilerBoards() {
   const table = server.match(/const BOARDS = (new Map\([\s\S]*?\n\]\));/)[1];
   // Every top-level string const the table refers to: the flash hints and the pin-note source URLs.
   const consts = Object.fromEntries([...server.matchAll(/^const ([A-Z][A-Z0-9_]*) = ('[^']*');$/gm)].map(m => [m[1], vm.runInNewContext(m[2])]));
-  return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', ...consts });
+  return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', FLASH_GUIDES, ...consts });
 }
 const NOT_IN_GUIDANCE = [/zip/i, /esptool/i, /0x[0-9a-f]+/i, /manifest/i, /DFU/];
 // Internal key names must not reach the model as words it could repeat to the user.
@@ -246,7 +247,7 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       const payload = JSON.parse(messages[0].content);
       expect(payload.userMessage).toBe(prompts[i]);
       // The board facts the AI receives are one sentence built from the compiler's /boards entry.
-      expect(payload.contextData).toEqual({application:'DigiCode Text',file:'main.cpp',source,board:env,framework:board.framework,boardFacts:boardFacts(board),
+      expect(payload.contextData).toEqual({application:'DigiCode Text',file:'main.cpp',source,board:env,framework:board.framework,boardFacts:boardFacts(board),productFacts:productFacts(),
         directDependencyStatus:'configured; acquisition, Build and hardware verification status not provided',libraries,codeChangeApplication:mode});
       expect(JSON.stringify(body)).not.toContain('dummy-product-test-only');
       expect(await page.evaluate(() => localStorage.getItem('digicode-text.projects.v1'))).toBe(saved);
