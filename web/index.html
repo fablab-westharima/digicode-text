@@ -106,6 +106,7 @@
         </ol>
         <p>対応ボード：<span id="help-boards"></span></p>
         <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
+        <p>プロジェクトはエクスプローラの「ファイル」→「ファイルへ書き出す」で zip にして持ち出せます。</p>
         <p>使い方は右の AI に聞けます（API キーが必要）。</p>
         <button id="help-flash-guide">接続手順を見る</button>
       </section>
@@ -191,7 +192,7 @@
   </footer>
 </div>
 
-<input id="project-file" type="file" accept=".json,application/json" hidden>
+<input id="project-file" type="file" accept=".zip,.json,application/zip,application/json" hidden>
 <div id="file-menu" role="menu" aria-label="ファイル" hidden>
   <button id="project-new" role="menuitem" tabindex="-1">新規プロジェクト…</button>
   <button id="project-open-list" role="menuitem" tabindex="-1">プロジェクトを開く…</button>
@@ -201,6 +202,7 @@
   <hr role="separator">
   <button id="project-import" role="menuitem" tabindex="-1">ファイルから読み込む…</button>
   <button id="project-export" role="menuitem" tabindex="-1">ファイルへ書き出す</button>
+  <button id="project-export-all" role="menuitem" tabindex="-1">すべて書き出す</button>
   <hr role="separator">
   <button id="project-delete" role="menuitem" tabindex="-1" class="danger">プロジェクトを削除…</button>
 </div>
@@ -208,6 +210,13 @@
   <h2 id="name-title"></h2><label for="name-input">名前（1〜80文字）</label>
   <input id="name-input" autocomplete="off"><p id="name-error" role="alert"></p>
   <div class="manage-actions"><button type="button" id="name-cancel">キャンセル</button><button type="submit" class="primary">確定</button></div>
+</form></dialog>
+<dialog id="board-dialog" aria-labelledby="board-dialog-title"><form id="board-dialog-form">
+  <h2 id="board-dialog-title">読み込むボード</h2>
+  <p id="board-dialog-message">このプロジェクトのボードが分かりません。選んでください</p>
+  <label class="field" for="board-dialog-select">ボード</label>
+  <select id="board-dialog-select" aria-label="読み込むボード"></select>
+  <div class="manage-actions"><button type="button" id="board-dialog-cancel">キャンセル</button><button type="submit" class="primary">OK</button></div>
 </form></dialog>
 <dialog id="flash-guide-dialog" aria-labelledby="flash-guide-title">
   <div class="dialog-heading"><h2 id="flash-guide-title"></h2></div>

@@ -9,18 +9,27 @@ export function validName(name) {
   if (typeof name !== 'string' || !name.trim() || [...name].length > 80) throw new Error('名前は1〜80文字で入力してください（空白だけは使えません）');
   return name.trim();
 }
+// main.cpp 本体の検査だけを切り出したもの。ボードがまだ決まっていない取り込み途中
+// （zip から読んだが env を利用者に選んでもらう前）でも、同じ上限・同じ文言で掛けられる。
+export function validateSource(source, limitSize = true) {
+  if (typeof source !== 'string') throw new Error('main.cppのコードは文字列で指定してください');
+  if (limitSize && new TextEncoder().encode(source).length > 1024 * 1024) throw new Error('コードは1 MiB以内にしてください');
+  return source;
+}
 export function validateContent(value, limitSize = true) {
   validName(value?.name);
   validateLibraries(value?.libraries);
-  if (typeof value.source !== 'string') throw new Error('main.cppのコードは文字列で指定してください');
-  if (limitSize && new TextEncoder().encode(value.source).length > 1024 * 1024) throw new Error('コードは1 MiB以内にしてください');
+  validateSource(value.source, limitSize);
   if (!boards.has(value.env)) throw new Error('未対応のboardです');
 }
 export function parseProject(text) {
   if (new TextEncoder().encode(text).length > MAX_FILE) throw new Error('JSONファイルは2 MiB以内にしてください');
   let value;
   try { value = JSON.parse(text); } catch { throw new Error('JSONの形式が正しくありません'); }
-  if (value?.format !== 'digicode-text-project' || value.version !== 1) throw new Error('未対応のファイル形式・バージョンです');
+  // version 1 は書き出しJSONそのもの（source を持つ）。version 2 は zip の digicode.json で、
+  // コードは src/main.cpp にある。単体のJSONとして渡された version 2 は source を持たないので、
+  // このあとの validateContent が「main.cppのコードが無い」と言って止める。
+  if (value?.format !== 'digicode-text-project' || (value.version !== 1 && value.version !== 2)) throw new Error('未対応のファイル形式・バージョンです');
   validateContent(value);
   return { name: validName(value.name), source: value.source, env: value.env, libraries: validateLibraries(value.libraries) };
 }

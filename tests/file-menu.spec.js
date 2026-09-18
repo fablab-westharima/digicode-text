@@ -8,7 +8,7 @@ test('File dropdown order, keyboard, dismissal, focus and viewport placement', a
   await trigger.focus(); await page.keyboard.press('ArrowDown');
   await expect(page.locator('#project-new')).toBeFocused();
   expect(await menu.locator('[role=menuitem]').allTextContents()).toEqual([
-    '新規プロジェクト…','プロジェクトを開く…','名前を変更…','複製…','ファイルから読み込む…','ファイルへ書き出す','プロジェクトを削除…'
+    '新規プロジェクト…','プロジェクトを開く…','名前を変更…','複製…','ファイルから読み込む…','ファイルへ書き出す','すべて書き出す','プロジェクトを削除…'
   ]);
   await expect(menu.locator('hr')).toHaveCount(3);
   await expect(page.locator('dialog[open]')).toHaveCount(0);

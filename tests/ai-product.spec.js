@@ -18,6 +18,10 @@ async function compilerBoards() {
   return vm.runInNewContext(table, { path, here: '/compiler', RP2040_PROJECT: '/compiler/pio-rp2040', FLASH_GUIDES, ...consts });
 }
 const NOT_IN_GUIDANCE = [/zip/i, /esptool/i, /0x[0-9a-f]+/i, /manifest/i, /DFU/];
+// プロジェクトの持ち出しが zip になったので、製品事実としての zip は system プロンプトに出る。
+// 「書き込みの案内に外部ツール・外部形式を持ち込まない」という元の狙いは、書き込みの文と
+// ボードごとの書き込み手順に対してそのまま掛け続ける（下の 2 つの expect）。
+const NOT_IN_SYSTEM = NOT_IN_GUIDANCE.filter(re => re.source !== 'zip');
 // Internal key names must not reach the model as words it could repeat to the user.
 const KEY_NAMES = ['boardDetails', 'artifact', 'browserFlash', 'flashHint', 'contextData', 'PRODUCT_INFO', 'productReference'];
 // Stand-in /boards entry: the shape app.js hands to projectContext, with a two-row pin table.
@@ -81,7 +85,12 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
 
 test('the system prompt is prose: no external flashing procedure, no board facts, no internal key names', () => {
   const system = systemFor();
-  for (const re of NOT_IN_GUIDANCE) expect(system).not.toMatch(re);
+  for (const re of NOT_IN_SYSTEM) expect(system).not.toMatch(re);
+  // 書き込みの案内そのものには、いまも外部ツール・外部形式を一切書かない。
+  for (const re of NOT_IN_GUIDANCE) expect(PRODUCT_INFO.flashing).not.toMatch(re);
+  // zip という語が出てよいのは、プロジェクトの持ち出しを説明するこの1文だけ。
+  expect(PRODUCT_INFO.projectStorage).toMatch(/zip/i);
+  expect(system.split(PRODUCT_INFO.projectStorage).join('')).not.toMatch(/zip/i);
   for (const word of ['browserFlashing', 'usbVendorId', 'XIAO', 'Pico', 'RP2040', 'ESP32', ...KEY_NAMES]) expect(system).not.toContain(word);
   expect(system.split('製品の対応情報')[1]).not.toMatch(/[{}"]/); // PRODUCT_INFO is sent as sentences, not JSON
   expect(system).toContain(productReference());
@@ -240,7 +249,8 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
       expect(requests).toHaveLength(i+1);
       const body = requests[i], system = api === 'responses' ? body.instructions : api === 'chat' ? body.messages[0].content : body.system;
       expect(system).toBe(systemFor()); expect(system).toContain(productReference());
-      for (const re of NOT_IN_GUIDANCE) expect(system).not.toMatch(re);
+      for (const re of NOT_IN_SYSTEM) expect(system).not.toMatch(re);
+      expect(system.split(PRODUCT_INFO.projectStorage).join('')).not.toMatch(/zip/i);
       for (const word of KEY_NAMES) expect(system).not.toContain(word);
       const messages = api === 'responses' ? body.input : api === 'chat' ? body.messages.slice(1) : body.messages;
       expect(messages).toHaveLength(1); // Actual clear action below removes both display and resend history.

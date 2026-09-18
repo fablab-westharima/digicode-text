@@ -13,7 +13,8 @@ import { setupUI } from './ui.js';
 import { setupLayout } from './layout.js';
 import { setupThemes, THEMES } from './themes/duotone.js';
 import { renderBoardFacts } from './boards.js';
-import { openProjects, makeProject, validName, parseProject, setBoards, MAX_FILE } from './projects.js';
+import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
+import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
 
 self.MonacoEnvironment = {
   getWorker() { return new Worker('/assets/editor.worker.js', { type: 'module' }); },
@@ -326,6 +327,7 @@ function renderProjects() {
   }
 }
 function activate() {
+  clearIoNotice(); // プロジェクトを切り替えたら、前の操作の断り文はもう用済み
   switching = true;
   const previous = editor.getModel();
   editor.setModel(monaco.editor.createModel(store.current.source, 'cpp'));
@@ -391,7 +393,9 @@ menu.onkeydown = event => {
 };
 // Close before a chosen action opens its dialog, so that focus returns to the trigger.
 menu.addEventListener('click', event => {
-  if (event.target.closest('[role="menuitem"]')) closeMenu();
+  // 捕獲段階なので、項目自身の onclick より先に走る。前の操作の断り文はここで消え、
+  // 選ばれた項目が新しい知らせを書く。
+  if (event.target.closest('[role="menuitem"]')) { clearIoNotice(); closeMenu(); }
 }, true);
 document.addEventListener('click', event => {
   if (!menu.hidden && !menu.contains(event.target) && !menuButton.contains(event.target)) {
@@ -435,29 +439,133 @@ $('project-delete').onclick = () => {
     data.activeId = data.projects[0].id;
   })) activate();
 };
-$('project-export').onclick = () => {
-  const p = store.current;
-  const blob = new Blob([JSON.stringify({ format: 'digicode-text-project', version: 1, name: p.name, source: editor.getValue(), env: $('env').value, libraries: p.libraries }, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
+// 持ち出しは zip 1 本。中身は digicode.json と src/main.cpp の2つだけで、
+// DigiCode Text に戻すためのもの。APIキー・会話・Buildログ・成果物は入れない。
+// うまくいった知らせは数秒で引っ込める。断った理由は読む時間が要るので、利用者が次の操作
+// （ファイルメニューの項目・取り込み・プロジェクトの切り替え）をするまで消さない。
+let ioNoticeTimer;
+function ioNotice(message, error = false) {
+  clearTimeout(ioNoticeTimer);
+  $('project-notice').textContent = message;
+  if (message && !error) ioNoticeTimer = setTimeout(() => { $('project-notice').textContent = ''; }, 6000);
+}
+const clearIoNotice = () => ioNotice('');
+function download(fileName, bytes) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }));
   const a = document.createElement('a');
-  a.href = url; a.download = p.name.replace(/[\/:*?"<>|\x00-\x1f]/g, '_') + '.digicode.json';
+  a.href = url; a.download = fileName;
   a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+// 書き出しは編集中の内容で。エディタの現在値とボード選択が保存より新しいことがある。
+const liveProject = () => ({ ...store.current, source: editor.getValue(), env: $('env').value });
+$('project-export').onclick = () => {
+  try {
+    const p = liveProject();
+    const { fileName, bytes } = exportProject(p);
+    download(fileName, bytes);
+    ioNotice(`「${p.name}」を ${fileName} に書き出しました`);
+  } catch (error) { ioNotice(error.message, true); }
+};
+$('project-export-all').onclick = () => {
+  try {
+    const current = liveProject();
+    const projects = store.data.projects.map(p => p.id === current.id ? current : p);
+    const { fileName, bytes } = exportAll(projects);
+    download(fileName, bytes);
+    ioNotice(`${projects.length}件を ${fileName} に書き出しました`);
+  } catch (error) { ioNotice(error.message, true); }
 };
 $('project-import').onclick = () => $('project-file').click();
+
+// 取り込み時だけ出るボード選択。キャンセルはそのプロジェクトを取り込まない。
+function askBoard(projectName) {
+  return new Promise(resolve => {
+    const dialog = $('board-dialog'), form = $('board-dialog-form'), select = $('board-dialog-select');
+    select.replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
+    select.value = $('env').value;
+    $('board-dialog-message').textContent = `「${projectName}」のボードが分かりません。選んでください`;
+    let answer = null;
+    const done = () => {
+      form.onsubmit = null; $('board-dialog-cancel').onclick = null; dialog.onclose = null;
+      resolve(answer);
+    };
+    form.onsubmit = event => { event.preventDefault(); answer = select.value; dialog.close(); };
+    $('board-dialog-cancel').onclick = () => dialog.close();
+    dialog.onclose = done;
+    dialog.showModal();
+    select.focus();
+  });
+}
+
+async function importProjects(file) {
+  const zip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
+  if (file.size > (zip ? MAX_ZIP : MAX_FILE)) throw new Error(zip ? 'zipファイルは16 MiB以内にしてください' : 'JSONファイルは2 MiB以内にしてください');
+  // 旧 .digicode.json（version 1）も引き続き読む。zip 以外はこれまでと同じ経路。
+  if (!zip) {
+    const value = parseProject(await file.text());
+    return [{ name: value.name, source: value.source, env: value.env, libraries: value.libraries, revision: null }];
+  }
+  return parseImportZip(new Uint8Array(await file.arrayBuffer()), { zipName: file.name, boards: BOARDS });
+}
+
+async function runImport(file) {
+  clearIoNotice(); // ドラッグ＆ドロップにはメニュー操作が無いので、ここでも消す
+  try {
+    const found = await importProjects(file);
+    const taken = new Set(store.data.projects.map(p => p.name));
+    const accepted = [];
+    for (const value of found) {
+      const name = uniqueName(validName([...String(value.name ?? '')].slice(0, 80).join('')), taken);
+      const env = value.env ?? await askBoard(name);
+      if (!env) continue; // キャンセルされたプロジェクトは取り込まない
+      // ボードが決まったところで、JSON 経路とまったく同じ検査を掛ける。
+      // main.cpp の 1 MiB は、ボードを選ぶ前に project-io.js 側で同じ文言で先に見ている。
+      validateContent({ name, source: value.source, env, libraries: value.libraries });
+      taken.add(name);
+      accepted.push({ ...value, name, env });
+    }
+    if (!accepted.length) { ioNotice('取り込みませんでした', true); return; }
+    let last;
+    const ok = store.transact(data => {
+      for (const value of accepted) {
+        const p = makeProject(value.name, value.source, value.env, value.libraries);
+        if (Number.isSafeInteger(value.revision) && value.revision >= 0) p.revision = value.revision;
+        data.projects.push(p);
+        last = p.id;
+      }
+      data.activeId = last;
+    });
+    if (!ok) { ioNotice('保存できないため読み込みを止めました。現在の編集を書き出して退避してください', true); return; }
+    activate();
+    // 「読み込みました」は旧JSON時代からの文言で、既存のテストと利用者の期待がここにある。
+    ioNotice(accepted.length > 1
+      ? `${accepted.length}件を新しいプロジェクトとして読み込みました`
+      : '新しいプロジェクトとして読み込みました');
+  } catch (error) { ioNotice(error.message, true); }
+}
+
 $('project-file').onchange = async event => {
   const file = event.target.files[0];
   event.target.value = '';
-  if (!file) return;
-  try {
-    if (file.size > MAX_FILE) throw new Error('JSONファイルは2 MiB以内にしてください');
-    const value = parseProject(await file.text());
-    if (store.transact(data => {
-      const p = makeProject(value.name, value.source, value.env, value.libraries);
-      data.projects.push(p); data.activeId = p.id;
-    })) { activate(); $('project-notice').textContent = '新しいプロジェクトとして読み込みました'; }
-    else $('project-notice').textContent = '保存できないため読み込みを止めました。現在の編集を書き出して退避してください';
-  } catch (error) { $('project-notice').textContent = error.message; }
+  if (file) await runImport(file);
 };
+// エクスプローラ全体で zip を受ける。ドロップ先は一覧に限らない。
+const explorer = $('explorer-view');
+const dragging = (on) => explorer.classList.toggle('drop-target', on);
+explorer.addEventListener('dragover', event => {
+  if (![...event.dataTransfer.types].includes('Files')) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
+  dragging(true);
+});
+explorer.addEventListener('dragleave', event => { if (!explorer.contains(event.relatedTarget)) dragging(false); });
+explorer.addEventListener('drop', async event => {
+  if (![...event.dataTransfer.types].includes('Files')) return;
+  event.preventDefault(); // ブラウザが落とされたファイルを開いてしまわないように、先に止める
+  dragging(false);
+  const file = event.dataTransfer.files[0];
+  if (file) await runImport(file);
+});
 $('save-retry').onclick = () => store.save();
 renderProjects();
 showBoard();

@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { openExplorer, selectBoard } from './shell.js';
+import { zipRead } from '../web/zip.js';
 const key = 'digicode-text.projects.v1';
 // Mock of the server's ESP flash set (format shared with compiler/pio-esp/package_firmware.py).
 const mockSet = JSON.stringify({ format: 'digicode-text-flash-set', version: 2, board: 'seeed_xiao_esp32c3', chip: 'esp32c3', flashMode: 'dio', flashFrequency: '80m', flashSize: '4MB',
@@ -24,8 +25,10 @@ test('C3 menu keyboard, restore, duplicate, import/export, narrow layout and sta
   await expect(page.locator('#env')).toHaveValue('xiao_esp32c3');
   await open(page);
   const downloading = page.waitForEvent('download'); await page.click('#project-export');
-  const download = await downloading; const exported = info.outputPath('c3-project.json'); await download.saveAs(exported);
-  expect(JSON.parse(await readFile(exported,'utf8')).env).toBe('xiao_esp32c3');
+  const download = await downloading; const exported = info.outputPath('c3-project.zip'); await download.saveAs(exported);
+  const inside = new Map((await zipRead(new Uint8Array(await readFile(exported)))).map(e => [e.name.split('/').slice(1).join('/'), new TextDecoder().decode(e.data)]));
+  expect(JSON.parse(inside.get('digicode.json')).env).toBe('xiao_esp32c3');
+  expect([...inside.keys()].sort()).toEqual(['digicode.json', 'src/main.cpp']);
   await page.locator('#project-file').setInputFiles(exported);
   await expect(page.locator('#project-notice')).toContainText('読み込みました');
   expect((await saved(page)).projects).toHaveLength(3);
@@ -48,7 +51,7 @@ test('C3 menu keyboard, restore, duplicate, import/export, narrow layout and sta
     const box = await page.locator('#build').boundingBox(); expect(box.x+box.width).toBeLessThanOrEqual(width);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
     await open(page); await page.screenshot({path:info.outputPath(`menu-${width}.png`)});
-    for (const id of ['project-new','project-open-list','project-rename','project-duplicate','project-delete','project-import','project-export']) {
+    for (const id of ['project-new','project-open-list','project-rename','project-duplicate','project-delete','project-import','project-export','project-export-all']) {
       await expect(page.locator('#'+id)).toBeVisible(); const r = await page.locator('#'+id).boundingBox(); expect(r.x+r.width).toBeLessThanOrEqual(width);
     }
     await page.keyboard.press('Escape');

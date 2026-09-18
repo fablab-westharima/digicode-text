@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { fileMenu, selectBoard } from './shell.js';
+import { zipRead } from '../web/zip.js';
 const lib = { id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3' };
 const item = { ...lib, description: 'JSON serialization library', frameworks: ['*'], platforms: ['*'] };
 const key = 'digicode-text.projects.v1';
@@ -32,16 +33,20 @@ test('library CRUD, revision, reload, duplicate independence, switch, JSON and l
   await page.reload(); await expect(page.locator('#build')).toBeEnabled(); expect((await saved(page)).libraries).toEqual([lib]);
   await named(page, 'rename', 'Library A'); expect((await saved(page)).id).toBe(first.id);
   await named(page, 'duplicate', 'Library B'); expect((await saved(page)).libraries).toEqual([lib]);
-  const downloading = page.waitForEvent('download'); await menu(page, 'export'); const file = info.outputPath('roundtrip.json'); await (await downloading).saveAs(file);
+  const downloading = page.waitForEvent('download'); await menu(page, 'export'); const file = info.outputPath('roundtrip.zip'); await (await downloading).saveAs(file);
   await page.click('#libraries-open'); await page.locator('#library-added button').click(); await page.click('#libraries-close');
   expect((await saved(page)).libraries).toEqual([]);
   await menu(page, 'open-list'); await page.locator('.project-item').filter({ hasText: 'Library A' }).click(); expect((await saved(page)).libraries).toEqual([lib]);
   await page.locator('#project-file').setInputFiles(file); await expect(page.locator('#project-notice')).toContainText('読み込みました'); expect((await saved(page)).libraries).toEqual([lib]);
   expect((await saved(page)).id).not.toBe(first.id);
   await named(page, 'new', 'empty'); expect((await saved(page)).libraries).toEqual([]);
-  const exported = JSON.parse(await readFile(file, 'utf8')); delete exported.libraries;
+  // 依存を持たない旧 .digicode.json（version 1）。書き出した zip の中身から同じ内容で組み立てる。
+  const inside = new Map((await zipRead(new Uint8Array(await readFile(file)))).map(e => [e.name.split('/').slice(1).join('/'), new TextDecoder().decode(e.data)]));
+  const config = JSON.parse(inside.get('digicode.json'));
+  const exported = { format: 'digicode-text-project', version: 1, name: config.name, source: inside.get('src/main.cpp'), env: config.env };
   await page.locator('#project-file').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(exported)) });
-  await expect(page.locator('#project-name')).toHaveText('Library B'); expect((await saved(page)).libraries).toEqual([]);
+  // 同名が既にあるので「 (2)」「 (3)」が付く。
+  await expect(page.locator('#project-name')).toHaveText(/^Library B( \(\d+\))?$/); expect((await saved(page)).libraries).toEqual([]);
   // The browser cannot ask the Registry, so an import only rejects unusable coordinates and
   // unsafe version strings; a non-existent version such as "latest" is caught at Build time.
   for (const bad of [null, [lib, lib], [{ ...lib, version: '' }], [{ ...lib, version: '7.4.3\nextra_scripts=evil' }], [{ ...lib, name: '../evil' }]]) {
@@ -84,8 +89,10 @@ test('library edits invalidate completed and in-flight artifacts and snapshot de
 test('library save failure and second tab preserve rescue JSON', async ({ page, context }, info) => {
   await mocks(page); await ready(page); const second = await context.newPage(); await mocks(second); await ready(second);
   await add(second); await second.click('#libraries-close'); await expect(second.locator('#save-status')).toContainText('別のタブ');
-  const download = second.waitForEvent('download'); await menu(second, 'export'); const dest = info.outputPath('rescue.json'); await (await download).saveAs(dest);
-  expect(JSON.parse(await readFile(dest, 'utf8')).libraries).toEqual([lib]); expect((await saved(page)).libraries).toEqual([]);
+  const download = second.waitForEvent('download'); await menu(second, 'export'); const dest = info.outputPath('rescue.zip'); await (await download).saveAs(dest);
+  // 保存できないタブからでも、いま画面にある依存ごと zip で退避できる。
+  const rescued = new Map((await zipRead(new Uint8Array(await readFile(dest)))).map(e => [e.name.split('/').slice(1).join('/'), new TextDecoder().decode(e.data)]));
+  expect(JSON.parse(rescued.get('digicode.json')).libraries).toEqual([lib]); expect((await saved(page)).libraries).toEqual([]);
   second.on('dialog', d => d.accept()); await second.close();
   await page.evaluate(() => { window.set = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('quota'); }; });
   await add(page); await page.click('#libraries-close'); await expect(page.locator('#save-status')).toContainText('保存できません');

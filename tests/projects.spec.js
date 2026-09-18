@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { openExplorer, selectBoard } from './shell.js';
+import { zipRead } from '../web/zip.js';
 const key = 'digicode-text.projects.v1';
 const old = 'digicode-text.draft.v1';
 // The project list is part of the Explorer view now, so there is no list dialog to close.
@@ -23,10 +24,17 @@ async function select(page, name) {
   await action(page, 'project-open-list');
   await page.locator('.project-item').filter({ has: page.locator('span', { hasText: new RegExp('^' + name + '$') }) }).click();
 }
-async function exportFile(page, info) {
-  const wait = page.waitForEvent('download'); await action(page, 'project-export');
-  const download = await wait; const path = info.outputPath('project.json'); await download.saveAs(path);
-  return JSON.parse(await readFile(path, 'utf8'));
+// 持ち出しは zip 1 本。中身を開いて、いままで JSON で見ていたものと同じ事実を見る。
+async function exportFile(page, info, id = 'project-export') {
+  const wait = page.waitForEvent('download'); await action(page, id);
+  const download = await wait; const path = info.outputPath('export.zip'); await download.saveAs(path);
+  const entries = await zipRead(new Uint8Array(await readFile(path)));
+  const files = new Map(entries.map(e => [e.name, new TextDecoder().decode(e.data)]));
+  const folder = [...files.keys()].find(n => n.endsWith('/digicode.json')).split('/')[0];
+  return { path, files, folder,
+    source: files.get(`${folder}/src/main.cpp`),
+    names: [...files.keys()],
+    config: JSON.parse(files.get(`${folder}/digicode.json`)) };
 }
 async function importFile(page, value) {
   await page.locator('#project-file').setInputFiles({ name: 'project.json', mimeType: 'application/json', buffer: Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)) });
@@ -71,15 +79,27 @@ test('CRUD, duplicate independence, same names, board restoration, model undo is
 test('export/import roundtrip, validation, HTML inert', async ({ page }, info) => {
   await ready(page); await edit(page, '// <script>alert(1)</script>'); await selectBoard(page, 'pico');
   await name(page, 'rename', '<img src=x onerror=alert(1)>'); await closeList(page);
-  const first = (await data(page)).activeId; const value = await exportFile(page, info);
-  expect(Object.keys(value).sort()).toEqual(['env','format','libraries','name','source','version']);
-  await importFile(page, value); await expect(page.locator('#project-notice')).toContainText('読み込みました');
+  const first = (await data(page)).activeId; const exported = await exportFile(page, info);
+  expect(Object.keys(exported.config).sort()).toEqual(['env','exportedAt','format','libraries','name','product','revision','version']);
+  expect(exported.config.version).toBe(2);
+  expect(exported.source).toBe('// <script>alert(1)</script>'); // 本文は src/main.cpp にそのまま入る
+  expect(exported.config.env).toBe('pico');
+  expect(exported.names.sort()).toEqual([`${exported.folder}/digicode.json`, `${exported.folder}/src/main.cpp`].sort());
+  // 書き出した zip をそのまま読み込む。名前が衝突するので 2 件目は「 (2)」になる。
+  await page.locator('#project-file').setInputFiles(exported.path);
+  await expect(page.locator('#project-notice')).toContainText('読み込みました');
   expect((await data(page)).activeId).not.toBe(first); expect((await data(page)).projects).toHaveLength(2);
-  expect(await exportFile(page, info)).toEqual(value);
+  expect((await data(page)).projects[1].name).toBe(exported.config.name + ' (2)');
+  expect((await exportFile(page, info)).source).toBe(exported.source);
   expect(await page.locator('#project-name img').count()).toBe(0);
-  for (const bad of ['{', {...value, version: 2}, {...value, env: 'esp32'}, {...value, source: 3}, {...value, name: ''}, {...value, name: 'x'.repeat(81)}, {...value, source: 'x'.repeat(1024*1024+1)}, ' '.repeat(2*1024*1024+1)]) {
+  // 旧 .digicode.json（version 1）も引き続き読める。
+  const v1 = { format: 'digicode-text-project', version: 1, name: '旧形式', source: '// v1', env: 'pico', libraries: [] };
+  await importFile(page, v1); await expect(page.locator('#project-notice')).toContainText('読み込みました');
+  expect((await data(page)).projects).toHaveLength(3);
+  const value = v1;
+  for (const bad of ['{', {...value, version: 3}, {...value, env: 'esp32'}, {...value, source: 3}, {...value, name: ''}, {...value, name: 'x'.repeat(81)}, {...value, source: 'x'.repeat(1024*1024+1)}, ' '.repeat(2*1024*1024+1)]) {
     await importFile(page, bad); await expect(page.locator('#project-notice')).not.toContainText('読み込みました');
-    expect((await data(page)).projects).toHaveLength(2);
+    expect((await data(page)).projects).toHaveLength(3);
   }
 });
 test('quota failure retains edits, blocks switching/new/delete and allows export then retry', async ({ page }, info) => {
