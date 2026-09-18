@@ -47,14 +47,14 @@
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
         <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button></header>
         <p class="current-project">操作対象：<strong id="library-target"></strong><span id="library-board"></span></p>
-        <form id="library-search-form"><label for="library-query">ライブラリを検索</label><span class="library-origin">PlatformIO Registry</span><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
+        <form id="library-search-form"><label for="library-query">ライブラリを検索</label><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
         <p class="library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
-        <section class="library-added-section" aria-labelledby="library-added-label"><h3 id="library-added-label">追加済み</h3><ul id="library-added" aria-label="追加済みライブラリ"></ul></section>
+        <section class="library-added-section" aria-labelledby="library-added-label"><h3 class="view-section-title" id="library-added-label"><button id="library-added-toggle" type="button" aria-expanded="false" aria-controls="library-added"><span>追加済み</span><span id="library-added-count">0</span></button></h3><ul id="library-added" aria-label="追加済みライブラリ" hidden></ul></section>
         <p id="library-status" role="status"></p>
         <div id="library-suggestions" aria-label="近い名前の候補"></div>
-        <ul id="library-results" aria-label="検索結果"></ul>
-        <div class="library-controls"><button id="library-prev" hidden>前のページ</button><button id="library-next" hidden>次のページ</button></div>
-        <p class="storage-hint library-footnote">ライブラリはビルド時に取得します。WiFi.hなどの標準ライブラリは追加不要です。</p>
+        <h3 class="view-section-title" id="library-results-label" hidden>検索結果</h3>
+        <ul id="library-results" aria-labelledby="library-results-label"></ul>
+        <div class="library-pager" id="library-pager" hidden><span id="library-page"></span><button id="library-prev" type="button" aria-label="前のページ" hidden>‹</button><button id="library-next" type="button" aria-label="次のページ" hidden>›</button></div>
       </section>
 
       <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>

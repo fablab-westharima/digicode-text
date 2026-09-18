@@ -339,7 +339,7 @@ function renderProjects() {
 function projectDetail(p) {
   const box = document.createElement('dl');
   box.id = 'project-detail';
-  box.className = 'project-detail';
+  box.className = 'detail-box';
   const rows = [
     ['ボード', 'project-detail-board', BOARDS.get(p.env)?.name ?? p.env],
     ['ライブラリ', 'project-detail-libs', p.libraries.length ? `${p.libraries.length} 件` : 'なし'],

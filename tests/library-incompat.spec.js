@@ -41,6 +41,7 @@ async function search(page) {
 async function addUnusable(page) {
   await search(page);
   await page.check('#library-show-incompatible');
+  await mqttRow(page).locator('.library-item').click(); // 名前を押して詳細の箱を開く
   await mqttRow(page).getByRole('button', { name: 'バージョンを選択' }).click();
   await mqttRow(page).getByRole('button', { name: 'プロジェクトに追加' }).click();
   await expect(page.locator('#library-added')).toContainText(mqtt.name);
@@ -68,18 +69,23 @@ test('a library the board cannot build is hidden from the results until the chec
 
   await page.check('#library-show-incompatible');
   await expect(mqttRow(page)).toBeVisible();
-  await expect(mqttRow(page)).toContainText('使えません');
-  await expect(mqttRow(page)).toContainText('WiFiNINA fork');
-  await expect(mqttRow(page)).toContainText('代替: knolleary/PubSubClient');
+  // 行に出るのはバッジだけ。理由と代替は名前を押して開く箱の中にある。
+  await expect(mqttRow(page).locator('.library-item')).toContainText('使えません');
+  await expect(mqttRow(page)).not.toContainText('WiFiNINA fork');
+  await mqttRow(page).locator('.library-item').click();
+  const box = mqttRow(page).locator('#library-result-detail');
+  await expect(box).toContainText('WiFiNINA fork');
+  await expect(box).toContainText('代替: knolleary/PubSubClient');
   // Shown as unavailable, not as an error: the muted colour, not the failure colour.
-  await expect(mqttRow(page).locator('.library-unusable-reason')).toHaveCSS('color', await themeColour(page, '--fg-muted'));
+  await expect(box.locator('.library-unusable-reason')).toHaveCSS('color', await themeColour(page, '--fg-muted'));
   // The library that does build gains no badge.
   await expect(page.locator(`[data-library-id="${pubsub.id}"] .library-badge`)).toHaveCount(0);
 
   // The user may still add it: the row is evidence, not a veto.
   await mqttRow(page).getByRole('button', { name: 'バージョンを選択' }).click();
   await mqttRow(page).getByRole('button', { name: 'プロジェクトに追加' }).click();
-  await expect(page.locator('#library-added')).toContainText(`${mqtt.owner}/${mqtt.name} · ${mqtt.version}`);
+  await expect(page.locator('#library-added')).toContainText(mqtt.name);
+  await expect(page.locator('#library-added')).toContainText(mqtt.version);
   expect(await page.evaluate(k => JSON.parse(localStorage.getItem(k)).projects.find(p => p.id === JSON.parse(localStorage.getItem(k)).activeId).libraries, projectKey))
     .toEqual([mqtt]);
 
@@ -94,13 +100,20 @@ test('a library the board cannot build is hidden from the results until the chec
   expect(await page.evaluate(k => JSON.parse(localStorage.getItem(k)), uiKey)).toEqual({ showIncompatible: false });
 });
 
-test('the dependency list flags the library in the failure colour and clears it when the board changes', async ({ page, request }) => {
+test('the dependency row wears the badge, the box states the reason in the failure colour, and both clear when the board changes', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   await mocks(page); await ready(page);
   await selectBoard(page, BLOCKED_BOARD);
   await addUnusable(page);
 
-  const flag = page.locator('#library-added .library-incompatible');
+  // 追加済みの行に出るのはバッジだけ。理由と代替は名前を押して開く箱の中。
+  const badge = page.locator('#library-added .library-badge');
+  await expect(badge).toHaveCount(1);
+  await expect(badge).toHaveText('使えません');
+  await expect(page.locator('#library-added')).not.toContainText('WiFiNINA fork');
+  if (await page.locator('#library-added-toggle').getAttribute('aria-expanded') === 'false') await page.click('#library-added-toggle'); // 追加済みは初期状態で閉じている
+  await page.locator('#library-added .library-item').click();
+  const flag = page.locator('#library-added-detail .library-incompatible');
   await expect(flag).toHaveCount(1);
   await expect(flag).toContainText(`${boards.find(b => b.id === BLOCKED_BOARD).name}では使えません`);
   await expect(flag).toContainText('WiFiNINA fork');
@@ -108,11 +121,14 @@ test('the dependency list flags the library in the failure colour and clears it 
   await expect(flag).toHaveCSS('color', await themeColour(page, '--danger'));
 
   // The ESP8266 board shares the compiler's 'esp' family with the C3 but builds this library:
-  // the flag is gone as soon as the board changes, without reopening the view.
+  // the badge and the statement are gone as soon as the board changes, without reopening the view.
   await selectBoard(page, OK_BOARD);
+  await expect(badge).toHaveCount(0);
   await expect(flag).toHaveCount(0);
   await expect(page.locator('#library-added')).toContainText(mqtt.name); // still a dependency
+  await expect(page.locator('#library-added-detail')).toHaveCount(1); // 箱は開いたまま
   await selectBoard(page, BLOCKED_BOARD);
+  await expect(badge).toHaveCount(1);
   await expect(flag).toHaveCount(1);
 });
 
@@ -141,7 +157,10 @@ test('Build states the unusable dependency at the top of the build output and st
   expect(await notice.evaluate(el => el.compareDocumentPosition(document.getElementById('log')) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
 
   // Removing the dependency clears the notice, and a Build on a board that builds it says nothing.
-  await page.click('#libraries-open'); await page.locator('#library-added button').click();
+  await page.click('#libraries-open');
+  if (await page.locator('#library-added-toggle').getAttribute('aria-expanded') === 'false') await page.click('#library-added-toggle'); // 追加済みは初期状態で閉じている
+  await page.locator('#library-added .library-item').click();
+  await page.locator('#library-added-detail').getByRole('button', { name: /を削除$/ }).click();
   await expect(notice).toBeHidden();
   await addUnusable(page);
   await selectBoard(page, OK_BOARD);
@@ -187,26 +206,27 @@ test('the board sentence sent to the AI names the unusable library, and says not
   for (const b of boards) expect(Array.isArray(b.incompatibleLibraries)).toBe(true);
 });
 
-test('the candidate count states the rows on screen, and follows the checkbox and the board', async ({ page }) => {
+test('the rows on screen follow the checkbox and the board, and the pager states the page', async ({ page }) => {
   await mocks(page); await ready(page);
   await selectBoard(page, BLOCKED_BOARD);
   await search(page);
-  const status = page.locator('#library-status'), rows = page.locator('#library-results > li');
+  const pager = page.locator('#library-page'), rows = page.locator('#library-results > li');
   // Two candidates came back; one is hidden as unusable, so one is what the user can see.
-  await expect(status).toHaveText('取得候補 1件 · 1/1ページ（全件ではありません）');
   await expect(rows).toHaveCount(1);
+  await expect(pager).toHaveText('1 / 1');
+  // 件数の文はもう無い。画面にあるのは行とページ送りだけ。
+  await expect(page.locator('#library-status')).toBeEmpty();
   await page.check('#library-show-incompatible');
   await expect(rows).toHaveCount(2);
-  await expect(status).toHaveText('取得候補 2件 · 1/1ページ（全件ではありません）');
+  await expect(pager).toHaveText('1 / 1');
   await page.uncheck('#library-show-incompatible');
-  await expect(status).toHaveText('取得候補 1件 · 1/1ページ（全件ではありません）');
-  // The board decides what is hidden, so the count follows a board change without a new search.
+  await expect(rows).toHaveCount(1);
+  // The board decides what is hidden, so the rows follow a board change without a new search.
   await selectBoard(page, OK_BOARD);
   await expect(rows).toHaveCount(2);
-  await expect(status).toHaveText('取得候補 2件 · 1/1ページ（全件ではありません）');
   await selectBoard(page, BLOCKED_BOARD);
   await expect(rows).toHaveCount(1);
-  await expect(status).toHaveText('取得候補 1件 · 1/1ページ（全件ではありません）');
+  await expect(pager).toHaveText('1 / 1');
 });
 
 test('copying the build output carries the unusable dependency notice while it is showing', async ({ page, request }) => {

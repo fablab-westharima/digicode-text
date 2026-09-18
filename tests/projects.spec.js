@@ -221,6 +221,7 @@ test('ライブラリを追加すると、詳細の件数がついてくる', as
   await page.fill('#library-query', 'ArduinoJson');
   await page.locator('#library-search-form button').click();
   const row = page.locator('[data-library-id="64"]');
+  await row.locator('.library-item').click(); // 名前を押して詳細の箱を開く
   await row.getByRole('button', { name: 'バージョンを選択' }).click();
   await row.locator('select').selectOption('7.4.3');
   await row.getByRole('button', { name: 'プロジェクトに追加' }).click();

@@ -18,9 +18,17 @@ async function mocks(page) {
 }
 async function add(page, version = '7.4.3') {
   await page.click('#libraries-open'); await page.fill('#library-query', 'ArduinoJson'); await page.locator('#library-search-form button').click();
-  const row = page.locator('[data-library-id="64"]'); await row.getByRole('button', { name: 'バージョンを選択' }).click();
+  const row = page.locator('[data-library-id="64"]');
+  await row.locator('.library-item').click(); // 名前を押して詳細の箱を開く
+  await row.getByRole('button', { name: 'バージョンを選択' }).click();
   await row.locator('select').selectOption(version); await row.getByRole('button', { name: 'プロジェクトに追加' }).click();
   await expect(page.locator('#library-added')).toContainText(version);
+}
+/** 追加済みの1件を、名前を押して箱を開いてから削除する。 */
+async function removeAdded(page) {
+  if (await page.locator('#library-added-toggle').getAttribute('aria-expanded') === 'false') await page.click('#library-added-toggle'); // 追加済みは初期状態で閉じている
+  await page.locator('#library-added .library-item').first().click();
+  await page.locator('#library-added-detail').getByRole('button', { name: /を削除$/ }).click();
 }
 test('library CRUD, revision, reload, duplicate independence, switch, JSON and legacy', async ({ page }, info) => {
   await mocks(page); await ready(page); const first = await saved(page);
@@ -34,7 +42,7 @@ test('library CRUD, revision, reload, duplicate independence, switch, JSON and l
   await named(page, 'rename', 'Library A'); expect((await saved(page)).id).toBe(first.id);
   await named(page, 'duplicate', 'Library B'); expect((await saved(page)).libraries).toEqual([lib]);
   const downloading = page.waitForEvent('download'); await menu(page, 'export'); const file = info.outputPath('roundtrip.zip'); await (await downloading).saveAs(file);
-  await page.click('#libraries-open'); await page.locator('#library-added button').click(); await page.click('#libraries-close');
+  await page.click('#libraries-open'); await removeAdded(page); await page.click('#libraries-close');
   expect((await saved(page)).libraries).toEqual([]);
   await menu(page, 'open-list'); await page.locator('.project-item').filter({ hasText: 'Library A' }).click(); expect((await saved(page)).libraries).toEqual([lib]);
   await page.locator('#project-file').setInputFiles(file); await expect(page.locator('#project-notice')).toContainText('読み込みました'); expect((await saved(page)).libraries).toEqual([lib]);
@@ -63,13 +71,17 @@ test('search failure, no results, stale response, typing automatically searches,
     await route.fulfill(q === 'fail' ? { status: 502, json: { error: 'Registry接続失敗' } } : { json: { items: q === 'none' ? [] : [{ ...item, description: q }], total: q === 'none' ? 0 : 1 } });
   });
   await page.click('#libraries-open'); await expect(page.locator('#library-query')).toBeFocused();
-  await page.fill('#library-query', 'typing'); await expect(page.locator('#library-results')).toContainText('typing'); expect(calls).toBe(1);
+  // 説明は行ではなく箱の中なので、応答がどれかは名前を押して確かめる。
+  await page.fill('#library-query', 'typing'); await page.locator('#library-results .library-item').click();
+  await expect(page.locator('#library-result-detail')).toContainText('typing'); expect(calls).toBe(1);
   for (const [q, expected] of [['fail', 'Registry接続失敗'], ['none', '見つかりません']]) {
     await page.fill('#library-query', q); await page.keyboard.press('Enter'); await expect(page.locator('#library-status')).toContainText(expected);
   }
   await page.fill('#library-query', 'old'); await page.keyboard.press('Enter'); await expect.poll(() => Boolean(release)).toBe(true);
-  await page.fill('#library-query', 'new'); await page.keyboard.press('Enter'); await expect(page.locator('#library-results')).toContainText('new'); release();
-  await expect(page.locator('#library-results')).not.toContainText('old');
+  await page.fill('#library-query', 'new'); await page.keyboard.press('Enter');
+  await page.locator('#library-results .library-item').click();
+  await expect(page.locator('#library-result-detail')).toContainText('new'); release();
+  await expect(page.locator('#library-result-detail')).not.toContainText('old');
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 850 }); await page.screenshot({ path: info.outputPath(`libraries-${width}.png`) });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
@@ -83,7 +95,7 @@ test('library edits invalidate completed and in-flight artifacts and snapshot de
   await page.click('#build'); await expect(page.locator('#download')).toBeVisible(); await add(page);
   await page.click('#libraries-close'); await expect(page.locator('#download')).toBeHidden();
   delayed = true; await page.click('#build'); await expect.poll(() => Boolean(release)).toBe(true); expect(sent.libraries).toEqual([lib]); expect(sent.projectId).toBe((await saved(page)).id);
-  await page.click('#libraries-open'); await page.locator('#library-added button').click(); await page.click('#libraries-close');
+  await page.click('#libraries-open'); await removeAdded(page); await page.click('#libraries-close');
   release(); await expect(page.locator('#status')).toContainText('以前の内容'); await expect(page.locator('#download')).toBeHidden();
 });
 test('library save failure and second tab preserve rescue JSON', async ({ page, context }, info) => {
@@ -148,7 +160,7 @@ test('Actual Registry add, RP2040 and C3 builds/downloads, deletion and concurre
     }
     console.log(env, bytes.length); await page.screenshot({ path: info.outputPath(`real-${env}.png`) });
   }
-  await page.click('#libraries-open'); await page.locator('#library-added button').click(); await page.click('#libraries-close');
+  await page.click('#libraries-open'); await removeAdded(page); await page.click('#libraries-close');
   await page.click('#build'); await expect(page.locator('#status')).toContainText('Build失敗（422）', { timeout: 600_000 }); await expect(page.locator('#log')).toContainText('ArduinoJson.h');
   const [a, b] = await Promise.all([
     request.post('/compile', { data: { source, env: 'xiao_rp2040', libraries: [lib], projectId: 'A' }, timeout: 600_000 }),

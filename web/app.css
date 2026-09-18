@@ -232,8 +232,10 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }
-.current-project { margin: 6px 0; color: var(--fg-muted); line-height: 1.6; }
-.current-project strong { color: var(--fg); }
+/* 1行に収める。長いときに切るのは名前だけで、ボードは常に見える。 */
+.current-project { display: flex; margin: 6px 0; color: var(--fg-muted); line-height: 1.6; white-space: nowrap; }
+.current-project strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.current-project #library-board { flex-shrink: 0; white-space: pre; }
 
 .split { background: transparent; }
 .split-v { grid-row: 1; width: 4px; cursor: ew-resize; touch-action: none; margin-inline: -2px; z-index: 5; }
@@ -252,10 +254,13 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 /* 選択中の行の右端にだけ、詳細の開閉の印を出す。押すところは行そのもので、別のボタンは作らない。 */
 .project-item[aria-current="true"]::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
 .project-item[aria-current="true"][aria-expanded="true"]::after { content: '▾'; }
-/* 選択中の1件の詳細。行より内側に寄せ、面の色と枠線で行と区別する（行のハイライトとは別の色）。 */
-.project-detail { margin: 2px 0 4px 12px; padding: 6px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); font-size: 12px; line-height: 1.6; }
-.project-detail dt { color: var(--fg-muted); white-space: nowrap; }
-.project-detail dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
+/* 選択中の1件の詳細。行より内側に寄せ、面の色と枠線で行と区別する（行のハイライトとは別の色）。
+   エクスプローラとライブラリで同じ面を使う。 */
+.detail-box { margin: 2px 0 4px 12px; padding: 6px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); font-size: 12px; line-height: 1.6; }
+.detail-box dt { color: var(--fg-muted); white-space: nowrap; }
+.detail-box dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
+/* 箱の中の操作（バージョン選択・削除）は2列をまたいで下に置く。 */
+.detail-box .detail-actions { grid-column: 1 / -1; margin-top: 6px; }
 .file-kind { color: var(--accent); font-size: 10px; font-weight: 700; font-family: var(--ui-font); }
 /* 知らせは一覧の下の枠つきカード。記号は ::before で描くので、文そのものは message だけ。 */
 #project-notice, #project-save-message { position: relative; margin: 6px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -275,37 +280,55 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 /* ---- sidebar: libraries --------------------------------------------------------------- */
 #library-search-form { position: sticky; top: 35px; z-index: 1; margin: 0 calc(-1 * var(--pad)); padding: 4px var(--pad) 8px; background: var(--bg-sidebar); }
 #library-search-form label { display: block; line-height: 1.25; color: var(--fg-muted); font-size: 12px; }
-.library-origin { display: block; line-height: 1.2; font-size: 10px; color: var(--fg-muted); }
 .library-controls { display: flex; gap: 6px; margin-top: 5px; }
 .library-controls button { flex: none; }
 #library-query { min-width: 0; flex: 1; }
-#libraries-dialog h3 { font-size: 11px; font-weight: 600; color: var(--fg-muted); letter-spacing: .06em; text-transform: uppercase; }
-.library-added-section { margin-top: 8px; }
+/* 見出しそのものが開閉ボタン。字面は見出しのまま、右端に行と同じ開閉の印、名前の直後に件数。 */
+#library-added-toggle { width: 100%; justify-content: flex-start; padding: 0 6px; border-color: transparent; background: transparent; font-size: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+#library-added-toggle:hover { background: var(--bg-raised); }
+#library-added-toggle::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
+#library-added-toggle[aria-expanded="true"]::after { content: '▾'; }
+#library-added-count { padding: 0 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--fg); font-size: 11px; line-height: 1.5; letter-spacing: 0; }
 #library-added, #library-results { list-style: none; padding: 0; margin: 0; }
-.library-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-#library-added .library-row { padding: 6px 0; border-bottom: 1px solid var(--border); }
-.library-title, .library-info { min-width: 0; overflow-wrap: anywhere; }
-.library-info small { display: block; margin-top: 4px; color: var(--fg-muted); }
-.library-result { padding: 12px 0; border-bottom: 1px solid var(--border); }
-.library-description { color: var(--fg-muted); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; margin: 6px 0 0; }
+#library-added > li, #library-results > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
+/* 一覧の行。button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。 */
+.library-item { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.library-item > strong { flex: 1; min-width: 0; text-align: left; }
+/* 追加済みの印。文字ではなく飾りなので、名前の textContent には入らない。 */
+.library-item[data-added="true"] > strong::before { content: '✓'; margin-right: 6px; color: var(--accent-2); }
+.library-item:hover:not(:disabled) { background: var(--bg-raised); }
+.library-meta { min-width: 0; color: var(--fg-muted); font-size: 12px; overflow-wrap: anywhere; }
+/* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
+.library-item::after { content: '▸'; color: var(--fg-muted); }
+.library-item[aria-expanded="true"]::after { content: '▾'; }
+.detail-box dd.library-description { color: var(--fg-muted); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; }
 .library-detail { width: 100%; }
 .library-detail .library-controls { flex-wrap: wrap; }
 .library-detail select { min-width: 0; flex: 1; }
+.library-pager { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--fg-muted); font-size: 12px; }
+.library-pager button { padding: 0 10px; }
 #library-status { color: var(--fg-muted); line-height: 1.6; margin: 10px 0 0; }
+#library-status:empty { display: none; }
 #library-status[data-state="loading"] { color: var(--accent); }
 #library-status[data-state="error"], .library-error { color: var(--danger); }
+/* 追加・削除・失敗の知らせは、エクスプローラと同じ枠つきカード。記号は ::before で描く。 */
+#library-status[data-state="ok"], #library-status[data-state="error"] { position: relative; margin: 10px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; }
+#library-status[data-state="ok"]::before, #library-status[data-state="error"]::before { position: absolute; left: 8px; }
+#library-status[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
+#library-status[data-state="ok"]::before { content: '✓'; }
+#library-status[data-state="error"] { border-color: var(--danger); background: var(--danger-soft); }
+#library-status[data-state="error"]::before { content: '⚠'; }
 #library-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
 #library-suggestions p { width: 100%; margin: 8px 0 0; }
 #library-suggestions button { max-width: 100%; height: auto; min-height: var(--row); white-space: normal; overflow-wrap: anywhere; }
-.library-footnote { margin-top: 14px; font-size: 11px; }
 /* Libraries the compiler reports as unusable on the selected board. Search results are muted
-   and only shown when the toggle asks for them; a configured dependency is flagged outright. */
+   and only shown when the toggle asks for them; the row wears a badge and the reason is in the box. */
 .library-incompatible-toggle { margin: 8px 0 0; font-size: 12px; color: var(--fg-muted); line-height: 1.6; }
 .library-incompatible-toggle input { margin: 0 6px 0 0; vertical-align: -2px; }
-.library-result.library-unusable .library-info strong { color: var(--fg-muted); font-weight: 600; }
-.library-badge { display: inline-block; margin-left: 6px; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: 11px; color: var(--danger); background: transparent; vertical-align: 1px; }
-.library-unusable-reason { margin: 6px 0 0; color: var(--fg-muted); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
-.library-incompatible { margin: 4px 0 0; color: var(--danger); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.library-result.library-unusable .library-item > strong { color: var(--fg-muted); font-weight: 600; }
+.library-badge { flex: none; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: 11px; color: var(--danger); background: transparent; }
+.detail-box dd.library-unusable-reason { color: var(--fg-muted); overflow-wrap: anywhere; }
+.detail-box dd.library-incompatible { color: var(--danger); overflow-wrap: anywhere; }
 
 /* ---- sidebar: boards ------------------------------------------------------------------ */
 .board-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0; font-size: 12px; }

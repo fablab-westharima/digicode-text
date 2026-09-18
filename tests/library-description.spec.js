@@ -28,15 +28,20 @@ test('descriptions are readable text without active markup or resource requests'
   } }));
   await open(page);
   await page.fill('#library-query', 'example');
-  const descriptions = page.locator('.library-description');
-  await expect(descriptions).toHaveCount(samples.length);
-  expect(await descriptions.allTextContents()).toEqual(samples.map(([, expected]) => expected));
-  expect(await descriptions.evaluateAll(nodes => nodes.every(node => node.children.length === 0))).toBe(true);
-  await descriptions.nth(6).click();
-  await page.waitForTimeout(300);
+  const rows = page.locator('#library-results > li');
+  await expect(rows).toHaveCount(samples.length);
+  // 説明は箱の中で、箱は1つしか開かない。1行ずつ開いて読む。
+  const description = page.locator('#library-result-detail .library-description');
+  for (const [index, [, expected]] of samples.entries()) {
+    await rows.nth(index).locator('.library-item').click();
+    await expect(description).toHaveCount(1);
+    expect(await description.textContent(), String(index)).toBe(expected);
+    expect(await description.evaluate(node => node.children.length)).toBe(0);
+    if (index === 6) { await description.click(); await page.waitForTimeout(300); }
+  }
   expect(await page.evaluate(() => window.descriptionExecuted)).toBeUndefined();
   expect(requests).toEqual([]);
-  await expect(descriptions.first()).toHaveCSS('white-space', 'pre-line');
+  await expect(description).toHaveCSS('white-space', 'pre-line');
 });
 
 test('real Registry Servo description uses line breaks at desktop and narrow widths', async ({ page }, info) => {
@@ -48,6 +53,7 @@ test('real Registry Servo description uses line breaks at desktop and narrow wid
   await page.fill('#library-query', 'servo');
   const row = page.locator('[data-library-id="883"]');
   await expect(row).toBeVisible({ timeout: 30000 });
+  await row.locator('.library-item').click(); // 説明は名前を押して開く箱の中
   await expect.poll(() => Boolean(source)).toBe(true);
   const original = source.items.find(item => item.id === 883);
   expect(original.owner).toBe('arduino-libraries');

@@ -9,15 +9,19 @@ test('400ms debounce, immediate Enter/button and pending request deduplication',
   await page.fill('#library-query', 'Ar'); await page.clock.runFor(250); expect(calls).toEqual([]);
   await page.fill('#library-query', 'Arduino'); await page.clock.runFor(399); expect(calls).toEqual([]);
   await page.clock.runFor(1); await expect.poll(() => calls.length).toBe(1);
-  await expect(page.locator('#library-results')).toContainText('Arduino:1'); await expect(page.locator('#library-query')).toBeFocused();
+  await expect(page.locator('#library-results strong')).toHaveText('ArduinoJson'); await expect(page.locator('#library-query')).toBeFocused();
   expect(await page.locator('#library-query').evaluate(el => el.selectionStart)).toBe(7);
+  // 説明は箱の中。どの応答が描かれたかは名前を押して確かめる。
+  await page.locator('#library-results .library-item').click();
+  await expect(page.locator('#library-result-detail')).toContainText('Arduino:1');
   await page.fill('#library-query', 'enter'); await page.keyboard.press('Enter'); await expect.poll(() => calls.length).toBe(2);
   await page.clock.runFor(500); expect(calls.length).toBe(2);
   await page.fill('#library-query', 'button'); await page.locator('#library-search-form button').click(); await expect.poll(() => calls.length).toBe(3);
   await page.clock.runFor(500); expect(calls.length).toBe(3);
   await page.fill('#library-query', 'pending'); await page.keyboard.press('Enter'); await expect.poll(() => Boolean(release)).toBe(true);
   await page.keyboard.press('Enter'); await page.locator('#library-search-form button').click(); await page.clock.runFor(500); expect(calls).toEqual(['Arduino', 'enter', 'button', 'pending']);
-  release(); await expect(page.locator('#library-results')).toContainText('pending:1');
+  release(); await page.locator('#library-results .library-item').click();
+  await expect(page.locator('#library-result-detail')).toContainText('pending:1');
 });
 test('IME composition and confirming Enter wait until 400ms after commit', async ({ page }) => {
   let calls = 0; await page.route('**/libraries/search?*', r => { calls++; return r.fulfill({ json: result('日本語') }); });
@@ -44,8 +48,9 @@ test('clear/close cancel timers and stale search/details even if abort is ignore
   await page.fill('#library-query', 'waiting'); await page.click('#libraries-close'); await page.waitForTimeout(500); expect(calls).toBe(0);
   await page.click('#libraries-open'); await page.fill('#library-query', 'old'); await page.keyboard.press('Enter'); await expect.poll(() => Boolean(releaseSearch)).toBe(true);
   await page.fill('#library-query', 'new'); await expect(page.locator('#library-results')).toBeEmpty();
-  await expect(page.locator('#library-results')).toContainText('new:1'); releaseSearch(); await page.waitForTimeout(100); await expect(page.locator('#library-results')).not.toContainText('old:1');
-  await page.locator('#library-results button').click(); await expect.poll(() => Boolean(releaseDetails)).toBe(true);
+  await page.locator('#library-results .library-item').click();
+  await expect(page.locator('#library-result-detail')).toContainText('new:1'); releaseSearch(); await page.waitForTimeout(100); await expect(page.locator('#library-result-detail')).not.toContainText('old:1');
+  await page.locator('#library-results .library-version').click(); await expect.poll(() => Boolean(releaseDetails)).toBe(true);
   await page.fill('#library-query', ''); releaseDetails(); await page.waitForTimeout(100); await expect(page.locator('#library-results')).toBeEmpty(); await expect(page.locator('#library-next')).toBeHidden();
   releaseSearch = undefined; await page.fill('#library-query', 'old'); await page.keyboard.press('Enter'); await expect.poll(() => Boolean(releaseSearch)).toBe(true);
   await page.click('#libraries-close'); const state = await page.locator('#library-status').textContent(); releaseSearch(); await page.waitForTimeout(100); expect(await page.locator('#library-status').textContent()).toBe(state);
@@ -68,7 +73,8 @@ test('candidate pagination is a fixed deduplicated snapshot; failures retry expl
 test('Real Registry automatic search and compact responsive layout', async ({ page }, info) => {
   await ready(page); await page.screenshot({ path: info.outputPath('search-empty.png') }); await page.fill('#library-query', 'ArduinoJson');
   const row = page.locator('[data-library-id="64"]'); await expect(row).toContainText('bblanchon', { timeout: 30000 }); await expect(page.locator('#library-query')).toBeFocused();
-  await row.getByRole('button').click(); await row.locator('select').selectOption('7.4.3'); await row.getByRole('button', { name: 'プロジェクトに追加' }).click();
+  await row.locator('.library-item').click(); await row.locator('.library-version').click();
+  await row.locator('select').selectOption('7.4.3'); await row.getByRole('button', { name: 'プロジェクトに追加' }).click();
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 850 }); await page.locator('#libraries-dialog').evaluate(el => el.scrollTop = 0);
     await page.screenshot({ path: info.outputPath(`search-${width}.png`), timeout: 20000 });

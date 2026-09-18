@@ -13,7 +13,8 @@ async function findAcrossPages(page, name) {
 test('real partial candidates, exact-name priority, version and add; no compile',async({page},info)=>{
  test.setTimeout(120000); await open(page);
  for(const [q,name] of [['serv','Servo'],['servo','Servo'],['arduinoj','ArduinoJson'],['BusIO','Adafruit BusIO']]) {
-  await page.fill('#library-query',q); await expect(page.locator('#library-status')).toContainText('取得候補',{timeout:30000});
+  // 件数の文は無くなったので、行が出たことで検索完了を待つ。
+  await page.fill('#library-query',q); await expect(page.locator('#library-results li').first()).toBeVisible({timeout:30000});
   const row=await findAcrossPages(page,name); await expect(row).toBeVisible();
   if(q==='servo') await expect(page.locator('#library-results strong').first()).toHaveText('Servo');
   if(q==='serv') {
@@ -22,8 +23,14 @@ test('real partial candidates, exact-name priority, version and add; no compile'
    await embedded.scrollIntoViewIfNeeded(); await page.screenshot({path:info.outputPath('serv-embedded-390.png')}); await page.setViewportSize({width:1440,height:850});
   }
   if(q==='arduinoj') {
-   await row.getByRole('button').click(); await row.locator('select').selectOption('7.4.3'); await row.getByRole('button',{name:'プロジェクトに追加'}).click();
-   await expect(page.locator('#library-added')).toContainText('bblanchon/ArduinoJson'); await page.screenshot({path:info.outputPath('arduinoj-added.png')});
+   await row.locator('.library-item').click(); await row.locator('.library-version').click();
+   await row.locator('select').selectOption('7.4.3'); await row.getByRole('button',{name:'プロジェクトに追加'}).click();
+   // 追加済みの行は名前と版だけ。提供者は名前を押して開く箱の中。
+   await expect(page.locator('#library-added')).toContainText('ArduinoJson');
+   if (await page.locator('#library-added-toggle').getAttribute('aria-expanded') === 'false') await page.click('#library-added-toggle'); // 追加済みは初期状態で閉じている
+   await page.locator('#library-added .library-item').click();
+   await expect(page.locator('#library-added-detail')).toContainText('bblanchon');
+   await page.screenshot({path:info.outputPath('arduinoj-added.png')});
   }
  }
 });

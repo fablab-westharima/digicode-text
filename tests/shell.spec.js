@@ -209,7 +209,12 @@ test('Projects, libraries and AI settings saved by the old UI open unchanged in 
   await expect(page.locator('#ai-connection')).toHaveText('OpenAI / GPT-4.1 Mini · キー設定あり');
 
   await page.click('#libraries-open');
-  await expect(page.locator('#library-added')).toContainText('bblanchon/ArduinoJson · 7.4.3');
+  // 行は名前と版だけ。提供者は名前を押して開く箱の中。
+  await expect(page.locator('#library-added')).toContainText('ArduinoJson');
+  await expect(page.locator('#library-added')).toContainText('7.4.3');
+  if (await page.locator('#library-added-toggle').getAttribute('aria-expanded') === 'false') await page.click('#library-added-toggle'); // 追加済みは初期状態で閉じている
+  await page.locator('#library-added .library-item').click();
+  await expect(page.locator('#library-added-detail')).toContainText('bblanchon');
   await openExplorer(page);
   await expect(page.locator('.project-item[aria-current="true"]')).toContainText('旧UIのプロジェクト');
 
