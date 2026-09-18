@@ -38,14 +38,10 @@
         <header class="view-header"><h2 id="explorer-title">エクスプローラ</h2>
           <button id="projects-open" class="quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
         </header>
-        <p class="storage-hint">このブラウザ内に保存します。同期・バックアップではありません。</p>
-        <p class="current-project">編集中：<strong id="project-target"></strong></p>
-        <p id="project-save-message" role="status"></p>
-        <p id="project-notice" role="status"></p>
         <h3 class="view-section-title">プロジェクト</h3>
         <div id="project-list" aria-label="保存したプロジェクト"></div>
-        <h3 class="view-section-title">ファイル</h3>
-        <ul class="file-tree"><li><button id="file-main" class="tree-row" aria-current="true"><span class="file-kind" aria-hidden="true">C++</span>main.cpp</button></li></ul>
+        <p id="project-notice" role="status"></p>
+        <p id="project-save-message" role="status"></p>
       </section>
 
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
@@ -107,6 +103,7 @@
         <p>対応ボード：<span id="help-boards"></span></p>
         <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
         <p>プロジェクトはエクスプローラの「ファイル」→「ファイルへ書き出す」で zip にして持ち出せます。</p>
+        <p>保存先はこのブラウザ内です。同期・バックアップではありません。</p>
         <p>使い方は右の AI に聞けます（API キーが必要）。</p>
         <button id="help-flash-guide">接続手順を見る</button>
       </section>

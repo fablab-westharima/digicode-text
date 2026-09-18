@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { openExplorer, selectBoard } from './shell.js';
-import { zipRead } from '../web/zip.js';
+import { zipRead, zipWrite } from '../web/zip.js';
 const key = 'digicode-text.projects.v1';
 const old = 'digicode-text.draft.v1';
 // The project list is part of the Explorer view now, so there is no list dialog to close.
@@ -161,6 +161,147 @@ test('failed migration keeps old draft; successful retry completes migration onc
   expect(await page.evaluate(old => JSON.parse(localStorage.getItem(old)).source, old)).toBe('');
   await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await page.click('#save-retry');
   expect((await data(page)).migration).toBe('draft-v1'); expect((await data(page)).projects[0].source).toBe('');
+});
+// 画面と同じ書式（秒なし）に直した、保存済みの更新日時。
+async function stamp(page, projectName) {
+  return page.evaluate(([k, n]) => {
+    const d = JSON.parse(localStorage.getItem(k));
+    return new Date(d.projects.find(p => p.name === n).updatedAt)
+      .toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }, [key, projectName]);
+}
+// このアプリの zip ではない、ただのソース入り zip（tests/project-io.spec.js の stranger.zip と同じ）。
+const strangerZip = () => Buffer.from(zipWrite([
+  { name: 'thing/src/main.cpp', data: new TextEncoder().encode('int main() {}') },
+  { name: 'thing/notes.txt', data: new TextEncoder().encode('hello') },
+]));
+async function rejectImport(page) {
+  await page.locator('#project-file').setInputFiles({ name: 'stranger.zip', mimeType: 'application/zip', buffer: strangerZip() });
+  await expect(page.locator('#project-notice')).toContainText('DigiCode Text のプロジェクトではありません');
+}
+test('詳細の箱は選択中の行の真下に1つだけ開き、切り替えると付いていく', async ({ page, request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const boardName = id => boards.find(b => b.id === id).name;
+  await ready(page);
+  await name(page, 'rename', '一つめ');
+  await selectBoard(page, 'pico');
+  await name(page, 'new', '二つめ'); // 新規は既定の xiao_rp2040、ライブラリは空
+  await openExplorer(page);
+  // 起動直後は閉じているので、選択中の名前を押して開く。
+  await page.locator('#project-list .project-item[aria-current="true"]').click();
+  // DOM 上で、選択中の行のすぐ次が箱。箱は常に1つだけ。
+  const afterCurrent = () => page.evaluate(() =>
+    document.querySelector('#project-list .project-item[aria-current="true"]')?.nextElementSibling?.id ?? null);
+  await expect(page.locator('#project-detail')).toHaveCount(1);
+  expect(await afterCurrent()).toBe('project-detail');
+  await expect(page.locator('#project-detail-board')).toHaveText(boardName('xiao_rp2040'));
+  await expect(page.locator('#project-detail-libs')).toHaveText('なし');
+  await expect(page.locator('#project-detail-updated')).toHaveText(await stamp(page, '二つめ'));
+  // 押した行は名前だけのまま。
+  await expect(page.locator('.project-item[aria-current="true"]')).toHaveText('二つめ');
+  // 切り替えると箱も移る。
+  await select(page, '一つめ');
+  await openExplorer(page);
+  await expect(page.locator('#project-detail')).toHaveCount(1);
+  expect(await afterCurrent()).toBe('project-detail');
+  await expect(page.locator('#project-detail-board')).toHaveText(boardName('pico'));
+  await expect(page.locator('#project-detail-updated')).toHaveText(await stamp(page, '一つめ'));
+  await expect(page.locator('.project-item[aria-current="true"]')).toHaveText('一つめ');
+});
+test('ライブラリを追加すると、詳細の件数がついてくる', async ({ page }) => {
+  const item = { id: 64, owner: 'bblanchon', name: 'ArduinoJson', version: '7.4.3', description: 'JSON serialization library', frameworks: ['*'], platforms: ['*'] };
+  await page.route('**/libraries/search?*', r => r.fulfill({ json: { items: [item], total: 1, more: false } }));
+  await page.route('**/libraries/details?*', r => r.fulfill({ json: { ...item, versions: ['7.4.3', '7.4.2'] } }));
+  await ready(page);
+  await openExplorer(page);
+  await page.locator('#project-list .project-item[aria-current="true"]').click(); // 起動直後は閉じている
+  await expect(page.locator('#project-detail-libs')).toHaveText('なし');
+  // ライブラリ画面から本当に追加する（changed() 経由で一覧が描き直される道）。
+  await page.click('#libraries-open');
+  await page.fill('#library-query', 'ArduinoJson');
+  await page.locator('#library-search-form button').click();
+  const row = page.locator('[data-library-id="64"]');
+  await row.getByRole('button', { name: 'バージョンを選択' }).click();
+  await row.locator('select').selectOption('7.4.3');
+  await row.getByRole('button', { name: 'プロジェクトに追加' }).click();
+  await expect(page.locator('#library-added')).toContainText('7.4.3');
+  await openExplorer(page);
+  await expect(page.locator('#project-detail-libs')).toHaveText('1 件');
+});
+// 開閉の印は CSS の ::after で描くので、行の字ではなくそちらを見る。
+const marker = page => page.evaluate(() =>
+  getComputedStyle(document.querySelector('#project-list .project-item[aria-current="true"]'), '::after').content);
+test('選択中の名前を押すと詳細の箱が開き、もう一度押すと閉じる', async ({ page }) => {
+  await ready(page);
+  await name(page, 'new', '二つめ');
+  await openExplorer(page);
+  const current = page.locator('#project-list .project-item[aria-current="true"]');
+  const box = page.locator('#project-detail');
+  // 起動直後は閉じている。
+  await expect(box).toHaveCount(0);
+  await expect(current).toHaveAttribute('aria-expanded', 'false');
+  expect(await marker(page)).toContain('▸');
+  // 押すと開く。行を作り直してもフォーカスは押した行に残る。
+  await current.click();
+  await expect(box).toHaveCount(1);
+  await expect(current).toHaveAttribute('aria-expanded', 'true');
+  expect(await marker(page)).toContain('▾');
+  await expect(current).toBeFocused();
+  // もう一度押すと閉じ、箱は DOM から消える。
+  await current.click();
+  await expect(box).toHaveCount(0);
+  await expect(current).toHaveAttribute('aria-expanded', 'false');
+  await expect(current).toBeFocused();
+  // 閉じたまま別のプロジェクトを選ぶと、新しい選択行も閉じたまま。
+  await select(page, 'はじめてのプロジェクト');
+  await openExplorer(page);
+  await expect(current).toHaveText('はじめてのプロジェクト');
+  await expect(current).toHaveAttribute('aria-expanded', 'false');
+  await expect(box).toHaveCount(0);
+  await current.click();
+  await expect(box).toHaveCount(1);
+  await expect(current).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#project-detail-board')).toHaveCount(1);
+});
+test('一覧の名前は、選択中でもそうでなくても同じ左端から始まる', async ({ page }) => {
+  await ready(page);
+  await name(page, 'rename', '短い');
+  await name(page, 'new', 'こちらはずっと長い名前のプロジェクト');
+  await openExplorer(page);
+  const nameOf = row => page.locator(`#project-list .project-item[aria-current="${row}"] > span`);
+  const selected = await nameOf('true').boundingBox();
+  const other = await nameOf('false').boundingBox();
+  expect(other.x).toBe(selected.x);
+  // 行の左端からの距離も同じ（中央寄せに戻っていないこと）。
+  const rowX = await page.locator('#project-list .project-item').first().boundingBox();
+  expect(Math.round(selected.x - rowX.x)).toBeLessThanOrEqual(12);
+});
+test('知らせのカードは×で消える', async ({ page }) => {
+  await ready(page);
+  await openExplorer(page);
+  const notice = page.locator('#project-notice');
+  await rejectImport(page);
+  await expect(notice).toHaveAttribute('data-state', 'error');
+  await expect(notice).toBeVisible();
+  await page.click('#project-notice-close');
+  await expect(notice).toHaveText('');
+  await expect(notice).toBeHidden(); // 空になれば :empty でカードごと消える
+});
+test('知らせが出ても消えても、一覧の行は上下に動かない', async ({ page }) => {
+  await ready(page);
+  await name(page, 'new', '二つめ');
+  await select(page, 'はじめてのプロジェクト'); // 先頭行と選択行を別にする
+  await openExplorer(page);
+  const rowY = async () => [
+    (await page.locator('#project-list .project-item').first().boundingBox()).y,
+    (await page.locator('.project-item[aria-current="true"]').boundingBox()).y,
+  ];
+  const before = await rowY();
+  await rejectImport(page);
+  expect(await rowY()).toEqual(before);
+  await page.click('#project-notice-close');
+  await expect(page.locator('#project-notice')).toHaveText('');
+  expect(await rowY()).toEqual(before);
 });
 test('invalid new storage and external replacement are never overwritten', async ({ page, context }) => {
   await ready(page); const second = await context.newPage(); await ready(second);

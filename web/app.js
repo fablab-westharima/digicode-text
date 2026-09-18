@@ -112,7 +112,6 @@ function renderTabs(activeId = TABS[0].id) {
   }));
 }
 renderTabs();
-$('file-main').onclick = () => editor.focus();
 
 function showBoard() {
   const board = BOARDS.get($('env').value);
@@ -304,27 +303,58 @@ function startFlash() {
     });
 }
 
+// 詳細の箱を開いているか。プロジェクトを変えても引き継ぎ、保存はしない（起動時は閉）。
+let detailOpen = false;
 function renderProjects() {
   $('project-name').textContent = store.current.name;
   $('project-name').title = store.current.name;
-  $('project-target').textContent = store.current.name;
   const list = $('project-list');
   list.replaceChildren();
   for (const p of [...store.data.projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
+    const current = p.id === store.current.id;
     const button = document.createElement('button');
     button.className = 'project-item';
-    button.setAttribute('aria-current', String(p.id === store.current.id));
+    button.setAttribute('aria-current', String(current));
+    // 開閉の印は選択中の行だけ。印は CSS の ::after で描くので、行の字は名前だけのまま。
+    if (current) button.setAttribute('aria-expanded', String(detailOpen));
     const name = document.createElement('span');
     name.textContent = p.name;
-    const date = document.createElement('small');
-    date.textContent = `${p.id === store.current.id ? '編集中 · ' : ''}${new Date(p.updatedAt).toLocaleString('ja-JP')}`;
-    button.append(name, date);
+    button.append(name);
     button.onclick = () => {
-      if (p.id === store.current.id) return;
+      // 選択中の行をもう一度押すと詳細を閉じる／開く。別の行なら今までどおり切り替え。
+      if (p.id === store.current.id) {
+        detailOpen = !detailOpen;
+        renderProjects(); // 行を作り直すので、押した行へフォーカスを戻す
+        list.querySelector('.project-item[aria-current="true"]')?.focus();
+        return;
+      }
       if (store.transact(data => { data.activeId = p.id; })) activate();
     };
     list.append(button);
+    // 詳細は選択中の1件だけ。押した行は名前だけのまま残り、箱はその真下に開く。
+    if (current && detailOpen) list.append(projectDetail(p));
   }
+}
+// 行とは別の面。読むだけで、ここから編集はしない。
+function projectDetail(p) {
+  const box = document.createElement('dl');
+  box.id = 'project-detail';
+  box.className = 'project-detail';
+  const rows = [
+    ['ボード', 'project-detail-board', BOARDS.get(p.env)?.name ?? p.env],
+    ['ライブラリ', 'project-detail-libs', p.libraries.length ? `${p.libraries.length} 件` : 'なし'],
+    ['更新', 'project-detail-updated', new Date(p.updatedAt).toLocaleString('ja-JP',
+      { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })],
+  ];
+  for (const [label, id, value] of rows) {
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.id = id;
+    dd.textContent = value;
+    box.append(dt, dd);
+  }
+  return box;
 }
 function activate() {
   clearIoNotice(); // プロジェクトを切り替えたら、前の操作の断り文はもう用済み
@@ -444,10 +474,20 @@ $('project-delete').onclick = () => {
 // うまくいった知らせは数秒で引っ込める。断った理由は読む時間が要るので、利用者が次の操作
 // （ファイルメニューの項目・取り込み・プロジェクトの切り替え）をするまで消さない。
 let ioNoticeTimer;
+// 閉じる×。記号は CSS の ::before で描くので、知らせの文そのものは message だけのまま。
+const noticeClose = document.createElement('button');
+noticeClose.id = 'project-notice-close';
+noticeClose.className = 'notice-close';
+noticeClose.type = 'button';
+noticeClose.setAttribute('aria-label', '知らせを閉じる');
+noticeClose.onclick = () => clearIoNotice();
 function ioNotice(message, error = false) {
   clearTimeout(ioNoticeTimer);
-  $('project-notice').textContent = message;
-  if (message && !error) ioNoticeTimer = setTimeout(() => { $('project-notice').textContent = ''; }, 6000);
+  const notice = $('project-notice');
+  notice.textContent = message; // 空にすると×も一緒に消え、:empty でカードごと引っ込む
+  notice.dataset.state = message ? (error ? 'error' : 'ok') : '';
+  if (message) notice.append(noticeClose);
+  if (message && !error) ioNoticeTimer = setTimeout(() => ioNotice(''), 6000);
 }
 const clearIoNotice = () => ioNotice('');
 function download(fileName, bytes) {

@@ -244,18 +244,30 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* ---- sidebar: explorer ---------------------------------------------------------------- */
 #project-list { display: grid; gap: 2px; margin: 0 0 4px; }
-.project-item { height: auto; min-height: var(--row); display: flex; flex-direction: column; align-items: flex-start; gap: 1px; justify-content: center; padding: 4px 10px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+/* button の既定は中央寄せなので、名前は行の左端から始まるように打ち消す。 */
+.project-item { height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 10px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.project-item > span { flex: 1; min-width: 0; text-align: left; }
 .project-item:hover:not(:disabled) { background: var(--bg-raised); }
-.project-item small { color: var(--fg-muted); font-size: 11px; }
 .project-item[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-3); }
-.file-tree { list-style: none; margin: 0; padding: 0; }
-.tree-row { width: 100%; height: var(--row); justify-content: flex-start; border-color: transparent; background: transparent; font-family: var(--code-font); }
-.tree-row:hover:not(:disabled) { background: var(--bg-raised); }
-.tree-row[aria-current="true"] { background: var(--accent-soft); }
+/* 選択中の行の右端にだけ、詳細の開閉の印を出す。押すところは行そのもので、別のボタンは作らない。 */
+.project-item[aria-current="true"]::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
+.project-item[aria-current="true"][aria-expanded="true"]::after { content: '▾'; }
+/* 選択中の1件の詳細。行より内側に寄せ、面の色と枠線で行と区別する（行のハイライトとは別の色）。 */
+.project-detail { margin: 2px 0 4px 12px; padding: 6px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); font-size: 12px; line-height: 1.6; }
+.project-detail dt { color: var(--fg-muted); white-space: nowrap; }
+.project-detail dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
 .file-kind { color: var(--accent); font-size: 10px; font-weight: 700; font-family: var(--ui-font); }
-#project-notice, #project-save-message { margin: 6px 0; line-height: 1.6; overflow-wrap: anywhere; }
-#project-notice { color: var(--accent); }
+/* 知らせは一覧の下の枠つきカード。記号は ::before で描くので、文そのものは message だけ。 */
+#project-notice, #project-save-message { position: relative; margin: 6px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; line-height: 1.6; overflow-wrap: anywhere; }
+#project-notice::before, #project-save-message::before { position: absolute; left: 8px; }
+#project-notice[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
+#project-notice[data-state="ok"]::before { content: '✓'; }
+#project-notice[data-state="error"], #project-save-message { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+#project-notice[data-state="error"]::before, #project-save-message::before { content: '⚠'; }
 #project-notice:empty, #project-save-message:empty { display: none; }
+.notice-close { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; min-width: 0; padding: 0; border-color: transparent; background: transparent; color: inherit; }
+.notice-close::before { content: '×'; }
+.notice-close:hover:not(:disabled) { background: var(--bg-raised); }
 /* zip をエクスプローラへドラッグしている間だけ、受け取れることを示す */
 .sidebar-view.drop-target { outline: 2px dashed var(--accent); outline-offset: -4px; background: var(--accent-soft); }
 #project-save-message { color: var(--danger); }
