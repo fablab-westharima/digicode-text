@@ -26,9 +26,9 @@
 - donor の前提(Blockly fragment 注入、global lib_deps、固定 template)を無条件に持ち込まない。
 
 ## 今の目標
-- 縦串 1 本: ブラウザで main.cpp 編集 → 専用 compiler で RP2040 向け build → `.uf2` を BOOTSEL ドライブへコピー → Web Serial monitor に "hello" が出る。
-- board は手持ちの XIAO RP2040(または Pico)1 枚、library 0、device 0、UI は最低限。
-- これが動いたら次を Human が決める。Modbus、board 追加、Device Profile、Docker 化、esptool-js はその後。
+- 縦串(編集 → build → 書き込み → Serial に "hello")は RP2040・ESP32-C3・ESP8266 の 4 ボードで Hello の build と書き込みが通る。
+- 今は表示の型を全 view に当て、説明文を取説(ヘルプ dialog)に集めている。
+- その後: 対応ボードの拡充(第 1 陣: 無印 ESP32 DevKit、XIAO ESP32S3、Pico W、XIAO ESP32C5)、ローカル LLM、デプロイ。順は Human が決める。
 
 ## 表示の裁定
 - 型は `web/app.css` の共通規則と `web/styleguide.html` が正。全 view に当てる。
