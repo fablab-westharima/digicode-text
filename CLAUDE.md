@@ -13,6 +13,7 @@
 - 検証は実行で行う。動くものに対して壊れるか試す。独立レビューは重要なコードにかけ、文書にはかけない。
 - コードの commit より文書の commit が多くなったら、やり方が戻っている。
 - 報告書は repo ではなく `~/Downloads/` に置く。repo には動くコードと最小の README だけを commit する。
+- `~/Downloads/` の報告書は Claude Code → チャットへの受け渡し用で、消える。仕様・記録ではない。過去の報告書は読まない。
 
 ## Classic から持ち越す教訓(この 3 つだけ)
 1. 依存は project 単位で分離する。global な lib_deps で 16/20 board が死んだ。
@@ -29,13 +30,21 @@
 - board は手持ちの XIAO RP2040(または Pico)1 枚、library 0、device 0、UI は最低限。
 - これが動いたら次を Human が決める。Modbus、board 追加、Device Profile、Docker 化、esptool-js はその後。
 
+## 表示の裁定
+- 型は `web/app.css` の共通規則と `web/styleguide.html` が正。全 view に当てる。
+- 置き場: 一覧から選ぶ → サイドバー、読む・入力する → 中央 dialog、会話 → 右パネル、出力 → 下パネル。
+- 常時表示の説明文は置かない。説明は取説(ヘルプ dialog)とホバーへ。
+- 設定は項目ごとに 名前 + 1 行説明 + 入力欄。機能ごとに節を分ける。
+
 ## 実機・USB の扱い
+- 板・USB・シリアル・`/Volumes` の操作は Human が行う。下の明示許可がない限り、Claude Code は触らない前提で作業を組む。
 - USB デバイスとシリアルポートへの操作(open / write / reset / monitor / upload / 列挙)は、Human がその回の GO で明示的に許可した場合だけ行う。接続中の機器は別 project で稼働していることがある。
 - 書き込みは Human が「稼働中ボードを外した」と宣言した後の別 GO でのみ行う。
 
 ## やらないこと
 - 動くものが無いうちに設計書・計画・憲章・監査体系を書いて進捗の代わりにする。
 - production、credential、外部サービスへの write など非可逆操作を Human GO なしに行う。
+- 有料 API を呼ぶ。test で外部送信する(ダミー値を使い 0 件にする)。
 - 実機・センサの選定を先回りして行う。必要が出た時にやる。
 
 ## 過去の記録
