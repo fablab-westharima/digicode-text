@@ -183,8 +183,8 @@ function invalidateDownload() {
   $('build-incompat').textContent = '';
   $('build-incompat').hidden = true;
 }
-// 「ビルド結果」がまだ空のときの1行。Buildを始めると消え、ログが空に戻ると出る。
-const buildEmpty = (show) => { $('build-empty').hidden = !show; };
+// data-state は flash.js の stage をそのまま持つ（tests/rp2040-flash.spec.js が読む）。
+// 共通規則の .notice が知る ok / error / loading へは app.css の側で寄せる。
 function flashStatus(message, state = '') {
   $('flash-status').textContent = message;
   $('flash-status').dataset.state = state;
@@ -233,7 +233,6 @@ $('build').onclick = async () => {
   };
   $('status').textContent = 'Build中…';
   $('log').textContent = '';
-  buildEmpty(false);
   const t0 = performance.now();
   try {
     const res = await fetch('/compile', {
@@ -402,7 +401,6 @@ function activate() {
   ui.setBuildState(building ? 'building' : 'ready');
   $('status').textContent = building ? '以前のプロジェクトをBuild中です' : 'Buildできます';
   $('log').textContent = '';
-  buildEmpty(!building);
   renderProjects();
   editor.focus();
   ai?.changed();

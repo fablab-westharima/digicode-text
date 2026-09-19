@@ -89,23 +89,24 @@
           <button id="serial-tab" role="tab" aria-controls="serial-output" aria-selected="false" tabindex="-1">シリアル <span class="serial-dot" aria-hidden="true"></span></button>
           <button id="plotter-tab" role="tab" aria-controls="plotter-output" aria-selected="false" tabindex="-1">プロッタ</button>
         </div>
-        <button id="panel-toggle" class="quiet" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開閉">開く ⌃</button>
+        <!-- 開閉はアイコンだけ。字を持たせるとタブ帯が狭い列で見切れるので、意味は title と
+             aria-label が持つ（どちらも ui.js が開閉に合わせて書き換える）。 -->
+        <button id="panel-toggle" class="quiet compact" aria-expanded="false" aria-controls="panel-body" title="出力パネルを開く" aria-label="出力パネルを開く">⌃</button>
       </div>
       <div id="panel-body" hidden>
         <div id="build-output" role="tabpanel" aria-labelledby="build-tab">
-          <div class="output-heading"><p id="status" role="status">エディタを読み込み中…</p><button id="copy-build" class="quiet" title="ビルドログをコピー">コピー</button></div>
-          <p id="build-empty" class="empty-message">Build → 書き込み → シリアルで確認。困ったら右の AI へ</p>
-          <p id="build-incompat" hidden></p>
-          <p id="flash-status" role="status" hidden></p>
+          <div class="output-heading"><p id="status" class="notice" role="status">エディタを読み込み中…</p><div class="actions"><button id="copy-build" class="quiet compact" title="ビルドログをコピー">コピー</button></div></div>
+          <p id="build-incompat" class="notice" data-state="error" hidden></p>
+          <p id="flash-status" class="notice" role="status" hidden></p>
           <pre id="log" tabindex="0" aria-label="ビルドログ"></pre>
         </div>
         <div id="serial-output" role="tabpanel" aria-labelledby="serial-tab" hidden>
-          <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="serial-actions"><label for="serial-baud" class="sr-only">ボーレート</label><select id="serial-baud" title="ボーレート（切断中に変更できます）"></select><button id="monitor">接続</button><button id="stop" hidden>切断</button><button id="serial-forget" class="quiet" title="選んだUSBポートの許可を解除して、次回選び直せるようにする">USBポートを解除</button><button id="copy-serial" class="quiet">コピー</button></div></div>
-          <p id="serial-empty" class="empty-message">シリアルモニタは未接続です。接続ボタンからポートを選択できます。</p>
+          <div class="output-heading"><p id="serial-status" role="status">未接続</p><div class="actions serial-actions"><label for="serial-baud" class="sr-only">ボーレート</label><select id="serial-baud" title="ボーレート（切断中に変更できます）"></select><button id="monitor" class="compact">接続</button><button id="stop" class="compact" hidden>切断</button><button id="serial-forget" class="quiet compact" title="選んだUSBポートの許可を解除して、次回選び直せるようにする">USBポートを解除</button><button id="copy-serial" class="quiet compact">コピー</button></div></div>
           <pre id="serial-log" tabindex="0" aria-label="シリアルログ"></pre>
         </div>
         <div id="plotter-output" role="tabpanel" aria-labelledby="plotter-tab" hidden>
-          <div class="output-heading"><p id="plot-status" role="status">数値の行を待っています。「12, 34」や「temp:25.5 hum:40」の形で送ってください</p><div class="serial-actions"><label for="plot-samples" class="sr-only">表示するサンプル数</label><input id="plot-samples" type="number" min="100" max="5000" step="100" value="500" title="表示するサンプル数（100〜5000）"><button id="plot-pause" aria-pressed="false">一時停止</button><button id="plot-clear" class="quiet">クリア</button></div></div>
+          <!-- 待機中の文は plotter.js が入れる（文言の定義はそこ 1 か所）。 -->
+          <div class="output-heading"><p id="plot-status" role="status"></p><div class="actions serial-actions"><label for="plot-samples" class="sr-only">表示するサンプル数</label><input id="plot-samples" type="number" min="100" max="5000" step="100" value="500" title="表示するサンプル数（100〜5000）"><button id="plot-pause" class="compact" aria-pressed="false">一時停止</button><button id="plot-clear" class="quiet compact">クリア</button></div></div>
           <div id="plot-legend"></div>
           <div id="plot-area"><canvas id="plot-canvas" aria-label="シリアルの数値グラフ" role="img"></canvas></div>
         </div>
@@ -284,6 +285,7 @@
           <p>対応ボード：<span id="help-boards"></span></p>
           <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）。</p>
           <p>最初から入っているコードは、115200 bps のシリアルへ 1 秒ごとに「hello」を送ります。書き込んでから「シリアル」タブの「接続」でポートを選ぶと、それが並びます。</p>
+          <p>「プロッタ」タブは、同じ接続に届いた数値の行をグラフにします。「12, 34」や「temp:25.5 hum:40」の形の行が対象で、読めない行は捨てます。</p>
           <p>使い方は右の AI に聞けます（API キーが必要）。</p>
         </div>
         <div class="actions primary-row"><button id="help-flash-guide">接続手順を見る</button></div>

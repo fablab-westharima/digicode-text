@@ -318,12 +318,5 @@ test('取説は390x700でも横にはみ出さず、「閉じる」が画面の�
   }
 });
 
-test('ビルド結果が空のときだけ、次にすることが1行出る', async ({ page }) => {
-  await ready(page);
-  await page.click('#panel-toggle');
-  await expect(page.locator('#build-empty')).toBeVisible();
-  await expect(page.locator('#build-empty')).toHaveText('Build → 書き込み → シリアルで確認。困ったら右の AI へ');
-  await built(page);
-  await expect(page.locator('#build-empty')).toBeHidden();
-  await expect(page.locator('#log')).toContainText('build OK');
-});
+// 「ビルド結果が空のときだけ、次にすることが1行出る」テストはここにあった。#build-empty を
+// 消した（同じ事実は取説の「最初の 1 台」にある）ので、その1行を見張るテストも消した。

@@ -8,6 +8,8 @@ const $ = (id) => document.getElementById(id);
 const MAX_SERIES = 8;
 const SAMPLES = { min: 100, max: 5000, initial: 500 };
 const PAD = { left: 8, right: 8, top: 8, bottom: 8 };
+// まだ1つも数値が読めていないときの1行。index.html には書かない（文言はここだけ）。
+const WAITING = '数値の行を待っています。「12, 34」や「temp:25.5 hum:40」の形で送ってください';
 
 const round = (value) => Number(value.toFixed(3)).toString();
 
@@ -72,7 +74,7 @@ export function setupPlotter() {
     }));
     $('plot-status').textContent = range
       ? `最小 ${round(range.min)} / 最大 ${round(range.max)} · ${[...series.values()].reduce((n, v) => Math.max(n, v.length), 0)} / ${limit} サンプル${paused ? '（一時停止中）' : ''}`
-      : '数値の行を待っています。「12, 34」や「temp:25.5 hum:40」の形で送ってください';
+      : WAITING;
   }
 
   function draw() {
@@ -141,6 +143,8 @@ export function setupPlotter() {
   new MutationObserver(() => { readColors(); draw(); })
     .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   readColors();
+  // タブが隠れている間 draw() は何もしないので、待機中の1行はここで入れる。
+  $('plot-status').textContent = WAITING;
   draw();
   return { draw };
 }

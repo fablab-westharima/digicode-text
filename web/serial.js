@@ -44,7 +44,6 @@ function setState(next) {
   const busy = next === 'opening' || next === 'closing';
   $('monitor').disabled = $('stop').disabled = $('serial-forget').disabled = busy;
   $('serial-baud').disabled = next !== 'idle'; // 切断してから変える
-  if (next !== 'idle') $('serial-empty').hidden = true;
 }
 
 // Close in this order — reader.cancel() → reader.releaseLock() → writer close/releaseLock →

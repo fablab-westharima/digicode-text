@@ -256,9 +256,13 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 .note > :last-child { margin-bottom: 0; }
 .note.danger { border-left-color: var(--danger); color: var(--fg); }
 .note.danger::before { color: var(--danger); }
-/* 知らせ。枠つきカードで、記号は ::before、×は .notice-close。 */
-.notice { position: relative; margin: var(--sp-2) 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: var(--radius); line-height: var(--lh); overflow-wrap: anywhere; }
+/* 知らせ。結果が出たとき（ok / error）だけ枠つきカードにし、記号は ::before、×は .notice-close。
+   状態が無いとき（まだ何も起きていない、途中経過を出しているだけ）と loading は枠も地も持たない：
+   枠は「終わった」ことの印なので、動いている最中に出すと読み手が止まる。loading は色だけで示す。 */
+.notice { position: relative; margin: var(--sp-2) 0; line-height: var(--lh); overflow-wrap: anywhere; }
 .notice::before { position: absolute; left: 8px; }
+.notice[data-state="loading"] { color: var(--accent); }
+.notice[data-state="ok"], .notice[data-state="error"] { padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: var(--radius); }
 .notice[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
 .notice[data-state="ok"]::before { content: '✓'; }
 .notice[data-state="error"] { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
@@ -477,7 +481,7 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .panel-header { height: 35px; min-width: 0; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 /* エディタ列が狭いとタブ3枚が入りきらない。タブ列だけを縮めて横に流し、パネル自体は列から
    はみ出させない(はみ出すと出力パネルがサイドバーの下に潜る)。 */
-[role="tablist"] { display: flex; align-self: stretch; gap: 14px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+[role="tablist"] { display: flex; align-self: stretch; gap: var(--sp-2); min-width: 0; overflow-x: auto; scrollbar-width: none; }
 [role="tablist"]::-webkit-scrollbar { display: none; }
 [role="tab"] { flex: none; height: 100%; padding: 0 2px; border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; color: var(--fg-muted); font-size: 12px; }
 [role="tab"][aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
@@ -491,16 +495,26 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 /* 狭い画面では見出しの操作ボタンを折り返す。横スクロールを出さないための逃げ道。 */
 .output-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--border); background: var(--bg-panel); flex: none; }
 .output-heading p { margin: 0; font-size: 12px; overflow-wrap: anywhere; min-width: 0; }
-#status[data-state="error"] { color: var(--danger); }
+/* error は共通規則の .notice が描く。success は .notice に無い状態なので、色だけここで与える。 */
 #status[data-state="success"] { color: var(--accent-2); }
-#build-incompat { margin: 0; padding: 6px 10px; font-size: 12px; color: var(--danger); background: var(--bg-editor); white-space: pre-wrap; overflow-wrap: anywhere; }
-#flash-status { margin: 0; padding: 6px 10px; font-size: 12px; background: var(--bg-editor); }
-#flash-status[data-state="error"] { color: var(--danger); white-space: pre-wrap; }
-#flash-status[data-state="complete"] { color: var(--accent-2); }
-.serial-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.serial-actions button { height: 24px; font-size: 12px; }
-.serial-actions input { height: 24px; width: 72px; padding: 0 4px; font-size: 12px; }
-.serial-actions select { height: 24px; padding: 0 4px; font-size: 12px; }
+/* 下パネルの知らせ2つ。見え方は .notice、置き場所だけここで決める：左右はログの余白に合わせ、
+   上下は 220px のパネルでログを潰さない幅まで詰める。 */
+#build-incompat, #flash-status { margin: var(--sp-1) 10px; font-size: var(--fs-small); }
+#build-incompat { white-space: pre-wrap; }
+#flash-status[data-state="error"] { white-space: pre-wrap; }
+/* 書き込みの data-state は flash.js の stage（connect・erase・write… と complete）で、.notice が
+   知る 3 つとは名前が違う。data-state 自体はテストが読むので変えず、寄せるのは見た目だけ：
+   complete は ok と同じカード、途中の stage は loading と同じ色。 */
+#flash-status[data-state="complete"] { padding: 6px 28px 6px 26px; border: 1px solid var(--accent-3); border-radius: var(--radius); color: var(--accent-2); background: var(--bg-panel); }
+#flash-status[data-state="complete"]::before { content: '✓'; }
+#flash-status:not([data-state=""]):not([data-state="complete"]):not([data-state="error"]) { color: var(--accent); }
+/* 操作列そのものは共通規則の .actions。この列だけの事情は3つ：右寄せ、24px のボタンに高さを
+   揃える入力欄・選択欄（小さい入力の型はまだ無いので、ここで寸法を持つ）、そして間隔。
+   型の 12px だと、プロッタの待機中の1行と操作列が 1px 入りきらずに帯が2行になる。詰めた帯の
+   中だけ 6px にするのは .detail-box .detail-actions と同じ扱い。 */
+.serial-actions { justify-content: flex-end; gap: 6px; }
+.serial-actions input { height: 24px; width: 72px; padding: 0 4px; font-size: var(--fs-small); }
+.serial-actions select { height: 24px; padding: 0 4px; font-size: var(--fs-small); }
 /* ---- plotter ---- */
 #plot-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 6px 10px; font-size: 12px; background: var(--bg-editor); }
 #plot-legend:empty { display: none; }
@@ -510,7 +524,6 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 #plot-canvas { display: block; width: 100%; height: 100%; }
 pre { flex: 1; min-height: 0; margin: 0; padding: 10px 12px; overflow: auto; white-space: pre; font: 13px/1.6 var(--code-font); color: var(--fg); background: var(--bg-editor); tab-size: 2; }
 pre:empty { padding-top: 0; }
-.empty-message { margin: 0; padding: 14px 12px 0; color: var(--fg-muted); font-size: 12px; background: var(--bg-editor); }
 
 /* ---- AI panel ------------------------------------------------------------------------- */
 #ai-pane { grid-column: 6; grid-row: 1; width: var(--ai-width); min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 0 var(--pad) var(--pad); overflow: hidden; background: var(--bg-panel); border-left: 1px solid var(--border); }

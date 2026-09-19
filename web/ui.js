@@ -23,7 +23,11 @@ export function setupUI(layout) {
     $('panel-body').hidden = !open;
     $('panel-resize').hidden = !open;
     $('panel-toggle').setAttribute('aria-expanded', String(open));
-    $('panel-toggle').textContent = open ? '閉じる ⌄' : '開く ⌃';
+    // アイコンだけのボタン。字は持たせず、「開く／閉じる」は title と aria-label が持つ。
+    $('panel-toggle').textContent = open ? '⌄' : '⌃';
+    const label = open ? '出力パネルを閉じる' : '出力パネルを開く';
+    $('panel-toggle').title = label;
+    $('panel-toggle').setAttribute('aria-label', label);
     resize();
   }
   function openPanel(tab = activeTab) {
