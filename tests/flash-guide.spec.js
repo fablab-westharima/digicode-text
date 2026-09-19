@@ -237,19 +237,85 @@ test('AIに渡す画面の場所は、実在する要素だけを指している
   for (const word of ['flashGuide', 'UI_FACTS', 'productFacts', 'ids']) expect(facts).not.toContain(word);
 });
 
-test('ヘルプは10行以内で、対応ボードはボード表から出て、接続手順を開ける', async ({ page, request }) => {
+// 取説は設定と同じ型の <dialog>：左の目次で選んだ1節だけを右に出す。ここで守るのは節の並びと
+// 出し分け、そして「ボードの事実は手書きではなく GET /boards から出ている」こと。
+const HELP_SECTIONS = [
+  ['first', '最初の 1 台'], ['boards', 'ボードとピン'], ['libraries', 'ライブラリ'],
+  ['export', '持ち出し'], ['ai', 'AI'], ['trouble', '困ったとき'], ['about', 'このソフトについて'],
+];
+
+test('取説は7節を目次で出し分け、対応ボードはボード表から出て、接続手順を開ける', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   await ready(page, 'pico');
   await page.click('#view-help');
-  await expect(page.locator('#help-view')).toBeVisible();
-  const lines = await page.locator('#help-view').evaluate(el => el.innerText.split('\n').map(s => s.trim()).filter(Boolean));
-  expect(lines.length, lines.join(' / ')).toBeLessThanOrEqual(10);
+  await expect(page.locator('#help-dialog')).toBeVisible();
+
+  // 目次はこの7節、この順、この文言。見出し（h3）も同じ文言。
+  expect(await page.locator('#help-nav button').allTextContents()).toEqual(HELP_SECTIONS.map(([, label]) => label));
+  expect(await page.locator('#help-nav button').evaluateAll(list => list.map(b => b.dataset.section)))
+    .toEqual(HELP_SECTIONS.map(([section]) => section));
+
+  // 開いたときは「最初の 1 台」。対応ボードはボード表そのままで、この画面に手で書いていない。
+  await expect(page.locator('#help-first')).toBeVisible();
   await expect(page.locator('#help-boards')).toHaveText(boards.map(b => b.name).join(' / '));
-  await expect(page.locator('#help-view')).toContainText('Chrome');
-  await expect(page.locator('#help-view')).toContainText('AI に聞けます');
+  await expect(page.locator('#help-first')).toContainText('Chrome');
+  await expect(page.locator('#help-first')).toContainText('AI に聞けます');
+
+  // 目次で選んだ1節だけが出て、aria-current が付け替わる。見出しは目次と同じ文言。
+  for (const [section, label] of HELP_SECTIONS) {
+    await page.click(`#help-nav button[data-section="${section}"]`);
+    for (const [other] of HELP_SECTIONS) {
+      await expect(page.locator(`#help-dialog section[data-section="${other}"]`))[other === section ? 'toBeVisible' : 'toBeHidden']();
+      await expect(page.locator(`#help-nav button[data-section="${other}"]`)).toHaveAttribute('aria-current', String(other === section));
+    }
+    await expect(page.locator(`#help-dialog section[data-section="${section}"] h3`)).toHaveText(label);
+  }
+  // 「このソフトについて」はライセンスを言う。
+  await expect(page.locator('#help-about')).toContainText('AGPL-3.0');
+
+  // 接続手順は取説の上にもう1枚開き、いま選んでいるボードのものが出る。
+  await page.click('#help-nav button[data-section="first"]');
   await page.click('#help-flash-guide');
   await expect(dialog(page)).toBeVisible();
   await expect(page.locator('#flash-guide-title')).toContainText('Raspberry Pi Pico');
+});
+
+test('取説の「ボードとピン」は、ボード表の接続手順とピン表を切替で1台ずつ出す', async ({ page, request }) => {
+  const boards = await (await request.get('/boards')).json();
+  await ready(page, 'xiao_esp32c3');
+  await page.click('#view-help');
+  await page.click('#help-nav button[data-section="boards"]');
+  // 切替はボード表のぶんだけ並び、開いたときは選択中のボードが押されている。
+  const switches = page.locator('#help-board-list .actions button');
+  expect(await switches.allTextContents()).toEqual(boards.map(b => b.name));
+  await expect(page.locator('#help-board-list .actions button[data-board-id="xiao_esp32c3"]')).toHaveAttribute('aria-pressed', 'true');
+  // 切り替えると、そのボードの接続手順とピン表になる。どちらも /boards が返した中身そのまま。
+  for (const board of boards) {
+    await page.click(`#help-board-list .actions button[data-board-id="${board.id}"]`);
+    await expect(page.locator('#help-board-list h4')).toHaveText(board.name);
+    await expect(page.locator('#help-board-list .steps li').first()).toHaveText(board.flashGuide.steps[0].text);
+    expect(await page.locator('#help-board-list .table tbody tr').count(), board.id)
+      .toBe(board.pins.pins.length + (board.pins.unlabelledFunctions ?? []).length);
+  }
+});
+
+test('取説は390x700でも横にはみ出さず、「閉じる」が画面の中にある', async ({ page }) => {
+  await ready(page, 'pico');
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.click('#view-help');
+  await expect(page.locator('#help-dialog')).toBeVisible();
+  const close = await page.locator('#help-close').boundingBox();
+  expect(close.x).toBeGreaterThanOrEqual(0);
+  expect(close.x + close.width).toBeLessThanOrEqual(390);
+  expect(close.y).toBeGreaterThanOrEqual(0);
+  expect(close.y + close.height).toBeLessThanOrEqual(700);
+  // ピン表のある節でも横スクロールは表の容れ物（.table-scroll）の中だけ。ページも節も広がらない。
+  for (const section of ['first', 'boards']) {
+    await page.click(`#help-nav button[data-section="${section}"]`);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth), section).toBeLessThanOrEqual(390);
+    const overflow = await page.locator('#help-content').evaluate(el => el.scrollWidth - el.clientWidth);
+    expect(overflow, section).toBeLessThanOrEqual(0);
+  }
 });
 
 test('ビルド結果が空のときだけ、次にすることが1行出る', async ({ page }) => {

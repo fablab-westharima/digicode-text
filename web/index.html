@@ -62,21 +62,6 @@
         <select id="env" aria-label="ボード" hidden></select>
         <div id="board-list"></div>
       </section>
-
-      <section class="sidebar-view" id="help-view" data-view="help" aria-labelledby="help-title" hidden>
-        <header class="view-header"><h2 id="help-title">ヘルプ</h2></header>
-        <div class="prose">
-          <ol class="steps">
-            <li>「ボード」でボードを選び、main.cpp を編集して「Build」を押す</li>
-            <li>「書き込み」でボードへ書き込み、「シリアル」タブで出力を見る</li>
-          </ol>
-          <p>対応ボード：<span id="help-boards"></span></p>
-          <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
-          <div class="note"><p>保存先はこのブラウザ内です。同期・バックアップではありません。エクスプローラの「ファイル」→「ファイルへ書き出す」で zip にして持ち出せます。</p></div>
-          <p>使い方は右の AI に聞けます（API キーが必要）。</p>
-          <div class="actions"><button id="help-flash-guide">接続手順を見る</button></div>
-        </div>
-      </section>
     </div>
     <aside id="ad-slot" class="ad-slot" aria-label="広告"><div id="ad-slot-inner">広告</div></aside>
   </aside>
@@ -201,8 +186,7 @@
   <div class="settings-body">
     <nav class="section-nav" id="settings-nav" aria-label="設定の節">
       <button type="button" data-section="appearance" aria-controls="settings-appearance" aria-current="true">外観</button>
-      <button type="button" data-section="ai" aria-controls="settings-ai" aria-current="false">AI API設定</button>
-      <button type="button" data-section="storage" aria-controls="settings-storage" aria-current="false">保存</button>
+      <button type="button" data-section="ai" aria-controls="settings-ai" aria-current="false">AI</button>
     </nav>
     <div class="settings-content" id="settings-content">
       <section id="settings-appearance" data-section="appearance" aria-labelledby="settings-appearance-title">
@@ -222,7 +206,7 @@
         </div>
       </section>
       <section id="settings-ai" data-section="ai" aria-labelledby="settings-ai-title" hidden>
-        <h3 class="heading" id="settings-ai-title">AI API設定</h3>
+        <h3 class="heading" id="settings-ai-title">AI</h3>
         <div class="form-group">
           <label for="ai-provider">提供元</label>
           <p class="form-hint">OpenAI・Claude・Geminiから選びます。キーと設定は提供元ごとに別に保存します。</p>
@@ -251,9 +235,9 @@
             <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
           </div>
         </details>
-      </section>
-      <section id="settings-storage" data-section="storage" aria-labelledby="settings-storage-title" hidden>
-        <h3 class="heading" id="settings-storage-title">保存</h3>
+        <!-- ここから下は同じ「AI」の節の中の、保存まわり。接続の設定（上）とは共通規則の hr.rule
+             だけで区切る。小見出しを足すと 1100x850 で #settings-content にスクロールが出る。 -->
+        <hr class="rule">
         <div class="form-group">
           <p class="form-hint">いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
           <div class="actions"><button id="ai-default">既定にする</button></div>
@@ -267,8 +251,142 @@
   </div>
   <div class="settings-footer">
     <p id="ai-settings-status" role="status"></p>
-    <p class="form-hint">「保存して閉じる」はこのブラウザに保存し（暗号化保管ではありません）、「保存せず使う」はこのページだけに反映します。閉じるだけなら編集は破棄されます。</p>
-    <div class="actions primary-row"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
+    <!-- 2つのボタンの意味（保存先・反映の範囲・閉じたときの扱い）は取説の「AI」の節にある。
+         常時表示の説明文は置かない：ここに残すのはホバーの title だけ。 -->
+    <div class="actions primary-row"><button id="ai-save" class="primary" title="このブラウザに保存して閉じる（暗号化保管ではありません）">保存して閉じる</button><button id="ai-use" title="保存せず、開いているこのページだけに反映する">保存せず使う</button></div>
+  </div>
+</dialog>
+<!-- 取説。設定と同じ型の <dialog>：左が節の目次で、選んだ1節だけを右に出す。footer は無い。
+     ここに書いてよいのは repo にある事実だけ。ボードの事実は 1 行も手で書かない：GET /boards の
+     内容を web/help.js が描くので、ボードが増えれば「ボードとピン」も自動で増える。 -->
+<dialog id="help-dialog" aria-labelledby="help-dialog-title">
+  <div class="dialog-heading"><h2 id="help-dialog-title">ヘルプ</h2><button id="help-close" class="quiet">閉じる</button></div>
+  <div class="settings-body">
+    <nav class="section-nav" id="help-nav" aria-label="ヘルプの節">
+      <button type="button" data-section="first" aria-controls="help-first" aria-current="true">最初の 1 台</button>
+      <button type="button" data-section="boards" aria-controls="help-board-guide" aria-current="false">ボードとピン</button>
+      <button type="button" data-section="libraries" aria-controls="help-libraries" aria-current="false">ライブラリ</button>
+      <button type="button" data-section="export" aria-controls="help-export" aria-current="false">持ち出し</button>
+      <button type="button" data-section="ai" aria-controls="help-ai" aria-current="false">AI</button>
+      <button type="button" data-section="trouble" aria-controls="help-trouble" aria-current="false">困ったとき</button>
+      <button type="button" data-section="about" aria-controls="help-about" aria-current="false">このソフトについて</button>
+    </nav>
+    <div class="settings-content" id="help-content">
+
+      <section id="help-first" data-section="first" aria-labelledby="help-first-title">
+        <h3 class="heading" id="help-first-title">最初の 1 台</h3>
+        <ol class="steps">
+          <li>「ボード」で使うボードを選ぶ。</li>
+          <li>main.cpp を編集して「Build」を押す。</li>
+          <li>「書き込み」でボードへ書き込み、「シリアル」タブで出力を見る。</li>
+        </ol>
+        <div class="prose">
+          <p>対応ボード：<span id="help-boards"></span></p>
+          <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）。</p>
+          <p>最初から入っているコードは、115200 bps のシリアルへ 1 秒ごとに「hello」を送ります。書き込んでから「シリアル」タブの「接続」でポートを選ぶと、それが並びます。</p>
+          <p>使い方は右の AI に聞けます（API キーが必要）。</p>
+        </div>
+        <div class="actions primary-row"><button id="help-flash-guide">接続手順を見る</button></div>
+      </section>
+
+      <section id="help-board-guide" data-section="boards" aria-labelledby="help-board-guide-title" hidden>
+        <h3 class="heading" id="help-board-guide-title">ボードとピン</h3>
+        <div id="help-board-list"></div>
+      </section>
+
+      <section id="help-libraries" data-section="libraries" aria-labelledby="help-libraries-title" hidden>
+        <h3 class="heading" id="help-libraries-title">ライブラリ</h3>
+        <div class="prose">
+          <p>左のアクティビティバーの「ライブラリ」で PlatformIO Registry を検索し、提供者・正式名とバージョンを選んで、そのプロジェクトの直接依存に加えます。</p>
+          <p>Git の URL や任意のパスを直接足す方法はありません。実際のパッケージを取りに行くのは Build のときです。</p>
+          <p>名前を押すと、説明・Registry 番号・「バージョンを選択」／「削除」がその名前のすぐ下に開きます。追加済みは見出しを押すと開き、件数は「追加済み」の右隣の数字です。</p>
+        </div>
+        <div class="note">
+          <p>Registry に登録されていることや、framework / platform の表示は、そのボードとの互換性の保証ではありません。</p>
+          <p>設定済みと、取得済みと、対象ボードでの Build 成功と、実機での動作確認は、それぞれ別のことです。</p>
+        </div>
+        <hr class="rule">
+        <h4 class="heading">このボードでは使えないライブラリ</h4>
+        <div class="prose">
+          <p>Build ハーネスで実際に失敗を見たものだけを表にしています。検索結果では既定で伏せられ、「このボードで使えないライブラリも表示」で出すと行に「使えません」が付き、理由と代替は詳細の中にあります。</p>
+        </div>
+        <div id="help-incompat"></div>
+      </section>
+
+      <section id="help-export" data-section="export" aria-labelledby="help-export-title" hidden>
+        <h3 class="heading" id="help-export-title">持ち出し</h3>
+        <div class="prose">
+          <p>名前を付けたプロジェクトのコード・ボード・直接依存は、同じブラウザの中に自動保存します。クラウド同期でもバックアップでもありません。</p>
+          <p>エクスプローラ右上の「ファイル」メニューで、「ファイルへ書き出す」は編集中の 1 件を zip にし、「すべて書き出す」は保存してあるプロジェクトを全部まとめて 1 つの zip にします。</p>
+          <p>「ファイルから読み込む…」で zip と旧 JSON を新しいプロジェクトとして増やせます。エクスプローラへ zip をドラッグ＆ドロップしても同じです。取り込んだ zip のボードがこの製品の対応ボードに無いときは、読み込むボードを選びます。</p>
+        </div>
+        <div class="note">
+          <p>zip に入るのは、プロジェクト名・ボード・直接依存・版数を書いた digicode.json と、src/main.cpp の 2 つだけです。この zip は DigiCode Text へ戻すためのものです。</p>
+          <p>API キー・会話・Build ログ・成果物・表示設定は zip に含みません。</p>
+        </div>
+      </section>
+
+      <section id="help-ai" data-section="ai" aria-labelledby="help-ai-title" hidden>
+        <h3 class="heading" id="help-ai-title">AI</h3>
+        <div class="prose">
+          <p>右の AI パネルは、左のアクティビティバーの「AI」で開きます。使い方は右の AI に聞けます（API キーが必要）。</p>
+          <p>提供元は OpenAI・Claude・Gemini から選びます。キーとモデルは設定の「AI」の節で決め、キーと設定は提供元ごとに別に保存します。</p>
+          <p>AI は回答か、main.cpp 全体の変更候補を返します。「コード変更時」が「自動適用」なら全体を置き換え、「確認して適用」なら差分を見てから適用します。回答だけではコードは変わりません。適用は Undo 1 回で戻せます。</p>
+          <p>「会話を消去」は、いま表示しているプロジェクトと提供元の会話だけを消します。</p>
+          <p>設定の「保存して閉じる」はこのブラウザに保存し、「保存せず使う」は開いているページだけに反映します。閉じるだけなら編集は破棄されます。</p>
+        </div>
+        <hr class="rule">
+        <h4 class="heading">AI に送るもの</h4>
+        <div class="prose">
+          <p>送るのは、現在のコード・ボード・直接依存と版、そして指示と保持中の会話です。「Buildエラーを含めて送信」を選んだときだけ、一致する失敗ログも送ります。中身は「AIに送る内容を確認」でそのまま読めます。</p>
+          <p>上限は、コードが 256 KiB、指示が 16,000 文字、履歴が最大 12 往復・32,000 文字です。履歴のソースは重複して送りません。</p>
+        </div>
+        <div class="note">
+          <p>API キーと会話は、このブラウザから提供元へ直接送ります。弊社のサーバーへは送りません。キーと設定の保存は暗号化保管ではありません。</p>
+          <p>任意のコードや会話の中の秘密の値を自動で見つける機能はありません。</p>
+        </div>
+      </section>
+
+      <section id="help-trouble" data-section="trouble" aria-labelledby="help-trouble-title" hidden>
+        <h3 class="heading" id="help-trouble-title">困ったとき</h3>
+        <table class="table">
+          <thead><tr><th>画面に出ること</th><th>どうするか</th></tr></thead>
+          <tbody>
+            <tr><td>「Build通信に失敗しました。再実行できます」</td><td>ローカルの Build サーバーが動いているか確かめて、もう一度「Build」を押す。</td></tr>
+            <tr><td>ビルド結果に「○○ は △△ で使えません」と出る</td><td>そのボードで Build が通らないライブラリ。詳細に出ている代替へ替える。「ライブラリ」の節を見る。</td></tr>
+            <tr><td>「このブラウザに自動保存：保存できません」</td><td>「再試行」を押す。直らないときは「ファイルへ書き出す」で zip に退避してから触る。</td></tr>
+            <tr><td>シリアルのポートを選び直したい</td><td>「シリアル」タブの「USBポートを解除」で許可を手放すと、次の接続で選び直せる。</td></tr>
+            <tr><td>書き込みの後に macOS が「ディスクの不正な取り出し」と言う</td><td>正常な動作。</td></tr>
+            <tr><td>Wio Node を micro USB でつないでも書き込めない</td><td>Wio Node の micro USB は給電専用で UART が無い。Grove の USB シリアルを PORT0 に挿す。</td></tr>
+          </tbody>
+        </table>
+        <div class="note">
+          <p>ポートが出てこない、ドライバ、権限など、実機をつないで初めて分かることは、まだここに書けることがありません。</p>
+          <p>実機確認待ち。</p>
+        </div>
+      </section>
+
+      <section id="help-about" data-section="about" aria-labelledby="help-about-title" hidden>
+        <h3 class="heading" id="help-about-title">このソフトについて</h3>
+        <div class="prose">
+          <p>DigiCode Text は、ブラウザで main.cpp を編集し、ローカルの compiler（Node と PlatformIO）でマイコン向けに build して、そのままブラウザからボードへ書き込む Web アプリです。</p>
+        </div>
+        <hr class="rule">
+        <h4 class="heading">ライセンス</h4>
+        <table class="table">
+          <thead><tr><th>もの</th><th>ライセンス</th></tr></thead>
+          <tbody>
+            <tr><td>DigiCode Text 本体</td><td>AGPL-3.0</td></tr>
+            <tr><td>配色：DuoTone syntax themes（simurai）</td><td>MIT</td></tr>
+            <tr><td>アイコン：Lucide</td><td>ISC</td></tr>
+            <tr><td>エディタ：Monaco Editor</td><td>MIT</td></tr>
+            <tr><td>ESP 系の書き込み：esptool-js</td><td>Apache-2.0</td></tr>
+            <tr><td>AI の回答の表示：markdown-it</td><td>MIT</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+    </div>
   </div>
 </dialog>
 <dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>

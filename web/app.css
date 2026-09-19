@@ -268,6 +268,10 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 .table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); line-height: var(--lh); }
 .table th { text-align: left; font-weight: 600; color: var(--fg-muted); background: var(--bg-raised); }
 .table th, .table td { padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--border); overflow-wrap: anywhere; vertical-align: top; }
+/* 語の途中で折ると読めなくなる列（GPIO番号・ライブラリ名・ボード名）。内容の幅まで詰める。 */
+.table th.nowrap, .table td.nowrap { white-space: nowrap; width: 1%; }
+/* 折れない列のせいで表が容れ物より広くなるときだけ、表の容れ物だけを横にスクロールさせる。 */
+.table-scroll { overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; }
 /* 入力1組 = ラベル＋入力欄＋補足文。組の中は --sp-2、組と組の間は --sp-3。 */
 .form-group { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; }
 .form-group > label { color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
@@ -277,6 +281,9 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 /* 組の中身がボタンだけの項目（名前＝ボタンの文字）。列は組の gap で間が空くので margin は持たない。 */
 .form-group > .actions { margin: 0; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+/* ボタンの列から1つだけを選ぶとき（取説のボード切替）。選択中は一覧の行と同じ面と枠で示す。
+   活動バーの .activity-item と出力パネルの一時停止は .actions の中に無いので影響しない。 */
+.actions > button[aria-pressed="true"] { color: var(--fg-strong); background: var(--accent-soft); border-color: var(--accent-3); }
 /* 主ボタン1つ＋副ボタンの列。入力の最後に置く。 */
 .actions.primary-row { margin-top: var(--sp-3); }
 /* 読ませる文。 */
@@ -436,10 +443,12 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .pin-table th { text-align: left; font-weight: 600; color: var(--fg-muted); }
 .pin-table th, .pin-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; vertical-align: top; }
 .pin-table .pin-label, .pin-table .pin-gpio { font-family: var(--code-font); white-space: nowrap; width: 1%; }
-.board-notes, .board-sources { margin: 6px 0; padding-left: 18px; line-height: 1.7; }
-.board-notes li, .board-sources li { margin-bottom: 6px; overflow-wrap: anywhere; }
+/* .sources は取説の出所の並びで、.board-sources と同じ見え方。class 名を分けてあるのは、
+   ボード view の出所と取説の出所が同時に DOM にあるため（片方だけを指せるようにする）。 */
+.board-notes, .board-sources, .sources { margin: 6px 0; padding-left: 18px; line-height: 1.7; }
+.board-notes li, .board-sources li, .sources li { margin-bottom: 6px; overflow-wrap: anywhere; }
 .note-source { color: var(--fg-muted); }
-.board-sources a { color: var(--accent); }
+.board-sources a, .sources a { color: var(--accent); }
 .board-flash-hint { margin: 6px 0; line-height: 1.7; }
 
 /* ---- sidebar: ad slot ----------------------------------------------------------------- */
@@ -579,12 +588,17 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 #ai-context-dialog { width: min(850px, calc(100% - 24px)); }
 #ai-context-text { max-height: 55dvh; white-space: pre-wrap; overflow-wrap: anywhere; }
 
-/* ---- 設定 dialog ------------------------------------------------------------------------
-   id セレクタで寸法を書くのは、この dialog の幅・高さと2列の割り付けだけ。中の見え方は共通規則
-   （.heading / .form-group / .form-hint / .actions / .section-nav）に任せる。
-   display:grid は [open] に付ける：閉じている dialog の display:none を上書きしないため。 */
-#ai-settings { width: min(880px, calc(100% - 24px)); height: 80dvh; }
+/* ---- 設定・ヘルプ dialog -----------------------------------------------------------------
+   同じ型の2枚（左が節の目次、右に選んだ1節）。id セレクタで寸法を書くのは、この dialog の
+   幅・高さと2列の割り付けだけ。中の見え方は共通規則（.heading / .form-group / .form-hint /
+   .actions / .section-nav / .steps / .note / .table / hr.rule）に任せる。
+   display:grid は [open] に付ける：閉じている dialog の display:none を上書きしないため。
+   高さは画面の残りいっぱい（上限 900px）。設定の「AI」の節が 1100x850 でスクロール無しに
+   収まる高さがここで要る。ヘルプは節によっては右側がスクロールする。 */
+#ai-settings, #help-dialog { width: min(880px, calc(100% - 24px)); height: min(900px, calc(100dvh - 40px)); }
 #ai-settings[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; row-gap: var(--sp-2); }
+/* ヘルプには footer が無いので、行は見出しと本体の2つ。 */
+#help-dialog[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); row-gap: var(--sp-2); }
 .settings-body { min-height: 0; display: grid; grid-template-columns: 172px minmax(0, 1fr); gap: var(--sp-3); }
 /* 目次は動かず、右の1節だけが必要なときにスクロールする。 */
 .settings-content { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding-right: var(--sp-1); }
@@ -600,7 +614,7 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 #ai-api-help p { margin: var(--sp-1) 0; }
 /* 携帯の幅。dialog は画面いっぱいにし、目次は内容の上に横並びで置く。 */
 @media (max-width: 560px) {
-  #ai-settings { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; padding: var(--sp-2); border: 0; border-radius: 0; }
+  #ai-settings, #help-dialog { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; padding: var(--sp-2); border: 0; border-radius: 0; }
   .settings-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--sp-2); }
   .section-nav { flex-direction: row; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: var(--sp-1); }
   .section-nav > button { width: auto; }

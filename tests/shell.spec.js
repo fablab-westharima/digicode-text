@@ -29,7 +29,6 @@ test('Activity bar switches sidebar views, marks the selected one and collapses 
     ['#view-explorer', '#explorer-view'],
     ['#libraries-open', '#libraries-dialog'],
     ['#view-boards', '#boards-view'],
-    ['#view-help', '#help-view'],
   ];
   for (const [button, view] of views) {
     await page.click(button);
@@ -41,21 +40,31 @@ test('Activity bar switches sidebar views, marks the selected one and collapses 
     }
     await expect(page.locator(button)).toHaveAttribute('aria-pressed', 'true');
   }
-  await page.screenshot({ path: info.outputPath('sidebar-help.png') });
+  await page.screenshot({ path: info.outputPath('sidebar-boards.png') });
 
   // The same button again folds the sidebar away; the editor takes the space back.
   const wide = (await box(page, '#editor-column')).width;
-  await page.click('#view-help');
+  await page.click('#view-boards');
   await expect(page.locator('#sidebar')).toBeHidden();
   expect((await box(page, '#editor-column')).width).toBeGreaterThan(wide);
+  await page.click('#view-boards');
+  await expect(page.locator('#boards-view')).toBeVisible();
+
+  // ヘルプは sidebar の view ではなく <dialog>。設定と同じで、押しても sidebar が出している
+  // view も、活動バーの選択（aria-pressed）も動かない。
   await page.click('#view-help');
-  await expect(page.locator('#help-view')).toBeVisible();
+  await expect(page.locator('#help-dialog')).toBeVisible();
+  await expect(page.locator('#boards-view')).toBeVisible();
+  await expect(page.locator('#view-boards')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#view-help')).toHaveAttribute('aria-pressed', 'false');
+  await page.click('#help-close');
+  await expect(page.locator('#help-dialog')).toBeHidden();
 
   // AI支援 is the right panel's toggle and leaves the sidebar selection alone.
   await page.click('#ai-open');
   await expect(page.locator('#ai-pane')).toBeVisible();
-  await expect(page.locator('#help-view')).toBeVisible();
-  await expect(page.locator('#view-help')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#boards-view')).toBeVisible();
+  await expect(page.locator('#view-boards')).toHaveAttribute('aria-pressed', 'true');
   await page.click('#ai-open');
   await expect(page.locator('#ai-pane')).toBeHidden();
 });
@@ -78,18 +87,28 @@ test('Settings opens as a modal dialog over the shell and leaves the sidebar sel
   // Opened from the activity bar, the first section is 外観; the table of contents marks it.
   await expect(page.locator('#settings-appearance')).toBeVisible();
   await expect(page.locator('#settings-ai')).toBeHidden();
-  await expect(page.locator('#settings-storage')).toBeHidden();
   await expect(page.locator('#settings-nav button[data-section="appearance"]')).toHaveAttribute('aria-current', 'true');
   await page.screenshot({ path: info.outputPath('settings-dialog.png') });
 
+  // 節は「外観」「AI」の2つだけ。「保存」の節は解体され、その中身は AI の節の中にある。
+  expect(await page.locator('#settings-nav button').count()).toBe(2);
+  expect(await page.locator('#settings-storage').count()).toBe(0);
+  expect(await page.locator('#settings-nav button[data-section="storage"]').count()).toBe(0);
+  for (const id of ['ai-default', 'ai-delete'])
+    expect(await page.locator(`#settings-ai #${id}`).count(), id).toBe(1);
+
   // The table of contents shows one section at a time, and aria-current follows.
-  for (const section of ['ai', 'storage', 'appearance']) {
+  for (const section of ['ai', 'appearance']) {
     await page.click(`#settings-nav button[data-section="${section}"]`);
-    for (const other of ['appearance', 'ai', 'storage']) {
+    for (const other of ['appearance', 'ai']) {
       await expect(page.locator(`#settings-${other}`))[other === section ? 'toBeVisible' : 'toBeHidden']();
       await expect(page.locator(`#settings-nav button[data-section="${other}"]`))
         .toHaveAttribute('aria-current', String(other === section));
     }
+    // 受入条件（1100x850、詳細設定は閉じたまま）: どの節も縦に収まり、右側はスクロールしない。
+    expect(await page.locator('#ai-advanced').evaluate(el => el.open)).toBe(false);
+    const fits = await page.locator('#settings-content').evaluate(el => el.scrollHeight <= el.clientHeight);
+    expect(fits, `${section} の節が #settings-content に収まらない`).toBe(true);
   }
 
   // A control inside the dialog acts without closing it.

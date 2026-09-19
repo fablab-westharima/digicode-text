@@ -1,8 +1,8 @@
 // The VS Code style shell: activity bar, sidebar views, editor column, right AI panel, status bar.
 // Everything here is placement and persistence — no Build, flash, serial or AI behaviour lives in
 // this file. The sidebar's Libraries section keeps the ids and the open/close protocol that
-// libraries.js was written against, so that module is untouched. Settings is a real <dialog> in
-// index.html, opened from app.js, so it needs nothing here.
+// libraries.js was written against, so that module is untouched. Settings and Help are real
+// <dialog>s in index.html, opened from app.js, so they need nothing here.
 const $ = (id) => document.getElementById(id);
 
 export const LAYOUT_KEY = 'digicode-text.layout.v1';
@@ -13,7 +13,7 @@ const DEFAULTS = { sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320
 // Views whose element answers the <dialog> protocol (open / showModal() / close() / 'close' event),
 // because libraries.js drives its section through exactly that interface.
 const DIALOG_VIEWS = { libraries: 'libraries-dialog' };
-const VIEWS = ['explorer', 'libraries', 'boards', 'help'];
+const VIEWS = ['explorer', 'libraries', 'boards'];
 
 const clamp = (value, [min, max]) => Math.round(Math.max(min, Math.min(max, value)));
 
@@ -24,7 +24,8 @@ function readState() {
     if (saved && typeof saved === 'object') {
       if (typeof saved.sidebarOpen === 'boolean') state.sidebarOpen = saved.sidebarOpen;
       // Libraries is prepared by its own module when its button is pressed, so it is never the
-      // view a reload opens on; the explorer is. A stored 'settings' is no longer a view at all.
+      // view a reload opens on; the explorer is. A stored 'settings' or 'help' is no longer a
+      // view at all, so a layout saved before either became a dialog falls back to the explorer.
       if (VIEWS.includes(saved.sidebarView) && !DIALOG_VIEWS[saved.sidebarView]) state.sidebarView = saved.sidebarView;
       if (typeof saved.panelOpen === 'boolean') state.panelOpen = saved.panelOpen;
       if (typeof saved.aiOpen === 'boolean') state.aiOpen = saved.aiOpen;
@@ -50,7 +51,7 @@ export function setupLayout() {
   const dialogElement = (view) => DIALOG_VIEWS[view] ? $(DIALOG_VIEWS[view]) : null;
   let shown = null;
   // A window too narrow for three columns puts the sidebar over the editor. A browsing view
-  // (explorer / boards / help) steps aside on the way in and comes back when the window widens;
+  // (explorer / boards) steps aside on the way in and comes back when the window widens;
   // Libraries stays, because it is the task that replaced a modal dialog.
   let wasNarrow = null, hiddenByNarrow = null;
 
@@ -123,8 +124,9 @@ export function setupLayout() {
     if (view === 'libraries') continue;
     button.onclick = () => toggleView(view);
   }
-  // 設定のボタン（#view-settings）はここには無い。設定は sidebar の view ではなく本物の <dialog>
-  // で、どの節から開くかを決める必要があるため、開く口は app.js が持つ。
+  // 設定（#view-settings）とヘルプ（#view-help）のボタンはここには無い。どちらも sidebar の
+  // view ではなく本物の <dialog> で、どの節から開くかを決める必要があるため、開く口は app.js が
+  // 持つ。sidebar の選択状態も変えない。
   // Pressing the showing view's own button folds the sidebar away — including Libraries, whose
   // button otherwise belongs to libraries.js. Capturing on the bar keeps the click from reaching
   // that module at all, so it never re-opens what the user just closed.

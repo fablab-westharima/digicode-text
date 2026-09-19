@@ -6,6 +6,7 @@ import { monitorPort, disconnectForFlash } from './serial.js';
 import { setupPlotter } from './plotter.js';
 import { parseFlashSet, flashEsp, flashUf2, ESP_VENDOR_IDS } from './flash.js';
 import { setupFlashGuide } from './flash-guide.js';
+import { setupHelp } from './help.js';
 import { setupLibraries } from './libraries.js';
 import { incompatibleDependencies } from './library-incompat.js';
 import { setupAI } from './ai.js';
@@ -84,7 +85,12 @@ $('help-boards').textContent = [...BOARDS.values()].map(b => b.name).join(' / ')
 const flashGuide = setupFlashGuide();
 const showFlashGuide = () => flashGuide.show(BOARDS.get($('env').value));
 $('flash-guide-open').onclick = showFlashGuide;
-$('help-flash-guide').onclick = showFlashGuide;
+// 取説も設定と同じ型の <dialog>。ボードごとの節は同じ BOARDS から描く。
+// #help-flash-guide の配線は setupHelp が持つ（接続手順は取説の上に重ねて開く）。
+const help = setupHelp(BOARDS, showFlashGuide, () => $('env').value);
+// ヘルプは sidebar の view ではなく <dialog>。設定（#view-settings）と同じ扱いで、
+// アクティビティバーの選択状態は変えない。
+$('view-help').onclick = () => help.open();
 // 設定から、ボードごとに保存した「次回から表示しない」をまとめて解除する。
 $('flash-guide-reset').onclick = () => flashGuide.resetSkipped();
 const store = await openProjects(HELLO, saveStatus);
