@@ -16,9 +16,6 @@
   .sg-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .sg-card { min-width: 0; padding: 0 var(--sp-3) var(--sp-3); background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: var(--radius); }
   .sg-list { display: grid; gap: 2px; }
-  /* 8 の見本用。主ボタンの列が「画面の最後に貼り付く」ことを見せるためのスクロール箱。 */
-  .sg-scroll { max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .sg-scroll > .form-group:first-child { margin-top: var(--sp-2); }
   .sg-swatches { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
   .sg-swatches li { flex: 1 1 64px; padding: var(--sp-1); border: 1px solid var(--border); border-radius: var(--radius); font-size: var(--fs-tiny); color: var(--fg-muted); text-align: center; }
   @media (max-width: 900px) { .sg-grid { grid-template-columns: minmax(0, 1fr); } }
@@ -47,7 +44,7 @@
   <section class="sg-card">
     <h2 class="heading">1 見出し</h2>
     <div class="prose">
-      <p>節の始まりを示します。左の 3 px の縦線が「accent-3」で、文字は 14 px の太字です。</p>
+      <p>節の始まりを示します。左の 4 px の縦線が「accent-3」で、文字は 16 px の太字です。</p>
     </div>
     <h3 class="heading">1.1 下位の見出し</h3>
     <div class="prose">
@@ -56,6 +53,11 @@
     <h3 class="heading">1.2 見出しの間隔</h3>
     <div class="prose">
       <p>見出しの上は「--sp-3」、下は「--sp-2」です。上を広く取ることで、前の節との切れ目が見えます。</p>
+    </div>
+    <hr class="rule">
+    <h3 class="heading">1.3 区切り線</h3>
+    <div class="prose">
+      <p>塊が変わるところでは、見出しの直前に「hr.rule」の区切り線を置きます。最初の見出しの前には置きません。</p>
     </div>
   </section>
 
@@ -118,7 +120,8 @@
   <section class="sg-card">
     <h2 class="heading">5 注記</h2>
     <div class="prose">
-      <p>本文の流れを止めずに、読み飛ばすと困ることだけを置きます。線と「NOTE」ラベルで種類を示し、本文の色は変えません。</p>
+      <p>設定や操作の画面には説明文を置きません。説明は取説のページに書き、短い補足は「title」のホバーに回します。</p>
+      <p>「NOTE」は、読み飛ばすと壊れるものにだけ使います。線と「NOTE」ラベルで種類を示し、本文の色は変えません。</p>
     </div>
     <div class="note">
       <p>ビルドに使うのは保存済みの内容です。編集したら、先に保存してください。</p>
@@ -172,36 +175,34 @@
     <h2 class="heading">8 入力</h2>
     <div class="prose">
       <p>ラベル、入力欄、補足文で 1 組です。組の中は狭く、組と組の間は広く取ります。</p>
-      <p>下の箱はスクロールします。中身が流れても、ボタンの列は箱の下端に貼り付いたままです。</p>
+      <p>下の補足文は「form-hint」という部品の見本です。設定や操作の画面では補足文を置かず、同じ内容を「title」のホバーに回します。</p>
     </div>
-    <div class="sg-scroll">
-      <div class="form-group">
-        <label for="sg-model">モデル</label>
-        <select id="sg-model">
-          <option>claude-sonnet-4-6</option>
-          <option>claude-opus-4-1</option>
-        </select>
-        <p class="form-hint">選んだモデルはこのブラウザに残ります。</p>
-      </div>
-      <div class="form-group">
-        <label for="sg-name">プロジェクト名</label>
-        <input id="sg-name" value="blink" maxlength="60">
-        <p class="form-hint">半角英数字と「-」「_」が使えます。</p>
-      </div>
-      <div class="form-group">
-        <label for="sg-note">メモ</label>
-        <textarea id="sg-note" rows="2">LED を 1 秒ごとに点滅させる</textarea>
-        <p class="form-hint">ビルドには使いません。</p>
-      </div>
-      <div class="actions primary-row">
-        <button type="button" class="primary">保存して閉じる</button>
-        <button type="button">保存せず使う</button>
-        <button type="button" class="quiet">キャンセル</button>
-      </div>
+    <div class="form-group">
+      <label for="sg-model">モデル</label>
+      <select id="sg-model">
+        <option>claude-sonnet-4-6</option>
+        <option>claude-opus-4-1</option>
+      </select>
+      <p class="form-hint">選んだモデルはこのブラウザに残ります。</p>
+    </div>
+    <div class="form-group">
+      <label for="sg-name">プロジェクト名</label>
+      <input id="sg-name" value="blink" maxlength="60">
+      <p class="form-hint">半角英数字と「-」「_」が使えます。</p>
+    </div>
+    <div class="form-group">
+      <label for="sg-note">メモ</label>
+      <textarea id="sg-note" rows="2">LED を 1 秒ごとに点滅させる</textarea>
+      <p class="form-hint">ビルドには使いません。</p>
+    </div>
+    <div class="actions primary-row">
+      <button type="button" class="primary">保存して閉じる</button>
+      <button type="button">保存せず使う</button>
+      <button type="button" class="quiet">キャンセル</button>
     </div>
     <h3 class="heading">8.1 主ボタンは 1 つ</h3>
     <div class="prose">
-      <p>列の主ボタンは 1 つだけにします。列は画面の最後に貼り付けて、スクロールしても消えないようにします。</p>
+      <p>列の主ボタンは 1 つだけにします。列は入力の最後に置きます。</p>
     </div>
   </section>
 
@@ -209,20 +210,21 @@
   <section class="sg-card">
     <h2 class="heading">9 本文</h2>
     <div class="prose">
+      <p>読ませる文は取説と見本のページに置きます。設定や操作の画面には置きません。</p>
       <p>1 段落は 2 文までにします。3 文目が要るときは、段落を分けるか節を分けます。</p>
       <p>用語は「」で囲み、太字にしません。太字は見出しとボタンの文字だけに残します。</p>
       <p>行間は「--lh」の 1.6 で、段落の間は「--sp-2」です。字を小さくするより、余白で読みやすくします。</p>
     </div>
     <ul class="sg-swatches">
-      <li>--fs-heading<br>14px</li>
-      <li>--fs-body<br>13px</li>
+      <li>--fs-heading<br>16px</li>
+      <li>--fs-body<br>14px</li>
       <li>--fs-small<br>12px</li>
       <li>--fs-tiny<br>11px</li>
     </ul>
     <ul class="sg-swatches">
       <li>--sp-1<br>4px</li>
-      <li>--sp-2<br>8px</li>
-      <li>--sp-3<br>16px</li>
+      <li>--sp-2<br>12px</li>
+      <li>--sp-3<br>24px</li>
       <li>--radius<br>4px</li>
     </ul>
   </section>

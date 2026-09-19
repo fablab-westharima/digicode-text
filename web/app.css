@@ -179,21 +179,23 @@
   --pad: 12px;
   /* 寸法の刻み。テーマに依らないのでここに置く。新しい規則はこの変数だけを使う
      （既存の px 直書きは今回は書き換えない）。 */
-  --fs-heading: 14px;
-  --fs-body: 13px;
+  --fs-heading: 16px;
+  --fs-body: 14px;
   --fs-small: 12px;
   --fs-tiny: 11px;
   --lh: 1.6;
   --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 16px;
+  --sp-2: 12px;
+  --sp-3: 24px;
   --radius: 4px;
+  /* 見出しと注記の左の縦線の太さ。役割の強さを変えるときはここを変える。 */
+  --rule: 4px;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 .icon-defs { position: absolute; width: 0; height: 0; }
 .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-body { margin: 0; font-family: var(--ui-font); font-size: 13px; line-height: 1.5; color: var(--fg); background: var(--bg-editor); }
+body { margin: 0; font-family: var(--ui-font); font-size: var(--fs-body); line-height: 1.5; color: var(--fg); background: var(--bg-editor); }
 html, body { height: 100%; overflow: hidden; }
 :focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -219,8 +221,11 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
    役割ごとに1つの class を用意し、色と寸法は :root の変数だけで書く（生の色値は書かない）。
    既存の id セレクタ規則（#project-notice ほか）は今回そのまま残してあるので、ここの class は
    まだ web/styleguide.html の見本でしか使っていない。見本は web/app.css だけを読む。 */
-/* 見出し。左の3px の縦線で階層を示す。 */
-.heading { margin: var(--sp-3) 0 var(--sp-2); padding-left: var(--sp-2); border-left: 3px solid var(--accent-3); font-size: var(--fs-heading); font-weight: 600; line-height: var(--lh); color: var(--fg-strong); }
+/* 塊の区切り線。見出しの直前に置いて、前の節が終わったことを示す。素の hr は #file-menu の
+   区切りと AI の Markdown 出力（--- の水平線）でも使うので、class を付けた方だけを変える。 */
+hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0; }
+/* 見出し。左の4px の縦線で階層を示す。 */
+.heading { margin: var(--sp-3) 0 var(--sp-2); padding-left: var(--sp-2); border-left: var(--rule) solid var(--accent-3); font-size: var(--fs-heading); font-weight: 600; line-height: var(--lh); color: var(--fg-strong); }
 /* 一覧の行。既存の .project-item / .library-item / .board-item と同じ見え方を class にしたもの。
    button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。 */
 .list-row { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
@@ -237,9 +242,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .steps { margin: var(--sp-2) 0; padding-left: 1.7em; font-size: var(--fs-body); line-height: var(--lh); }
 .steps > li { margin-bottom: var(--sp-1); overflow-wrap: anywhere; }
 .steps > li::marker { color: var(--accent-2); font-weight: 700; }
-/* 注記。見出しと同じ左3px の縦線＋面。本文の色は変えず、線と NOTE ラベルだけで種類を示す。 */
-.note { margin: var(--sp-2) 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--accent-3); border-radius: 0 var(--radius) var(--radius) 0; background: var(--bg-raised); font-size: var(--fs-body); line-height: var(--lh); overflow-wrap: anywhere; }
-.note::before { content: 'NOTE'; display: block; margin-bottom: var(--sp-1); font-size: var(--fs-tiny); font-weight: 600; letter-spacing: .08em; color: var(--fg-muted); }
+/* 注記。見出しと同じ左4px の縦線＋面。本文の色は変えず、線と NOTE ラベルだけで種類を示す。 */
+.note { margin: var(--sp-2) 0; padding: var(--sp-2) var(--sp-3); border-left: var(--rule) solid var(--accent-3); border-radius: 0 var(--radius) var(--radius) 0; background: var(--bg-raised); font-size: var(--fs-body); line-height: var(--lh); overflow-wrap: anywhere; }
+.note::before { content: 'NOTE'; display: block; margin-bottom: var(--sp-1); font-size: var(--fs-tiny); font-weight: 600; letter-spacing: .08em; color: var(--accent-2); }
 .note > :first-of-type { margin-top: 0; }
 .note > :last-child { margin-bottom: 0; }
 .note.danger { border-left-color: var(--danger); color: var(--fg); }
@@ -262,8 +267,8 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .form-group > .form-hint { margin: 0; color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
 .form-group > input, .form-group > select, .form-group > textarea { width: 100%; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
-/* 主ボタン1つ＋副ボタンの列。画面の最後に貼り付けて、スクロールしても消えないようにする。 */
-.actions.primary-row { position: sticky; bottom: 0; z-index: 1; margin-top: var(--sp-3); padding: var(--sp-2) 0; background: var(--bg-sidebar); border-top: 1px solid var(--border); }
+/* 主ボタン1つ＋副ボタンの列。入力の最後に置く。 */
+.actions.primary-row { margin-top: var(--sp-3); }
 /* 読ませる文。 */
 .prose { font-size: var(--fs-body); line-height: var(--lh); overflow-wrap: anywhere; }
 .prose p { margin: 0 0 var(--sp-2); }
@@ -295,11 +300,8 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 /* Each view is its own scroll container, so a view can scroll itself back to the top.
    縦は常にスクロール扱いにして溝を確保する。スクロールできることが見えるようにするため。
    横は今までどおり内容があるときだけ出す。 */
-.sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; padding: 0 var(--pad) 16px; }
-/* macOS の overlay scrollbar では溝が出ないので、常時見える細いバーを自前で描く。 */
-.sidebar-view::-webkit-scrollbar { width: 6px; height: 6px; }
-.sidebar-view::-webkit-scrollbar-track { background: transparent; }
-.sidebar-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius); }
+/* スクロールバーは細いものにして、つまみだけを見せる（溝は背景のまま）。 */
+.sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding: 0 var(--pad) 16px; }
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
 .view-header h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
 .view-section-title { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
@@ -435,10 +437,7 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 #ai-advanced summary { cursor: pointer; color: var(--fg-muted); }
 #ai-api-help { margin-top: 6px; color: var(--fg-muted); font-size: 12px; }
 #ai-api-help p { margin: 4px 0; }
-#ai-settings .ai-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 #ai-settings-status { color: var(--accent); line-height: 1.6; }
-#ai-delete { margin-top: 12px; }
-.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
 /* ---- sidebar: ad slot ----------------------------------------------------------------- */
 .ad-slot { flex: none; width: 100%; height: 250px; display: grid; place-items: center; border-top: 1px solid var(--border); background: var(--bg-sidebar); overflow: hidden; }
@@ -610,10 +609,6 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 @media (prefers-reduced-motion: reduce) {
   .flash-figure .fig-cable, .flash-figure .fig-cable-near, .flash-figure .fig-press, .flash-figure .fig-appear { animation: none; opacity: 1; }
 }
-
-/* ---- ヘルプ ----------------------------------------------------------------------------- */
-.help-steps { margin: 6px 0; padding-left: 20px; line-height: 1.8; }
-#help-view p { margin: 8px 0; line-height: 1.7; }
 
 /* ---- file menu ------------------------------------------------------------------------ */
 #file-menu { position: fixed; z-index: 100; width: min(240px, calc(100vw - 16px)); padding: 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); overflow-y: auto; }

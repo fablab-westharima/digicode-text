@@ -12,13 +12,14 @@ export const PRODUCT_INFO = {
   serial: { api: 'Web Serial対応ブラウザでSerialタブの接続から利用者がポートを選ぶ', baudRate: 115200, scope: 'Serialモニタが使えるかはボード情報の文にある。タブ表示だけでは接続しない。' }, // serial.js
   projectStorage: '名前付きプロジェクトのコード・ボード・直接依存を同じブラウザ・origin内に自動保存する。ファイル → ファイルへ書き出すで現在の1プロジェクトをzipへ退避し、すべて書き出すは全プロジェクトを1つのzipにまとめる。このzipはこの製品へ戻すためのもので、入るのは、プロジェクト名・ボード・直接依存・版数を書いたdigicode.jsonと、src/main.cppの2つだけ。AIキー・会話・Buildログ・成果物・表示設定はzipに含まない。ファイルから読み込む…はzipと旧JSONを新IDで追加し、エクスプローラへのドラッグ＆ドロップでも同じ。取り込んだzipのボードがこの製品の対応ボードに無いときは利用者が選ぶ。クラウド同期ではない。保存失敗時も編集内容を保持し、再試行または書き出しを使う。', // projects.js, project-io.js, app.js project-export/project-export-all/project-file
   ai: 'AIは回答、または完全main.cppの変更候補を返す。コード変更時の保存済み設定がautoなら全体適用、reviewなら差分を確認して適用。回答だけでは変更しない。適用はUndo 1回で戻せる。待機中や候補表示後に編集・切替された古い候補は適用しない。適用と保存成功、Build成功は別。会話を消去は表示中のプロジェクト/提供元の会話だけを消す。', // ai.js apply/send/clear, app.js aiSnapshot/aiMatches/executeEdits
+  settings: '設定のテーマはDuoTone（simurai、MIT）を基にした4配色。APIキーと会話は利用者のブラウザから提供元へ直接送信し、弊社のサーバーへは送らない。キーと設定の保存は暗号化保管ではない。「保存せず使う」は開いているページだけに反映し、保存せずに閉じると編集は破棄される。', // index.html 設定 view, ai-settings.js, themes/
   userOperations: 'Build、依存追加、ボード変更、シリアル接続、書き込みは利用者の操作。AIが実行した、依存を追加した、Buildや実機を確認したとは述べない。',
   libraryAdditionPolicy: 'ライブラリ画面でPlatformIO Registryを検索し、提供者/正式名と具体バージョンを選んで直接依存に追加する。Git URL・任意パスの追加UIはない。実パッケージの取得はBuild時。Registry登録やframework/platformの表示は対象ボードとの互換性保証ではない。', // libraries.js, shared/libraries.js, compiler/registry.mjs
   libraryEvidence: '添付の依存一覧は設定された直接依存と版。設定済み≠取得済み≠対象環境でのBuild成功≠実機動作確認。board core付属ヘッダーはRegistry外部依存と別。未確認だけで非対応と断定しない。必要な依存追加は利用者へ案内する。',
   versionEvidence: 'ボード情報のcoreはテンプレートが示す系列。インストール済みcoreの具体版や成功記録を推測で埋めない。',
 };
 // Japanese labels for the prose form of PRODUCT_INFO. Key names themselves are never sent.
-const PRODUCT_LABELS = { editor: 'エディタ', build: 'Build', flashing: '書き込み', serial: 'Serialモニタ', projectStorage: 'プロジェクト保存', ai: 'AI支援', userOperations: '利用者の操作', libraryAdditionPolicy: 'ライブラリ追加', libraryEvidence: '依存の根拠', versionEvidence: '版の根拠' };
+const PRODUCT_LABELS = { editor: 'エディタ', build: 'Build', flashing: '書き込み', serial: 'Serialモニタ', projectStorage: 'プロジェクト保存', ai: 'AI支援', settings: '設定', userOperations: '利用者の操作', libraryAdditionPolicy: 'ライブラリ追加', libraryEvidence: '依存の根拠', versionEvidence: '版の根拠' };
 export function productReference() {
   const s = PRODUCT_INFO.serial;
   const prose = { ...PRODUCT_INFO, serial: `${s.api}。通信速度は既定 ${s.baudRate} baud。シリアルタブのボーレートで変更可。${s.scope}` };

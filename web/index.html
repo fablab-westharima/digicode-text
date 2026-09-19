@@ -65,43 +65,47 @@
 
       <section class="sidebar-view" id="ai-settings" data-view="settings" aria-labelledby="ai-settings-title" hidden>
         <header class="view-header"><h2 id="ai-settings-title">設定</h2><button id="ai-settings-close" class="quiet">閉じる</button></header>
-        <h3 class="view-section-title">外観</h3>
-        <label class="field" for="theme-select">テーマ</label>
-        <select id="theme-select"></select>
-        <p class="storage-hint">DuoTone（simurai、MIT）を基にした4配色です。</p>
-        <div class="settings-actions">
-          <button id="layout-reset">レイアウトを初期化</button>
-          <button id="flash-guide-reset">接続手順の非表示をすべて解除</button>
+        <h3 class="heading">外観</h3>
+        <div class="form-group">
+          <label for="theme-select">テーマ</label>
+          <select id="theme-select"></select>
         </div>
-        <h3 class="view-section-title">AI API設定</h3>
-        <p class="storage-hint">利用者のブラウザから提供元へ直接送信します。弊社のサーバーへキー・会話は送りません。</p>
-        <label class="field" for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
-        <label class="field" for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false">
-        <label class="field" for="ai-model-choice">モデル</label><select id="ai-model-choice"></select>
+        <div class="actions">
+          <button id="layout-reset" class="compact">レイアウトを初期化</button>
+          <button id="flash-guide-reset" class="compact">接続手順の非表示をすべて解除</button>
+        </div>
+        <hr class="rule">
+        <h3 class="heading">AI API設定</h3>
+        <div class="form-group"><label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>
+        <div class="form-group"><label for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false"></div>
+        <div class="form-group"><label for="ai-model-choice">モデル</label><select id="ai-model-choice"></select></div>
         <details id="ai-advanced"><summary>詳細設定</summary>
           <label class="field" for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
           <label class="field" for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
-          <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
-          <p class="storage-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
+          <select id="ai-api" title="AIへの接続方式です。候補モデルを選ぶと自動設定されます。"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
           <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
         </details>
-        <p class="storage-hint">保存先はこのブラウザです。暗号化保管ではありません。「保存せず使う」はこのページだけに反映します。閉じるだけなら編集を破棄します。</p>
-        <div class="ai-actions"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button><button id="ai-default">既定にする</button></div>
-        <p class="storage-hint">「既定にする」は、いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
-        <button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button><p id="ai-settings-status" role="status"></p>
+        <hr class="rule">
+        <h3 class="heading">保存</h3>
+        <div class="actions"><button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button></div>
+        <div class="actions"><button id="ai-default" title="いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。">既定にする</button></div>
+        <p id="ai-settings-status" role="status"></p>
+        <div class="actions primary-row"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
       </section>
 
       <section class="sidebar-view" id="help-view" data-view="help" aria-labelledby="help-title" hidden>
         <header class="view-header"><h2 id="help-title">ヘルプ</h2></header>
-        <ol class="help-steps">
-          <li>「ボード」でボードを選び、main.cpp を編集して「Build」を押す</li>
-          <li>「書き込み」でボードへ書き込み、「シリアル」タブで出力を見る</li>
-        </ol>
-        <p>対応ボード：<span id="help-boards"></span></p>
-        <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
-        <p>保存先はこのブラウザ内です。同期・バックアップではありません。エクスプローラの「ファイル」→「ファイルへ書き出す」で zip にして持ち出せます。</p>
-        <p>使い方は右の AI に聞けます（API キーが必要）。</p>
-        <button id="help-flash-guide">接続手順を見る</button>
+        <div class="prose">
+          <ol class="steps">
+            <li>「ボード」でボードを選び、main.cpp を編集して「Build」を押す</li>
+            <li>「書き込み」でボードへ書き込み、「シリアル」タブで出力を見る</li>
+          </ol>
+          <p>対応ボード：<span id="help-boards"></span></p>
+          <p>ブラウザ：Chrome / Edge（Web Serial と File System Access を使います）</p>
+          <div class="note"><p>保存先はこのブラウザ内です。同期・バックアップではありません。エクスプローラの「ファイル」→「ファイルへ書き出す」で zip にして持ち出せます。</p></div>
+          <p>使い方は右の AI に聞けます（API キーが必要）。</p>
+          <div class="actions"><button id="help-flash-guide">接続手順を見る</button></div>
+        </div>
       </section>
     </div>
     <aside id="ad-slot" class="ad-slot" aria-label="広告"><div id="ad-slot-inner">広告</div></aside>
