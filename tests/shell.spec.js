@@ -3,6 +3,13 @@ import { openBoards, selectBoard, openExplorer, openAI } from './shell.js';
 
 const LAYOUT = 'digicode-text.layout.v1';
 const PROJECTS = 'digicode-text.projects.v1';
+// The ids the settings dialog carried before it became a <dialog>: the hooks app.js and
+// ai-settings.js bind to. The restructure moved them between sections; it must not have
+// duplicated or dropped one.
+const SETTINGS_IDS = ['ai-settings', 'ai-settings-title', 'ai-settings-close',
+  'theme-select', 'layout-reset', 'flash-guide-reset',
+  'ai-provider', 'ai-key', 'ai-model-choice', 'ai-advanced', 'ai-model', 'ai-api-info', 'ai-api', 'ai-api-help',
+  'ai-settings-status', 'ai-save', 'ai-use', 'ai-default', 'ai-delete'];
 
 async function ready(page) {
   await page.goto('/');
@@ -22,7 +29,6 @@ test('Activity bar switches sidebar views, marks the selected one and collapses 
     ['#view-explorer', '#explorer-view'],
     ['#libraries-open', '#libraries-dialog'],
     ['#view-boards', '#boards-view'],
-    ['#view-settings', '#ai-settings'],
     ['#view-help', '#help-view'],
   ];
   for (const [button, view] of views) {
@@ -52,6 +58,74 @@ test('Activity bar switches sidebar views, marks the selected one and collapses 
   await expect(page.locator('#view-help')).toHaveAttribute('aria-pressed', 'true');
   await page.click('#ai-open');
   await expect(page.locator('#ai-pane')).toBeHidden();
+});
+
+test('Settings opens as a modal dialog over the shell and leaves the sidebar selection alone', async ({ page }, info) => {
+  await ready(page);
+  await page.click('#view-boards');
+  await expect(page.locator('#boards-view')).toBeVisible();
+
+  await page.click('#view-settings');
+  await expect(page.locator('#ai-settings')).toBeVisible();
+  // A real <dialog>, shown modally — not a sidebar view wearing the dialog protocol.
+  expect(await page.locator('#ai-settings').evaluate(el => el.tagName)).toBe('DIALOG');
+  expect(await page.locator('#ai-settings').evaluate(el => el.matches(':modal'))).toBe(true);
+  // The sidebar keeps showing whatever it was showing; 設定 is not one of its views.
+  await expect(page.locator('#boards-view')).toBeVisible();
+  await expect(page.locator('#view-boards')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#view-settings')).toHaveAttribute('aria-pressed', 'false');
+
+  // Opened from the activity bar, the first section is 外観; the table of contents marks it.
+  await expect(page.locator('#settings-appearance')).toBeVisible();
+  await expect(page.locator('#settings-ai')).toBeHidden();
+  await expect(page.locator('#settings-storage')).toBeHidden();
+  await expect(page.locator('#settings-nav button[data-section="appearance"]')).toHaveAttribute('aria-current', 'true');
+  await page.screenshot({ path: info.outputPath('settings-dialog.png') });
+
+  // The table of contents shows one section at a time, and aria-current follows.
+  for (const section of ['ai', 'storage', 'appearance']) {
+    await page.click(`#settings-nav button[data-section="${section}"]`);
+    for (const other of ['appearance', 'ai', 'storage']) {
+      await expect(page.locator(`#settings-${other}`))[other === section ? 'toBeVisible' : 'toBeHidden']();
+      await expect(page.locator(`#settings-nav button[data-section="${other}"]`))
+        .toHaveAttribute('aria-current', String(other === section));
+    }
+  }
+
+  // A control inside the dialog acts without closing it.
+  await page.click('#layout-reset');
+  await expect(page.locator('#ai-settings')).toBeVisible();
+  // A click on the backdrop does not close it either; 閉じる and Escape do.
+  await page.mouse.click(4, 4);
+  await expect(page.locator('#ai-settings')).toBeVisible();
+  await page.click('#ai-settings-close');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  await page.click('#view-settings');
+  await expect(page.locator('#ai-settings')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+});
+
+test('The section a settings dialog opens on is the one the opener asks for, and every id is there once', async ({ page }) => {
+  await ready(page);
+  // The AI panel's connection line opens the same dialog on AI API設定.
+  await openAI(page);
+  await page.click('#ai-settings-open');
+  await expect(page.locator('#settings-ai')).toBeVisible();
+  await expect(page.locator('#settings-appearance')).toBeHidden();
+  await expect(page.locator('#settings-nav button[data-section="ai"]')).toHaveAttribute('aria-current', 'true');
+  for (const id of SETTINGS_IDS) expect(await page.locator(`#${id}`).count(), id).toBe(1);
+
+  // Each opener decides again, in either order: the previous section is not carried over.
+  await page.click('#ai-settings-close');
+  await page.click('#view-settings');
+  await expect(page.locator('#settings-appearance')).toBeVisible();
+  await expect(page.locator('#settings-ai')).toBeHidden();
+  await page.click('#ai-settings-close');
+  await page.click('#ai-settings-open');
+  await expect(page.locator('#settings-ai')).toBeVisible();
+  await expect(page.locator('#settings-appearance')).toBeHidden();
+  await page.click('#ai-settings-close');
 });
 
 test('Layout state is saved and restored: view, widths, panel height, AI panel, and reset', async ({ page }) => {

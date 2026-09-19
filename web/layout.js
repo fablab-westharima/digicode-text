@@ -1,7 +1,8 @@
 // The VS Code style shell: activity bar, sidebar views, editor column, right AI panel, status bar.
 // Everything here is placement and persistence — no Build, flash, serial or AI behaviour lives in
-// this file. The sidebar's Libraries and Settings sections keep the ids and the open/close protocol
-// that libraries.js and ai-settings.js were written against, so those modules are untouched.
+// this file. The sidebar's Libraries section keeps the ids and the open/close protocol that
+// libraries.js was written against, so that module is untouched. Settings is a real <dialog> in
+// index.html, opened from app.js, so it needs nothing here.
 const $ = (id) => document.getElementById(id);
 
 export const LAYOUT_KEY = 'digicode-text.layout.v1';
@@ -10,9 +11,9 @@ const ACTIVITY = 56; // the activity bar's width in app.css; a floating panel ne
 const LIMITS = { sidebarWidth: [320, 640], aiWidth: [320, 720], panelHeight: [100, 500] };
 const DEFAULTS = { sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320, panelOpen: false, panelHeight: 220, aiOpen: false, aiWidth: 420 };
 // Views whose element answers the <dialog> protocol (open / showModal() / close() / 'close' event),
-// because libraries.js and ai-settings.js drive them through exactly that interface.
-const DIALOG_VIEWS = { libraries: 'libraries-dialog', settings: 'ai-settings' };
-const VIEWS = ['explorer', 'libraries', 'boards', 'settings', 'help'];
+// because libraries.js drives its section through exactly that interface.
+const DIALOG_VIEWS = { libraries: 'libraries-dialog' };
+const VIEWS = ['explorer', 'libraries', 'boards', 'help'];
 
 const clamp = (value, [min, max]) => Math.round(Math.max(min, Math.min(max, value)));
 
@@ -22,8 +23,8 @@ function readState() {
     const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null');
     if (saved && typeof saved === 'object') {
       if (typeof saved.sidebarOpen === 'boolean') state.sidebarOpen = saved.sidebarOpen;
-      // Libraries and Settings are prepared by their own modules when their button is pressed, so
-      // they are never the view a reload opens on; the explorer is.
+      // Libraries is prepared by its own module when its button is pressed, so it is never the
+      // view a reload opens on; the explorer is. A stored 'settings' is no longer a view at all.
       if (VIEWS.includes(saved.sidebarView) && !DIALOG_VIEWS[saved.sidebarView]) state.sidebarView = saved.sidebarView;
       if (typeof saved.panelOpen === 'boolean') state.panelOpen = saved.panelOpen;
       if (typeof saved.aiOpen === 'boolean') state.aiOpen = saved.aiOpen;
@@ -50,7 +51,7 @@ export function setupLayout() {
   let shown = null;
   // A window too narrow for three columns puts the sidebar over the editor. A browsing view
   // (explorer / boards / help) steps aside on the way in and comes back when the window widens;
-  // Libraries and Settings stay, because they are the tasks that replaced modal dialogs.
+  // Libraries stays, because it is the task that replaced a modal dialog.
   let wasNarrow = null, hiddenByNarrow = null;
 
   function render() {
@@ -117,12 +118,13 @@ export function setupLayout() {
   for (const view of VIEWS) {
     const button = document.querySelector(`.activity-item[data-view="${view}"]`);
     if (!button) continue;
-    // Libraries and Settings are opened by their own modules (which prepare drafts and inputs
-    // first), so those buttons delegate instead of switching the view behind the module's back.
+    // Libraries is opened by its own module (which prepares the inputs first), so that button
+    // delegates instead of switching the view behind the module's back.
     if (view === 'libraries') continue;
-    if (view === 'settings') { button.onclick = () => (state.sidebarOpen && state.sidebarView === 'settings' ? collapseSidebar() : $('ai-settings-open').click()); continue; }
     button.onclick = () => toggleView(view);
   }
+  // 設定のボタン（#view-settings）はここには無い。設定は sidebar の view ではなく本物の <dialog>
+  // で、どの節から開くかを決める必要があるため、開く口は app.js が持つ。
   // Pressing the showing view's own button folds the sidebar away — including Libraries, whose
   // button otherwise belongs to libraries.js. Capturing on the bar keeps the click from reaching
   // that module at all, so it never re-opens what the user just closed.
@@ -134,7 +136,7 @@ export function setupLayout() {
     collapseSidebar();
   }, true);
 
-  // The <dialog> protocol the sidebar's Libraries and Settings views answer to.
+  // The <dialog> protocol the sidebar's Libraries view answers to.
   for (const [view, id] of Object.entries(DIALOG_VIEWS)) {
     const element = $(id);
     Object.defineProperty(element, 'open', { get: () => state.sidebarOpen && state.sidebarView === view, configurable: true });
@@ -142,11 +144,11 @@ export function setupLayout() {
     element.close = () => { if (state.sidebarOpen && state.sidebarView === view) collapseSidebar(); };
   }
 
-  // Escape closes the sidebar, the way the dialogs it replaces used to close. The editor, the AI
+  // Escape closes the sidebar, the way the dialog it replaces used to close. The editor, the AI
   // panel and the remaining real dialogs keep their own Escape handling.
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape' || event.defaultPrevented || !state.sidebarOpen) return;
-    if (!DIALOG_VIEWS[state.sidebarView]) return; // only the two views that replaced modal dialogs
+    if (!DIALOG_VIEWS[state.sidebarView]) return; // only the view that replaced a modal dialog
     const target = event.target;
     if (!(target instanceof Element)) { collapseSidebar(); return; }
     if (target.closest('#editor') || target.closest('#ai-pane') || target.closest('dialog')) return;

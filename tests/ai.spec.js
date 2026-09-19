@@ -20,6 +20,9 @@ async function settings(page, provider = 'openai') {
   await page.click('#ai-settings-open'); await page.selectOption('#ai-provider', provider);
   await page.fill('#ai-key', `dummy-${provider}-test-only`); await page.click('#ai-save');
 }
+// 設定 dialog は目次で選んだ1節だけを出す。「既定にする」と「削除（即時）」は「保存」の節にあるので、
+// 押す前にその節を出す。AIパネルの接続表示から開くと「AI API設定」の節が出ている。
+const storageSection = page => page.click('#settings-nav button[data-section="storage"]');
 let nextPrompt = 0;
 async function send(page, intent = 'consult', prompt) {
   await page.fill('#ai-prompt', prompt || `${intent === 'generate' ? '変更して' : '説明して'} ${++nextPrompt}`); await page.click('#ai-send');
@@ -177,7 +180,7 @@ test('API settings draft, candidate mapping, custom restoration, save failure, i
   await page.click('#ai-settings-open'); await page.fill('#ai-model','custom-session'); await page.click('#ai-use'); await send(page); await expect(page.locator('#ai-send')).toBeEnabled(); expect(requests[1].model).toBe('custom-session');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('digicode-text.ai.openai.v1')).model)).toBe('custom-preserved');
   await page.click('#ai-settings-open'); await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = () => { throw new Error('quota'); }; }); await page.click('#ai-save'); await expect(page.locator('#ai-settings-status')).toContainText('保存できません'); await expect(page.locator('#ai-settings')).toBeVisible();
-  await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await page.click('#ai-delete'); await page.click('#ai-settings-close'); await page.click('#ai-settings-open'); await expect(page.locator('#ai-key')).toHaveValue('');
+  await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await storageSection(page); await page.click('#ai-delete'); await page.click('#ai-settings-close'); await page.click('#ai-settings-open'); await expect(page.locator('#ai-key')).toHaveValue('');
   await page.selectOption('#ai-provider','claude'); await page.fill('#ai-key','dummy-claude'); await page.selectOption('#ai-model-choice','claude-haiku-4-5'); await page.click('#ai-save'); await page.click('#ai-settings-open'); await page.locator('#ai-advanced summary').click(); await expect(page.locator('#ai-api')).toHaveValue('messages');
 });
 
@@ -280,7 +283,7 @@ test('review preference restored; candidate recheck, setting cancellation and ti
   await page.reload(); await openAI(page); await expect(page.locator('#ai-mode')).toHaveValue('review');
   await send(page,'generate'); await expect.poll(()=>count).toBe(1); await pending[0](); await expect(page.locator('#ai-proposal')).toBeVisible();
   await edit(page,'// edited after proposal'); await expect(page.locator('#ai-apply')).toBeDisabled(); expect(await source(page)).toBe('// edited after proposal');
-  await send(page,'generate'); await expect.poll(()=>count).toBe(2); await page.click('#ai-settings-open'); await page.click('#ai-delete'); await page.click('#ai-settings-close');
+  await send(page,'generate'); await expect.poll(()=>count).toBe(2); await page.click('#ai-settings-open'); await storageSection(page); await page.click('#ai-delete'); await page.click('#ai-settings-close');
   await expect(page.locator('#ai-status')).toContainText('中止'); await pending[1](); await expect(page.locator('#ai-send')).toBeEnabled(); expect(await source(page)).toBe('// edited after proposal');
   await settings(page); await page.clock.install(); await send(page,'generate','timeout request'); await expect.poll(()=>count).toBe(3);
   await page.clock.fastForward(180001); await expect(page.locator('#ai-status')).toContainText('タイムアウト'); await expect(page.locator('#ai-prompt')).toHaveValue('timeout request'); await expect(page.locator('#ai-send')).toBeEnabled(); await pending[2]();
@@ -449,7 +452,7 @@ test('startup default: recorded on demand, restored on reload, absent keeps Open
   }
   // 既定にする records the provider and model shown, a freely typed model ID included, and no key.
   await page.selectOption('#ai-provider', 'gemini'); await page.locator('#ai-advanced summary').click();
-  await page.fill('#ai-model', 'custom-gemini-id'); await page.click('#ai-default');
+  await page.fill('#ai-model', 'custom-gemini-id'); await storageSection(page); await page.click('#ai-default');
   await expect(page.locator('#ai-settings-status')).toContainText('起動時の既定をGemini / custom-gemini-idにしました');
   expect(JSON.parse(await stored())).toEqual({ provider: 'gemini', model: 'custom-gemini-id', api: 'generatecontent' });
   expect(await stored()).not.toContain('dummy-');
@@ -477,7 +480,7 @@ test('startup default: recorded on demand, restored on reload, absent keeps Open
   await ready(page);
   await expect(page.locator('#ai-connection')).toHaveText('Gemini / Gemini 3.8 Flash · キー設定あり');
   // Deleting the default provider's settings removes the default too, so startup falls back to OpenAI.
-  await page.click('#ai-settings-open'); await page.click('#ai-delete');
+  await page.click('#ai-settings-open'); await storageSection(page); await page.click('#ai-delete');
   await expect(page.locator('#ai-settings-status')).toContainText('削除しました');
   expect(await stored()).toBeNull();
   await page.click('#ai-settings-close'); await ready(page);

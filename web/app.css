@@ -238,6 +238,13 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 /* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
 .list-row::after { content: '▸'; color: var(--fg-muted); }
 .list-row[aria-expanded="true"]::after { content: '▾'; }
+/* 節の目次。押すとその節だけが右に出る。一覧の行（.list-row）とは別の型で、開閉の印も件数も
+   付けない。選択中は aria-current="true" で示し、左の縦線は見出しと同じ --rule の太さ。 */
+.section-nav { display: flex; flex-direction: column; gap: 2px; }
+.section-nav > button { width: 100%; height: auto; min-height: var(--row); justify-content: flex-start; padding: var(--sp-1) var(--sp-2); border-color: transparent; border-radius: var(--radius); background: transparent; color: var(--fg-muted); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.section-nav > button:hover:not(:disabled) { color: var(--fg); background: var(--bg-raised); }
+/* 縦線の分だけ左の余白を詰めるので、選択で文字の位置が動かない。 */
+.section-nav > button[aria-current="true"] { padding-left: calc(var(--sp-2) - var(--rule)); border-left: var(--rule) solid var(--accent); color: var(--fg-strong); background: var(--accent-soft); }
 /* 手順。1行1動作。番号だけを accent-2 の太字にする。 */
 .steps { margin: var(--sp-2) 0; padding-left: 1.7em; font-size: var(--fs-body); line-height: var(--lh); }
 .steps > li { margin-bottom: var(--sp-1); overflow-wrap: anywhere; }
@@ -264,8 +271,11 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 /* 入力1組 = ラベル＋入力欄＋補足文。組の中は --sp-2、組と組の間は --sp-3。 */
 .form-group { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; }
 .form-group > label { color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
-.form-group > .form-hint { margin: 0; color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
+/* 項目の1行説明。組の外（ボタンの列の直前など）にも置けるよう、.form-group の中に限定しない。 */
+.form-hint { margin: 0; color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
 .form-group > input, .form-group > select, .form-group > textarea { width: 100%; }
+/* 組の中身がボタンだけの項目（名前＝ボタンの文字）。列は組の gap で間が空くので margin は持たない。 */
+.form-group > .actions { margin: 0; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 /* 主ボタン1つ＋副ボタンの列。入力の最後に置く。 */
 .actions.primary-row { margin-top: var(--sp-3); }
@@ -432,13 +442,6 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .board-sources a { color: var(--accent); }
 .board-flash-hint { margin: 6px 0; line-height: 1.7; }
 
-/* ---- sidebar: settings ---------------------------------------------------------------- */
-#ai-advanced { margin-top: 12px; }
-#ai-advanced summary { cursor: pointer; color: var(--fg-muted); }
-#ai-api-help { margin-top: 6px; color: var(--fg-muted); font-size: 12px; }
-#ai-api-help p { margin: 4px 0; }
-#ai-settings-status { color: var(--accent); line-height: 1.6; }
-
 /* ---- sidebar: ad slot ----------------------------------------------------------------- */
 .ad-slot { flex: none; width: 100%; height: 250px; display: grid; place-items: center; border-top: 1px solid var(--border); background: var(--bg-sidebar); overflow: hidden; }
 #ad-slot-inner { width: 300px; height: 250px; display: grid; place-items: center; border: 1px dashed var(--border); color: var(--fg-muted); font-size: 11px; }
@@ -575,6 +578,33 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 .manage-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
 #ai-context-dialog { width: min(850px, calc(100% - 24px)); }
 #ai-context-text { max-height: 55dvh; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---- 設定 dialog ------------------------------------------------------------------------
+   id セレクタで寸法を書くのは、この dialog の幅・高さと2列の割り付けだけ。中の見え方は共通規則
+   （.heading / .form-group / .form-hint / .actions / .section-nav）に任せる。
+   display:grid は [open] に付ける：閉じている dialog の display:none を上書きしないため。 */
+#ai-settings { width: min(880px, calc(100% - 24px)); height: 80dvh; }
+#ai-settings[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; row-gap: var(--sp-2); }
+.settings-body { min-height: 0; display: grid; grid-template-columns: 172px minmax(0, 1fr); gap: var(--sp-3); }
+/* 目次は動かず、右の1節だけが必要なときにスクロールする。 */
+.settings-content { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding-right: var(--sp-1); }
+.settings-content .heading:first-child { margin-top: 0; }
+.settings-content .form-group:last-child { margin-bottom: 0; }
+.settings-footer { display: grid; gap: var(--sp-2); border-top: 1px solid var(--border); padding-top: var(--sp-2); }
+.settings-footer .actions.primary-row { margin-top: 0; }
+#ai-settings-status { margin: 0; color: var(--accent); line-height: var(--lh); }
+#ai-settings-status:empty { display: none; }
+#ai-advanced { margin-top: var(--sp-2); }
+#ai-advanced summary { cursor: pointer; color: var(--fg-muted); }
+#ai-api-help { margin-top: var(--sp-1); color: var(--fg-muted); font-size: var(--fs-small); }
+#ai-api-help p { margin: var(--sp-1) 0; }
+/* 携帯の幅。dialog は画面いっぱいにし、目次は内容の上に横並びで置く。 */
+@media (max-width: 560px) {
+  #ai-settings { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; margin: 0; padding: var(--sp-2); border: 0; border-radius: 0; }
+  .settings-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: var(--sp-2); }
+  .section-nav { flex-direction: row; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: var(--sp-1); }
+  .section-nav > button { width: auto; }
+}
 
 /* ---- 書き込み前の接続手順 ---------------------------------------------------------------- */
 #flash-guide-dialog { overflow-y: auto; }

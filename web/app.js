@@ -44,11 +44,32 @@ function saveStatus(message, error = false) {
   $('project-save-message').textContent = error ? message : '';
 }
 
-// Appearance and layout controls live in the Settings view, next to the API settings.
+// Appearance and layout controls live in the Settings dialog, next to the API settings.
 $('theme-select').replaceChildren(...THEMES.map(t => new Option(t.name, t.id)));
 $('theme-select').value = themes.current;
 $('theme-select').onchange = () => themes.apply($('theme-select').value, { save: true });
 $('layout-reset').onclick = () => { layout.reset(); ui.applyPanel(); $('theme-select').focus(); };
+
+// 設定 dialog の節の切り替え。目次で選んだ1節だけを右に出す。保存のロジック（ai-settings.js）
+// には触れない：ここは表示している節を決めるだけ。
+const settingsParts = [...document.querySelectorAll('#ai-settings [data-section]')];
+function showSettingsSection(name) {
+  for (const part of settingsParts) {
+    const current = part.dataset.section === name;
+    if (part.tagName === 'BUTTON') part.setAttribute('aria-current', String(current));
+    else part.hidden = !current;
+  }
+  $('settings-content').scrollTop = 0;
+}
+for (const button of $('settings-nav').children) button.onclick = () => showSettingsSection(button.dataset.section);
+// 開いたときの節は「開いた元」で決める。AIパネルの接続表示（#ai-settings-open）を利用者が直接
+// 押したときは「AI API設定」、アクティビティバーの「設定」からは「外観」。dialog を開ける口は
+// ai-settings.js の opener 一つなので、開く前に次の節を置いてからその click を送る。
+let nextSettingsSection = 'ai';
+$('ai-settings-open').addEventListener('click', () => { showSettingsSection(nextSettingsSection); nextSettingsSection = 'ai'; });
+// 設定は sidebar の view ではなく本物の <dialog>。開けるのはここだけで、閉じるのは dialog 自身
+// （「閉じる」ボタンと Esc）。開くときの下ごしらえは ai-settings.js の ai-settings-open にある。
+$('view-settings').onclick = () => { nextSettingsSection = 'appearance'; $('ai-settings-open').click(); };
 
 // The compiler's board table is the only board list: select options, project validation
 // and the AI's boardDetails are generated from it.

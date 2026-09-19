@@ -63,36 +63,6 @@
         <div id="board-list"></div>
       </section>
 
-      <section class="sidebar-view" id="ai-settings" data-view="settings" aria-labelledby="ai-settings-title" hidden>
-        <header class="view-header"><h2 id="ai-settings-title">設定</h2><button id="ai-settings-close" class="quiet">閉じる</button></header>
-        <h3 class="heading">外観</h3>
-        <div class="form-group">
-          <label for="theme-select">テーマ</label>
-          <select id="theme-select"></select>
-        </div>
-        <div class="actions">
-          <button id="layout-reset" class="compact">レイアウトを初期化</button>
-          <button id="flash-guide-reset" class="compact">接続手順の非表示をすべて解除</button>
-        </div>
-        <hr class="rule">
-        <h3 class="heading">AI API設定</h3>
-        <div class="form-group"><label for="ai-provider">提供元</label><select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select></div>
-        <div class="form-group"><label for="ai-key">APIキー</label><input id="ai-key" type="password" autocomplete="off" spellcheck="false"></div>
-        <div class="form-group"><label for="ai-model-choice">モデル</label><select id="ai-model-choice"></select></div>
-        <details id="ai-advanced"><summary>詳細設定</summary>
-          <label class="field" for="ai-model">モデルID（自由入力）</label><input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
-          <label class="field" for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
-          <select id="ai-api" title="AIへの接続方式です。候補モデルを選ぶと自動設定されます。"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
-          <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
-        </details>
-        <hr class="rule">
-        <h3 class="heading">保存</h3>
-        <div class="actions"><button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button></div>
-        <div class="actions"><button id="ai-default" title="いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。">既定にする</button></div>
-        <p id="ai-settings-status" role="status"></p>
-        <div class="actions primary-row"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
-      </section>
-
       <section class="sidebar-view" id="help-view" data-view="help" aria-labelledby="help-title" hidden>
         <header class="view-header"><h2 id="help-title">ヘルプ</h2></header>
         <div class="prose">
@@ -160,8 +130,8 @@
 
   <div class="split split-v" id="ai-resize" role="separator" tabindex="0" aria-label="AIパネルの幅（左右矢印で調整）" aria-orientation="vertical" aria-controls="ai-pane" aria-valuemin="320" aria-valuemax="720" aria-valuenow="420" hidden></div>
   <aside id="ai-pane" aria-label="AI開発支援" hidden>
-    <!-- The model display is itself the way into the settings view; there is no separate API設定
-         button, because 設定 in the activity bar opens the same view. It keeps the id
+    <!-- The model display is itself the way into the settings dialog; there is no separate API設定
+         button, because 設定 in the activity bar opens the same dialog. It keeps the id
          ai-settings-open, which is the hook ai-settings.js (unchanged) binds its opener to. -->
     <div class="ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
     <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
@@ -222,6 +192,84 @@
   <ul id="flash-guide-notes" class="board-notes" hidden></ul>
   <label class="flash-guide-skip"><input type="checkbox" id="flash-guide-skip">このボードでは次回から表示しない</label>
   <div class="manage-actions"><button type="button" id="flash-guide-cancel">キャンセル</button><button type="button" id="flash-guide-ok" class="primary">OK</button></div>
+</dialog>
+<!-- 設定。サイドバーの view ではなく、エディタの上に開く本物の <dialog>。左が節の目次で、選んだ
+     1 節だけを右に出す。結果表示（ai-settings-status）と「保存して閉じる／保存せず使う」は節の外に
+     置く：どの節を見ていても押せるようにするため。ids は ai-settings.js がそのまま使う。 -->
+<dialog id="ai-settings" aria-labelledby="ai-settings-title">
+  <div class="dialog-heading"><h2 id="ai-settings-title">設定</h2><button id="ai-settings-close" class="quiet">閉じる</button></div>
+  <div class="settings-body">
+    <nav class="section-nav" id="settings-nav" aria-label="設定の節">
+      <button type="button" data-section="appearance" aria-controls="settings-appearance" aria-current="true">外観</button>
+      <button type="button" data-section="ai" aria-controls="settings-ai" aria-current="false">AI API設定</button>
+      <button type="button" data-section="storage" aria-controls="settings-storage" aria-current="false">保存</button>
+    </nav>
+    <div class="settings-content" id="settings-content">
+      <section id="settings-appearance" data-section="appearance" aria-labelledby="settings-appearance-title">
+        <h3 class="heading" id="settings-appearance-title">外観</h3>
+        <div class="form-group">
+          <label for="theme-select">テーマ</label>
+          <p class="form-hint">DuoTone（simurai、MIT）を基にした4配色です。選ぶとすぐ反映します。</p>
+          <select id="theme-select"></select>
+        </div>
+        <div class="form-group">
+          <p class="form-hint">サイドバー・下のパネル・AIパネルの開閉と幅・高さを初期値に戻します。</p>
+          <div class="actions"><button id="layout-reset">レイアウトを初期化</button></div>
+        </div>
+        <div class="form-group">
+          <p class="form-hint">ボードごとの「次回から表示しない」をすべて消します。</p>
+          <div class="actions"><button id="flash-guide-reset">接続手順の非表示をすべて解除</button></div>
+        </div>
+      </section>
+      <section id="settings-ai" data-section="ai" aria-labelledby="settings-ai-title" hidden>
+        <h3 class="heading" id="settings-ai-title">AI API設定</h3>
+        <div class="form-group">
+          <label for="ai-provider">提供元</label>
+          <p class="form-hint">OpenAI・Claude・Geminiから選びます。キーと設定は提供元ごとに別に保存します。</p>
+          <select id="ai-provider"><option value="openai">OpenAI</option><option value="claude">Claude</option><option value="gemini">Gemini</option></select>
+        </div>
+        <div class="form-group">
+          <label for="ai-key">APIキー</label>
+          <p class="form-hint">キーはこのブラウザから提供元へ直接送り、弊社のサーバーへは送りません。</p>
+          <input id="ai-key" type="password" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="form-group">
+          <label for="ai-model-choice">モデル</label>
+          <p class="form-hint">候補から選びます。候補に無いものは「詳細設定」のモデルIDで指定します。</p>
+          <select id="ai-model-choice"></select>
+        </div>
+        <details id="ai-advanced"><summary>詳細設定</summary>
+          <div class="form-group">
+            <label for="ai-model">モデルID（自由入力）</label>
+            <p class="form-hint">候補に無いモデルのIDをそのまま入力します。</p>
+            <input id="ai-model" maxlength="200" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label for="ai-api">API方式 <button id="ai-api-info" type="button" class="quiet" aria-label="API方式の詳しい説明" aria-expanded="false" aria-controls="ai-api-help">ⓘ</button></label>
+            <p class="form-hint">AIへの接続方式です。候補モデルを選ぶと自動設定されます。</p>
+            <select id="ai-api"><option value="responses">Responses</option><option value="chat">Chat Completions</option><option value="messages">Messages</option><option value="generatecontent">Generate Content</option></select>
+            <div id="ai-api-help" hidden><p>Responses：OpenAIの新しい接続方式。</p><p>Chat Completions：OpenAIの従来の接続方式。</p><p>Messages：Claudeの接続方式。</p><p>Generate Content：Geminiの接続方式。</p><p>モデルが対応する方式を使う必要があります。</p></div>
+          </div>
+        </details>
+      </section>
+      <section id="settings-storage" data-section="storage" aria-labelledby="settings-storage-title" hidden>
+        <h3 class="heading" id="settings-storage-title">保存</h3>
+        <div class="form-group">
+          <p class="form-hint">いま表示している提供元とモデルを次回の起動時に開く設定として保存します。キーは保存しません。</p>
+          <div class="actions"><button id="ai-default">既定にする</button></div>
+        </div>
+        <div class="form-group">
+          <p class="form-hint">この提供元のキーと保存設定をすぐ消します。閉じても戻りません。</p>
+          <div class="actions"><button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button></div>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div class="settings-footer">
+    <p id="ai-settings-status" role="status"></p>
+    <p class="form-hint">「保存して閉じる」はこのブラウザに保存し（暗号化保管ではありません）、「保存せず使う」はこのページだけに反映します。閉じるだけなら編集は破棄されます。</p>
+    <div class="actions primary-row"><button id="ai-save" class="primary">保存して閉じる</button><button id="ai-use">保存せず使う</button></div>
+  </div>
 </dialog>
 <dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
 <div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>

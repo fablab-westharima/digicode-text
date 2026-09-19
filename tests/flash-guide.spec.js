@@ -181,6 +181,7 @@ test('設定の「接続手順の非表示をすべて解除」で、保存し�
   await openSettings(page);
   await page.click('#flash-guide-reset');
   expect(await page.evaluate(k => localStorage.getItem(k), GUIDE_KEY)).toBe(null);
+  await page.click('#ai-settings-close'); // 設定は modal dialog。閉じないと後ろの書き込みを押せない。
 
   await built(page);
   await page.click('#flash');
