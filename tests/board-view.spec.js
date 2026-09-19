@@ -26,7 +26,10 @@ test('一覧は /boards の 4 行で名前だけ、選択中の行はハイラ�
   const current = await style(rowOf(page, 'xiao_rp2040')), other = await style(rowOf(page, 'pico'));
   expect(current.bg).not.toBe(other.bg);
   expect(current.border).not.toBe(other.border);
-  expect(current.mark).toBe('none');
+  // 印の枠は共通規則の .list-row が全行に確保する（content: ''）。✓ は「追加済み」の印なので、
+  // 選択中の行にも付かない。
+  expect(current.mark).not.toContain('✓');
+  expect(other.mark).toBe(current.mark);
   // エクスプローラの選択中プロジェクトと同じ色。
   await page.click('#view-explorer');
   const project = await page.locator('.project-item[aria-current="true"]').evaluate(el => { const s = getComputedStyle(el); return { bg: s.backgroundColor, border: s.borderTopColor }; });

@@ -9,30 +9,41 @@ function element(tag, text, className) {
   return node;
 }
 
+/** 折り返させない表を、容れ物だけ横スクロールする箱に入れる（取説のピン表と同じ作り）。 */
+function scrollBox(table) {
+  const box = element('div', null, 'table-scroll');
+  box.append(table);
+  return box;
+}
+
+// ピン表。型は共通規則の .table で、ラベルと GPIO は .nowrap：
+// 「GPIO26」が「GPIO2/6」と割れると番号として読めない（取説の同じ表と同じ作り）。
+// pin-table / pin-label / pin-gpio は目印として残す（等幅で読ませる指定だけがこの view の事情）。
 function pinTable(pins) {
-  const table = element('table', null, 'pin-table');
+  const table = element('table', null, 'table pin-table');
   const head = element('tr'), thead = element('thead');
-  for (const label of ['ラベル', 'GPIO', '備考']) head.append(element('th', label));
+  for (const [label, className] of [['ラベル', 'nowrap'], ['GPIO', 'nowrap'], ['備考', null]])
+    head.append(element('th', label, className));
   thead.append(head);
   table.append(thead);
   const body = element('tbody');
   for (const pin of pins.pins) {
     const row = element('tr');
-    row.append(element('td', pin.label, 'pin-label'));
-    row.append(element('td', pin.gpio === null ? `— (pin ${pin.pin})` : `GPIO${pin.gpio}`, 'pin-gpio'));
+    row.append(element('td', pin.label, 'nowrap pin-label'));
+    row.append(element('td', pin.gpio === null ? `— (pin ${pin.pin})` : `GPIO${pin.gpio}`, 'nowrap pin-gpio'));
     const extra = [...pin.functions, ...(pin.adc && pin.adc !== pin.label ? [pin.adc] : []), ...(pin.note ? [pin.note] : [])];
     row.append(element('td', extra.join('、')));
     body.append(row);
   }
   for (const f of pins.unlabelledFunctions ?? []) {
     const row = element('tr');
-    row.append(element('td', '—', 'pin-label'));
-    row.append(element('td', `GPIO${f.gpio}`, 'pin-gpio'));
+    row.append(element('td', '—', 'nowrap pin-label'));
+    row.append(element('td', `GPIO${f.gpio}`, 'nowrap pin-gpio'));
     row.append(element('td', [f.name, 'ラベル無し', ...(f.note ? [f.note] : [])].join('、')));
     body.append(row);
   }
   table.append(body);
-  return table;
+  return scrollBox(table);
 }
 
 // /boards の artifact は機械向けの値なので、箱に出すときだけ言い換える。
@@ -41,16 +52,19 @@ const ARTIFACT_LABELS = { uf2: 'UF2', flashset: '書き込みセット' };
 // The lower stage of the box: facts only, so nothing in here is a control.
 function renderBoardFacts(root, board) {
   // pinTableNote comes before the table because it says how to read it.
-  if (board.pinTableNote) root.append(element('p', board.pinTableNote, 'board-warning'));
+  if (board.pinTableNote) root.append(element('p', board.pinTableNote, 'note board-warning'));
 
   if (board.pins) {
-    root.append(element('h3', 'ピン', 'view-section-title'));
+    root.append(element('h3', 'ピン', 'heading view-section-title'));
     root.append(pinTable(board.pins));
-    root.append(element('p', `出所: variant「${board.pins.variant}」`, 'board-variant'));
+    root.append(element('p', `出所: variant「${board.pins.variant}」`, 'form-hint board-variant'));
   }
 
   if (board.pinNotes?.length) {
-    root.append(element('h3', '注意点', 'view-section-title'));
+    root.append(element('h3', '注意点', 'heading view-section-title'));
+    // 注意点は 1 枚の NOTE の箱に入れる（取説の同じ並びと同じ作り）。ul 自身は目印として
+    // .board-notes のまま：接続手順 dialog の #flash-guide-notes も同じ class を使う。
+    const box = element('div', null, 'note');
     const list = element('ul', null, 'board-notes');
     const sources = [...new Set(board.pinNotes.map(n => n.source))];
     for (const note of board.pinNotes) {
@@ -58,9 +72,10 @@ function renderBoardFacts(root, board) {
       item.append(element('span', ` [${sources.indexOf(note.source) + 1}]`, 'note-source'));
       list.append(item);
     }
-    root.append(list);
-    root.append(element('h3', '出所', 'view-section-title'));
-    const origins = element('ol', null, 'board-sources');
+    box.append(list);
+    root.append(box);
+    root.append(element('h3', '出所', 'heading view-section-title'));
+    const origins = element('ol', null, 'sources board-sources');
     for (const source of sources) {
       const item = element('li');
       // Only http(s) sources become links; the Wio Node schematic entry is a sentence, not a URL.
@@ -74,8 +89,8 @@ function renderBoardFacts(root, board) {
     root.append(origins);
   }
 
-  root.append(element('h3', '書き込み', 'view-section-title'));
-  root.append(element('p', board.flashHint, 'board-flash-hint'));
+  root.append(element('h3', '書き込み', 'heading view-section-title'));
+  root.append(element('p', board.flashHint, 'prose board-flash-hint'));
 }
 
 // The list of boards. A row only opens its box; the board changes through the button inside
@@ -98,7 +113,7 @@ export function setupBoardList(boards, selectedId, select) {
       }
       const item = element('li');
       item.dataset.boardId = board.id;
-      const row = element('button', '', 'board-item');
+      const row = element('button', '', 'list-row board-item');
       row.type = 'button';
       row.setAttribute('aria-expanded', String(openId === board.id));
       // 選択中の行はエクスプローラの選択中プロジェクトと同じハイライト。

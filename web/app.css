@@ -219,8 +219,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 
 /* ---- 共通の表示規則 ----------------------------------------------------------------------
    役割ごとに1つの class を用意し、色と寸法は :root の変数だけで書く（生の色値は書かない）。
-   既存の id セレクタ規則（#project-notice ほか）は今回そのまま残してあるので、ここの class は
-   まだ web/styleguide.html の見本でしか使っていない。見本は web/app.css だけを読む。 */
+   view 側はこの class を既存の class に併記して使う（.list-row .board-item のように）。既存の
+   class は JS とテストの目印としてだけ残し、ここと重なる宣言は持たない。
+   見本は web/styleguide.html で、見本は web/app.css だけを読む。 */
 /* 塊の区切り線。見出しの直前に置いて、前の節が終わったことを示す。素の hr は #file-menu の
    区切りと AI の Markdown 出力（--- の水平線）でも使うので、class を付けた方だけを変える。 */
 hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0; }
@@ -419,31 +420,23 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .detail-box dd.library-incompatible { color: var(--danger); overflow-wrap: anywhere; }
 
 /* ---- sidebar: boards ------------------------------------------------------------------ */
-/* ボード view の一覧。行と箱はライブラリ view と同じ見え方。 */
+/* 行の見え方は共通規則の .list-row、詳細の下段は .heading / .note / .table / .sources /
+   .form-hint / .prose。.board-item .board-warning .board-variant .board-flash-hint .board-sources は
+   テストと JS の目印としてだけ残す（宣言は持たない）。残っているのは、この view だけの事情
+   （vendor の括り・箱の中の置き場・等幅の列）と、dialog と分け合う箇条書きの寸法だけ。 */
 .board-vendor { margin: 12px 0 4px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
 .board-group { list-style: none; padding: 0; margin: 0; }
 .board-group > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
-.board-item { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
-.board-item > strong { flex: 1; min-width: 0; text-align: left; }
-.board-item[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-3); }
-.board-item:hover:not(:disabled) { background: var(--bg-raised); }
-.board-item::after { content: '▸'; color: var(--fg-muted); }
-.board-item[aria-expanded="true"]::after { content: '▾'; }
 .detail-box .board-current { color: var(--accent-2); }
 #board-facts { grid-column: 1 / -1; min-width: 0; margin-top: 6px; }
-.board-variant { margin: 4px 0 0; color: var(--fg-muted); font-size: 12px; }
-.board-warning { margin: 8px 0; padding: 8px 10px; border: 1px solid var(--accent-3); border-radius: 4px; background: var(--accent-soft); line-height: 1.6; }
-.pin-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-.pin-table th { text-align: left; font-weight: 600; color: var(--fg-muted); }
-.pin-table th, .pin-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; vertical-align: top; }
-.pin-table .pin-label, .pin-table .pin-gpio { font-family: var(--code-font); white-space: nowrap; width: 1%; }
-/* .sources は取説の出所の並びで、.board-sources と同じ見え方。class 名を分けてあるのは、
-   ボード view の出所と取説の出所が同時に DOM にあるため（片方だけを指せるようにする）。 */
-.board-notes, .board-sources, .sources { margin: 6px 0; padding-left: 18px; line-height: 1.7; }
-.board-notes li, .board-sources li, .sources li { margin-bottom: 6px; overflow-wrap: anywhere; }
+/* ラベルと GPIO 番号を等幅で読ませる。折り返さない・幅を詰めるは .table の .nowrap が持つ。 */
+.pin-table .pin-label, .pin-table .pin-gpio { font-family: var(--code-font); }
+/* .sources は取説とボード view の出所の並び。.board-notes は接続手順 dialog の
+   #flash-guide-notes とボード view の注意点で、ボード view ではこの ul が .note の箱に入る。 */
+.board-notes, .sources { margin: 6px 0; padding-left: 18px; line-height: 1.7; }
+.board-notes li, .sources li { margin-bottom: 6px; overflow-wrap: anywhere; }
 .note-source { color: var(--fg-muted); }
-.board-sources a, .sources a { color: var(--accent); }
-.board-flash-hint { margin: 6px 0; line-height: 1.7; }
+.sources a { color: var(--accent); }
 
 /* ---- sidebar: ad slot ----------------------------------------------------------------- */
 .ad-slot { flex: none; width: 100%; height: 250px; display: grid; place-items: center; border-top: 1px solid var(--border); background: var(--bg-sidebar); overflow: hidden; }
