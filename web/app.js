@@ -42,7 +42,12 @@ function saveStatus(message, error = false) {
   $('save-status').title = message;
   $('save-status').dataset.error = String(error);
   $('save-retry').hidden = !error;
-  $('project-save-message').textContent = error ? message : '';
+  // 保存の失敗だけを知らせに出す。共通規則の .notice は data-state で見た目を決めるので、
+  // 文を入れるときだけ error を付け、空にするときは外す（状態の無い知らせは枠を持たない）。
+  const saveMessage = $('project-save-message');
+  saveMessage.textContent = error ? message : '';
+  if (error) saveMessage.dataset.state = 'error';
+  else delete saveMessage.dataset.state;
 }
 
 // Appearance and layout controls live in the Settings dialog, next to the API settings.
@@ -343,11 +348,12 @@ function renderProjects() {
   for (const p of [...store.data.projects].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
     const current = p.id === store.current.id;
     const button = document.createElement('button');
-    button.className = 'project-item';
+    button.className = 'list-row project-item';
     button.setAttribute('aria-current', String(current));
-    // 開閉の印は選択中の行だけ。印は CSS の ::after で描くので、行の字は名前だけのまま。
+    // 開くのは選択中の行だけなので、aria-expanded もその行だけが持つ。印は CSS の ::after が
+    // 全行に出す（閉じていれば ▸、開いていれば ▾）ので、行の字は名前だけのまま。
     if (current) button.setAttribute('aria-expanded', String(detailOpen));
-    const name = document.createElement('span');
+    const name = document.createElement('strong');
     name.textContent = p.name;
     button.append(name);
     button.onclick = () => {

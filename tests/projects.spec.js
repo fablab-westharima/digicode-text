@@ -22,7 +22,7 @@ async function name(page, action, value) {
 }
 async function select(page, name) {
   await action(page, 'project-open-list');
-  await page.locator('.project-item').filter({ has: page.locator('span', { hasText: new RegExp('^' + name + '$') }) }).click();
+  await page.locator('.project-item').filter({ has: page.locator('strong', { hasText: new RegExp('^' + name + '$') }) }).click();
 }
 // 持ち出しは zip 1 本。中身を開いて、いままで JSON で見ていたものと同じ事実を見る。
 async function exportFile(page, info, id = 'project-export') {
@@ -269,7 +269,8 @@ test('一覧の名前は、選択中でもそうでなくても同じ左端か�
   await name(page, 'rename', '短い');
   await name(page, 'new', 'こちらはずっと長い名前のプロジェクト');
   await openExplorer(page);
-  const nameOf = row => page.locator(`#project-list .project-item[aria-current="${row}"] > span`);
+  // 名前は共通規則の .list-row が前提にする <strong>（✓ の枠はこの中に確保される）。
+  const nameOf = row => page.locator(`#project-list .project-item[aria-current="${row}"] > strong`);
   const selected = await nameOf('true').boundingBox();
   const other = await nameOf('false').boundingBox();
   expect(other.x).toBe(selected.x);

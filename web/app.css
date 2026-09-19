@@ -325,7 +325,8 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding: 0 var(--pad) 16px; }
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
 .view-header h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
-.view-section-title { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+/* 型（.heading）を併記した見出しには当てない。全 view が .heading になったらこの規則ごと消す。 */
+.view-section-title:not(.heading) { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }
@@ -343,14 +344,9 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 
 /* ---- sidebar: explorer ---------------------------------------------------------------- */
 #project-list { display: grid; gap: 2px; margin: 0 0 4px; }
-/* button の既定は中央寄せなので、名前は行の左端から始まるように打ち消す。 */
-.project-item { height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 10px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
-.project-item > span { flex: 1; min-width: 0; text-align: left; }
-.project-item:hover:not(:disabled) { background: var(--bg-raised); }
-.project-item[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-3); }
-/* 選択中の行の右端にだけ、詳細の開閉の印を出す。押すところは行そのもので、別のボタンは作らない。 */
-.project-item[aria-current="true"]::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
-.project-item[aria-current="true"][aria-expanded="true"]::after { content: '▾'; }
+/* 行の見え方は共通規則の .list-row。この view だけの事情は無いので、.project-item は
+   テストと JS の目印としてだけ残す（宣言は持たない）。✓ は「追加済み」の印なので、
+   開いているプロジェクトには付けない（選ばれていることはハイライトが示す）。 */
 /* 選択中の1件の詳細。行より内側に寄せ、面の色と枠線で行と区別する（行のハイライトとは別の色）。
    エクスプローラとライブラリで同じ面を使う。 */
 .detail-box { margin: 2px 0 4px 12px; padding: 6px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-raised); font-size: 12px; line-height: 1.6; }
@@ -359,14 +355,8 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 /* 箱の中の操作（バージョン選択・削除）は2列をまたいで下に置く。 */
 .detail-box .detail-actions { grid-column: 1 / -1; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .file-kind { color: var(--accent); font-size: 10px; font-weight: 700; font-family: var(--ui-font); }
-/* 知らせは一覧の下の枠つきカード。記号は ::before で描くので、文そのものは message だけ。 */
-#project-notice, #project-save-message { position: relative; margin: 6px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; line-height: 1.6; overflow-wrap: anywhere; }
-#project-notice::before, #project-save-message::before { position: absolute; left: 8px; }
-#project-notice[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
-#project-notice[data-state="ok"]::before { content: '✓'; }
-#project-notice[data-state="error"], #project-save-message { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
-#project-notice[data-state="error"]::before, #project-save-message::before { content: '⚠'; }
-#project-notice:empty, #project-save-message:empty { display: none; }
+/* 知らせ2つの見え方は共通規則の .notice。状態は JS が data-state で与える
+   （保存の失敗は error）。この view だけの寸法は持たない。 */
 .notice-close { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; min-width: 0; padding: 0; border-color: transparent; background: transparent; color: inherit; }
 .notice-close::before { content: '×'; }
 .notice-close:hover:not(:disabled) { background: var(--bg-raised); }
