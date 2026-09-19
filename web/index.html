@@ -46,15 +46,15 @@
 
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
         <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button></header>
-        <p class="current-project">操作対象：<strong id="library-target"></strong><span id="library-board"></span></p>
-        <form id="library-search-form"><label for="library-query">ライブラリを検索</label><div class="library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
-        <p class="library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
-        <section class="library-added-section" aria-labelledby="library-added-label"><h3 class="view-section-title" id="library-added-label"><button id="library-added-toggle" type="button" aria-expanded="false" aria-controls="library-added"><span>追加済み</span><span id="library-added-count">0</span></button></h3><ul id="library-added" aria-label="追加済みライブラリ" hidden></ul></section>
-        <p id="library-status" role="status"></p>
-        <div id="library-suggestions" aria-label="近い名前の候補"></div>
-        <h3 class="view-section-title" id="library-results-label" hidden>検索結果</h3>
+        <p class="current-project" title="ライブラリを追加・削除する対象のプロジェクトとボード"><strong id="library-target"></strong><span id="library-board"></span></p>
+        <form id="library-search-form" class="form-group"><label for="library-query">ライブラリを検索</label><div class="actions library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
+        <p class="form-group library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
+        <section class="library-added-section" aria-labelledby="library-added-label"><h3 class="heading view-section-title" id="library-added-label"><button id="library-added-toggle" type="button" aria-expanded="false" aria-controls="library-added"><span>追加済み</span><span id="library-added-count">0</span></button></h3><ul id="library-added" aria-label="追加済みライブラリ" hidden></ul></section>
+        <p id="library-status" class="notice" role="status"></p>
+        <div id="library-suggestions" class="actions" aria-label="近い名前の候補"></div>
+        <h3 class="heading view-section-title" id="library-results-label" hidden>検索結果</h3>
         <ul id="library-results" aria-labelledby="library-results-label"></ul>
-        <div class="library-pager" id="library-pager" hidden><span id="library-page"></span><button id="library-prev" type="button" aria-label="前のページ" hidden>‹</button><button id="library-next" type="button" aria-label="次のページ" hidden>›</button></div>
+        <div class="actions library-pager" id="library-pager" hidden><span id="library-page"></span><button id="library-prev" type="button" aria-label="前のページ" hidden>‹</button><button id="library-next" type="button" aria-label="次のページ" hidden>›</button></div>
       </section>
 
       <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>
@@ -305,6 +305,7 @@
         <h3 class="heading" id="help-libraries-title">ライブラリ</h3>
         <div class="prose">
           <p>左のアクティビティバーの「ライブラリ」で PlatformIO Registry を検索し、提供者・正式名とバージョンを選んで、そのプロジェクトの直接依存に加えます。</p>
+          <p>追加先は今開いているプロジェクトです。view の上に、そのプロジェクト名と選択中のボード名が出ます。</p>
           <p>Git の URL や任意のパスを直接足す方法はありません。実際のパッケージを取りに行くのは Build のときです。</p>
           <p>名前を押すと、説明・Registry 番号・「バージョンを選択」／「削除」がその名前のすぐ下に開きます。追加済みは見出しを押すと開き、件数は「追加済み」の右隣の数字です。</p>
         </div>

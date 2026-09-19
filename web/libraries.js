@@ -52,13 +52,13 @@ export function setupLibraries(store, change, boards) {
     if (!composing && input.value.trim() && dialog.open) timer = setTimeout(() => search(), 400);
   }
   function apply(next, text) {
-    try { change(validateLibraries(next)); renderAdded(); renderResults(); message(text + ' 実パッケージはBuild時に取得します。', 'ok'); }
+    try { change(validateLibraries(next)); renderAdded(); renderResults(); message(text, 'ok'); }
     catch (error) { message(error.message, 'error'); }
   }
   // 一覧の1行。字は名前だけで、右端に控えめな副題（提供者または版）と、使えないときだけバッジ。
   // 押すと真下の箱が開き、もう一度押すと閉じる。開閉の印は CSS の ::after が描く。
   function entryRow(p, meta, blocked, expanded, toggle) {
-    const button = element('button', '', 'library-item');
+    const button = element('button', '', 'list-row library-item');
     button.type = 'button';
     button.setAttribute('aria-expanded', String(expanded));
     // 追加済みの印 ✓ は CSS の ::before が描く。名前の文字列には入れない。
@@ -111,10 +111,21 @@ export function setupLibraries(store, change, boards) {
     actions.append(remove); box.append(actions);
     return box;
   }
-  async function details(p, area, button) {
+  // Registry が返す framework / platform は値（データ）なので、箱の他の行と同じ dt/dd で出す。
+  // 取り直したときに増えないよう、前回の行は入れ替える。並びは操作の列より上。
+  function registryFacts(box, data) {
+    for (const node of box.querySelectorAll('.registry-fact')) node.remove();
+    const actions = box.querySelector('.detail-actions');
+    for (const [label, values] of [['framework', data.frameworks], ['platform', data.platforms]]) {
+      box.insertBefore(element('dt', label, 'registry-fact'), actions);
+      box.insertBefore(element('dd', values.join(', ') || '不明', 'registry-fact'), actions);
+    }
+  }
+  async function details(p, area, button, box) {
     const current = generation;
     button.disabled = true;
-    area.replaceChildren(element('p', 'バージョン取得中…', 'storage-hint'));
+    area.replaceChildren(element('p', 'バージョン取得中…', 'form-hint'));
+    for (const node of box.querySelectorAll('.registry-fact')) node.remove(); // 取り直しの間は前回の値を残さない
     try {
       const response = await fetch('/libraries/details?' + new URLSearchParams({ owner: p.owner, name: p.name }), { signal: controller?.signal });
       const data = await response.json();
@@ -122,8 +133,8 @@ export function setupLibraries(store, change, boards) {
       if (current !== generation || !dialog.open) return;
       if (data.id !== p.id || data.owner !== p.owner || data.name !== p.name) throw new Error('Registryの識別情報が一致しません');
       area.replaceChildren();
-      area.append(element('p', `登録情報：framework ${data.frameworks.join(', ') || '不明'} / platform ${data.platforms.join(', ') || '不明'}（動作保証ではありません）`, 'storage-hint'));
-      const controls = element('div', '', 'library-controls');
+      registryFacts(box, data);
+      const controls = element('div', '', 'actions library-controls');
       const select = element('select', ''); select.setAttribute('aria-label', `${p.owner}/${p.name} のバージョン`);
       for (const version of data.versions) select.append(new Option(version, version));
       const added = store.current.libraries.find(x => x.id === p.id);
@@ -183,7 +194,7 @@ export function setupLibraries(store, change, boards) {
     const button = element('button', added ? '追加済み · 版を変更' : 'バージョンを選択', 'library-version');
     button.type = 'button';
     const area = element('div', '', 'library-detail');
-    button.onclick = () => details(p, area, button);
+    button.onclick = () => details(p, area, button, box);
     actions.append(button, area); box.append(actions);
     return box;
   }
@@ -196,7 +207,10 @@ export function setupLibraries(store, change, boards) {
     if (!candidates.length) {
       const suggestions = nearbyNames(query, seen.values());
       if (suggestions.length) {
-        const box = $('library-suggestions'); box.append(element('p', 'もしかして（この画面で取得済みの名前）', 'storage-hint'));
+        const box = $('library-suggestions');
+        const lead = element('p', 'もしかして', 'form-hint');
+        lead.title = 'この画面で取得済みの名前から選びます';
+        box.append(lead);
         for (const p of suggestions) {
           const button = element('button', p.name); button.title = `${p.owner}/${p.name} · Registry #${p.id}`;
           button.onclick = () => { input.value = p.name; search(); input.focus(); };

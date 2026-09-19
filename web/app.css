@@ -326,15 +326,14 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding: 0 var(--pad) 16px; }
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
 .view-header h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
-/* 型（.heading）を併記した見出しには当てない。全 view が .heading になったらこの規則ごと消す。 */
-.view-section-title:not(.heading) { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }
-/* 1行に収める。長いときに切るのは名前だけで、ボードは常に見える。 */
+/* 1行に収める。優先するのはプロジェクト名で、先に縮むのはボード名の側。名前だけで行幅を
+   超えるときは、max-width で頭打ちにして名前も最後に省略する。 */
 .current-project { display: flex; margin: 6px 0; color: var(--fg-muted); line-height: 1.6; white-space: nowrap; }
-.current-project strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
-.current-project #library-board { flex-shrink: 0; white-space: pre; }
+.current-project strong { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.current-project #library-board { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
 
 .split { background: transparent; }
 .split-v { grid-row: 1; width: 4px; cursor: ew-resize; touch-action: none; margin-inline: -2px; z-index: 5; }
@@ -365,57 +364,40 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .sidebar-view.drop-target { outline: 2px dashed var(--accent); outline-offset: -4px; background: var(--accent-soft); }
 
 /* ---- sidebar: libraries --------------------------------------------------------------- */
+/* 行の見え方は共通規則の .list-row、見出しは .heading、知らせは .notice、ボタンの列
+   （検索欄・版選択・候補・ページャ）は .actions、入力1組は .form-group。.library-item
+   .library-controls .library-pager .library-incompatible-toggle はテストと JS の目印として
+   だけ残す。残っているのは、この view だけの事情（sticky の検索帯・行の副題とバッジ・
+   開閉できる見出し・一覧の罫線）だけ。 */
+/* 検索帯は view の見出しの真下に貼り付く。入力1組（.form-group）の並びは型のまま使い、
+   帯の左右いっぱいに敷くための margin/padding と貼り付きだけをここで持つ。 */
 #library-search-form { position: sticky; top: 35px; z-index: 1; margin: 0 calc(-1 * var(--pad)); padding: 4px var(--pad) 8px; background: var(--bg-sidebar); }
-#library-search-form label { display: block; line-height: 1.25; color: var(--fg-muted); font-size: 12px; }
-.library-controls { display: flex; gap: 6px; margin-top: 5px; }
 .library-controls button { flex: none; }
 #library-query { min-width: 0; flex: 1; }
 /* 見出しそのものが開閉ボタン。字面は見出しのまま、右端に行と同じ開閉の印、名前の直後に件数。 */
-#library-added-toggle { width: 100%; justify-content: flex-start; padding: 0 6px; border-color: transparent; background: transparent; font-size: inherit; font-weight: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; }
+#library-added-toggle { width: 100%; justify-content: flex-start; padding: 0 6px; border-color: transparent; background: transparent; font-size: inherit; font-weight: inherit; color: inherit; }
 #library-added-toggle:hover { background: var(--bg-raised); }
 #library-added-toggle::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
 #library-added-toggle[aria-expanded="true"]::after { content: '▾'; }
-#library-added-count { padding: 0 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--fg); font-size: 11px; line-height: 1.5; letter-spacing: 0; }
+#library-added-count { padding: 0 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--fg); font-size: var(--fs-tiny); line-height: 1.5; letter-spacing: 0; }
 #library-added, #library-results { list-style: none; padding: 0; margin: 0; }
 #library-added > li, #library-results > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
-/* 一覧の行。button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。 */
-.library-item { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
-.library-item > strong { flex: 1; min-width: 0; text-align: left; }
-/* 追加済みの印。文字ではなく飾りなので、名前の textContent には入らない。 */
-/* 印の幅は全行に確保する。✓ の有無で名前の左端が動かない。 */
-.library-item > strong::before { content: ''; display: inline-block; width: 1em; margin-right: 6px; color: var(--accent-2); }
-.library-item[data-added="true"] > strong::before { content: '✓'; }
-.library-item:hover:not(:disabled) { background: var(--bg-raised); }
-.library-meta { min-width: 0; color: var(--fg-muted); font-size: 12px; overflow-wrap: anywhere; }
-/* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
-.library-item::after { content: '▸'; color: var(--fg-muted); }
-.library-item[aria-expanded="true"]::after { content: '▾'; }
+/* 行の副題（提供者または版）とバッジ。型の見本（styleguide の「一覧の行」）は名前だけの行で、
+   副題の型は無い。名前が幅を取り、副題とバッジは内容の幅で右に寄る今の見え方をここで保つ。 */
+.list-row > .library-meta { flex: 0 1 auto; min-width: 0; color: var(--fg-muted); font-size: var(--fs-small); overflow-wrap: anywhere; }
+.list-row > .library-badge { flex: none; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: var(--fs-tiny); color: var(--danger); background: transparent; }
 .detail-box dd.library-description { color: var(--fg-muted); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; }
 .library-detail { width: 100%; }
-.library-detail .library-controls { flex-wrap: wrap; }
 .library-detail select { min-width: 0; flex: 1; }
-.library-pager { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--fg-muted); font-size: 12px; }
-.library-pager button { padding: 0 10px; }
-#library-status { color: var(--fg-muted); line-height: 1.6; margin: 10px 0 0; }
-#library-status:empty { display: none; }
-#library-status[data-state="loading"] { color: var(--accent); }
-#library-status[data-state="error"], .library-error { color: var(--danger); }
-/* 追加・削除・失敗の知らせは、エクスプローラと同じ枠つきカード。記号は ::before で描く。 */
-#library-status[data-state="ok"], #library-status[data-state="error"] { position: relative; margin: 10px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; }
-#library-status[data-state="ok"]::before, #library-status[data-state="error"]::before { position: absolute; left: 8px; }
-#library-status[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
-#library-status[data-state="ok"]::before { content: '✓'; }
-#library-status[data-state="error"] { border-color: var(--danger); background: var(--danger-soft); }
-#library-status[data-state="error"]::before { content: '⚠'; }
-#library-suggestions { display: flex; flex-wrap: wrap; gap: 6px; }
-#library-suggestions p { width: 100%; margin: 8px 0 0; }
+.library-pager { margin: 8px 0 0; color: var(--fg-muted); font-size: var(--fs-small); }
+.library-error { color: var(--danger); }
+/* 候補の見出しは行を独り占めして、候補のボタンが次の行から並ぶようにする。 */
+#library-suggestions p { width: 100%; }
 #library-suggestions button { max-width: 100%; height: auto; min-height: var(--row); white-space: normal; overflow-wrap: anywhere; }
 /* Libraries the compiler reports as unusable on the selected board. Search results are muted
    and only shown when the toggle asks for them; the row wears a badge and the reason is in the box. */
-.library-incompatible-toggle { margin: 8px 0 0; font-size: 12px; color: var(--fg-muted); line-height: 1.6; }
 .library-incompatible-toggle input { margin: 0 6px 0 0; vertical-align: -2px; }
 .library-result.library-unusable .library-item > strong { color: var(--fg-muted); font-weight: 600; }
-.library-badge { flex: none; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: 11px; color: var(--danger); background: transparent; }
 .detail-box dd.library-unusable-reason { color: var(--fg-muted); overflow-wrap: anywhere; }
 .detail-box dd.library-incompatible { color: var(--danger); overflow-wrap: anywhere; }
 
