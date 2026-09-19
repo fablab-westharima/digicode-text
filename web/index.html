@@ -119,16 +119,21 @@
     <!-- The model display is itself the way into the settings dialog; there is no separate API設定
          button, because 設定 in the activity bar opens the same dialog. It keeps the id
          ai-settings-open, which is the hook ai-settings.js (unchanged) binds its opener to. -->
-    <div class="ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
-    <div class="ai-conversation-tools"><small id="ai-history-note"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
+    <div class="view-header ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
+    <!-- #ai-history-note は常時の説明ではなく、履歴が上限で省略されたときだけ出る知らせ（ai.js が入れる）。 -->
+    <div class="actions ai-conversation-tools"><small id="ai-history-note" class="form-hint"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
     <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>
     <div class="ai-composer">
-      <div id="ai-apply-mode" class="ai-actions"><label for="ai-mode">コード変更時</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
-      <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled aria-describedby="ai-attach-note">Buildエラーを含めて送信</label><small id="ai-attach-note"></small>
+      <div id="ai-apply-mode" class="actions ai-actions"><label for="ai-mode">コード変更時</label><select id="ai-mode"><option value="auto">自動適用</option><option value="review">確認して適用</option></select></div>
+      <!-- 添付できるかどうかの説明はホバー（label の title、ai.js が状態に合わせて書き換える）。
+           無効な checkbox はホバーを受けないので、title は input ではなく label が持つ。
+           #ai-attach-note は空のまま残す（id を参照するものがあっても壊さないため）。 -->
+      <label class="ai-attach-label"><input id="ai-attach" type="checkbox" disabled>Buildエラーを含めて送信</label><small id="ai-attach-note" hidden></small>
       <label for="ai-prompt" class="sr-only">メッセージ</label>
-      <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力（Enterで送信、Shift＋Enterで改行）"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
+      <div class="ai-input-row"><textarea id="ai-prompt" rows="3" maxlength="16001" placeholder="メッセージを入力" title="Enterで送信、Shift＋Enterで改行"></textarea><div class="ai-send-wrap"><button id="ai-send" class="primary" aria-label="送信" title="送信"><span aria-hidden="true">↑</span></button><span class="ai-send-tip" aria-hidden="true">送信</span></div><button id="ai-cancel" hidden>中止</button></div>
       <button id="ai-context" class="quiet">AIに送る内容を確認</button>
-      <p id="ai-status" role="status">説明や変更の依頼を入力してください。</p>
+      <!-- 直前の操作の結果だけを出す。開いた直後は空（.notice:empty で行ごと消える）。 -->
+      <p id="ai-status" class="notice" role="status"></p>
     </div>
   </aside>
 
@@ -334,7 +339,8 @@
           <p>右の AI パネルは、左のアクティビティバーの「AI」で開きます。使い方は右の AI に聞けます（API キーが必要）。</p>
           <p>提供元は OpenAI・Claude・Gemini から選びます。キーとモデルは設定の「AI」の節で決め、キーと設定は提供元ごとに別に保存します。</p>
           <p>AI は回答か、main.cpp 全体の変更候補を返します。「コード変更時」が「自動適用」なら全体を置き換え、「確認して適用」なら差分を見てから適用します。回答だけではコードは変わりません。適用は Undo 1 回で戻せます。</p>
-          <p>「会話を消去」は、いま表示しているプロジェクトと提供元の会話だけを消します。</p>
+          <p>入力欄は Enter で送信、Shift＋Enter で改行です。</p>
+          <p>会話はこのページの中だけに残ります。保存はしないので、リロードすると消えます。「会話を消去」は、いま表示しているプロジェクトと提供元の会話だけを消します。</p>
           <p>設定の「保存して閉じる」はこのブラウザに保存し、「保存せず使う」は開いているページだけに反映します。閉じるだけなら編集は破棄されます。</p>
         </div>
         <hr class="rule">
@@ -391,8 +397,8 @@
     </div>
   </div>
 </dialog>
-<dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><p class="storage-hint">現在のコード・ボード・直接依存と版、エラー添付を選択した場合だけ、一致する失敗ログを送ります。指示と保持中の会話も送ります。任意のコードや会話内の秘密値を自動検出する機能はありません。コードは256 KiB、指示は16,000文字、履歴は最大12往復・32,000文字。履歴のソースは重複送信しません。</p><pre id="ai-context-text" tabindex="0"></pre></dialog>
-<div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note"></p><div class="ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>
+<dialog id="ai-context-dialog" aria-labelledby="ai-context-title"><div class="dialog-heading"><h2 id="ai-context-title">送信するコンテキスト</h2><button id="ai-context-close">閉じる</button></div><pre id="ai-context-text" tabindex="0"></pre></dialog>
+<div id="ai-proposal-home" hidden><section id="ai-proposal" hidden><p id="ai-proposal-note" class="notice"></p><div class="actions ai-actions"><button id="ai-apply" class="primary">適用</button><button id="ai-discard">破棄</button><button id="ai-copy">コピー</button></div><div id="ai-diff" aria-label="main.cppの変更前後の差分" hidden></div></section></div>
 <script type="module" src="/assets/app.js"></script>
 </body>
 </html>

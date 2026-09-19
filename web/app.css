@@ -527,15 +527,18 @@ pre:empty { padding-top: 0; }
 
 /* ---- AI panel ------------------------------------------------------------------------- */
 #ai-pane { grid-column: 6; grid-row: 1; width: var(--ai-width); min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 0 var(--pad) var(--pad); overflow: hidden; background: var(--bg-panel); border-left: 1px solid var(--border); }
-.ai-heading { position: sticky; top: 0; height: 35px; display: flex; align-items: center; gap: 6px; flex: none; }
+/* 帯そのものはサイドバーの各ビューと同じ .view-header。違いは2つだけ：縦の flex の中で潰れない
+   ことと、地の色がこのパネルの地（サイドバーではない）であること。 */
+.ai-heading { flex: none; background: var(--bg-panel); }
 .ai-heading strong { flex: none; white-space: nowrap; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
 /* The model display is the settings button: it keeps the muted look of the old <small>. */
 #ai-settings-open { margin-left: auto; min-width: 0; padding: 0 6px; }
 #ai-connection { display: block; min-width: 0; color: inherit; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ai-conversation-tools, .ai-input-row { display: flex; align-items: center; gap: 6px; }
-.ai-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+/* 操作の列（会話の道具・適用モード・提案のボタン）は共通規則の .actions。入力の行だけは列では
+   なく、textarea と送信ボタンを下端で揃える組なので、ここに残す。 */
+.ai-input-row { display: flex; align-items: center; gap: 6px; }
 #ai-pane p { line-height: 1.6; overflow-wrap: anywhere; }
-#ai-history-note, #ai-attach-note { color: var(--fg-muted); font-size: 11px; margin: 0; }
+/* 知らせの文（.form-hint）は、道具の列の中では残りの幅をとって折り返す。 */
 #ai-history-note { flex: 1; min-width: 0; }
 #ai-history { flex: 1; min-height: 80px; overflow: auto; overflow-anchor: none; padding: 4px 2px 12px; }
 .ai-turn { margin: 0 0 16px; }
@@ -561,9 +564,14 @@ pre:empty { padding-top: 0; }
 .ai-send-wrap { position: relative; }
 .ai-send-tip { display: none; position: absolute; bottom: 44px; right: 0; padding: 3px 7px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
 .ai-send-wrap:hover .ai-send-tip, .ai-send-wrap:focus-within .ai-send-tip { display: block; }
-#ai-status { margin: 0; color: var(--accent); font-size: 12px; }
+/* 直前の操作の結果を出す1行。見え方は .notice（空なら行ごと消える）。ai.js は data-state を
+   持たせず文だけを入れるので、.notice の3つの状態には入らない：枠は付けず、色だけを loading と
+   同じ accent にする。状態を JS から与えるとテストが読む文言の経路が増えるので、寄せるのは
+   CSS の側だけにした（#flash-status と同じ扱い）。 */
+#ai-status { margin: 0; color: var(--accent); font-size: var(--fs-small); }
 #ai-diff { height: 300px; margin-top: 8px; border: 1px solid var(--border); }
-#ai-proposal-note { color: var(--fg-muted); font-size: 12px; }
+/* 提案の状態を出す1行。上下の間は .notice の --sp-2。 */
+#ai-proposal-note { color: var(--fg-muted); font-size: var(--fs-small); }
 
 /* ---- status bar ----------------------------------------------------------------------- */
 .status-bar { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 12px; padding: 0 10px; font-size: 11px; color: var(--fg-muted); background: var(--bg-statusbar); border-top: 1px solid var(--border); overflow: hidden; }

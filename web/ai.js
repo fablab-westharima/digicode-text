@@ -39,7 +39,12 @@ export function setupAI(monaco, host) {
     area.replaceChildren(...t.entries.map(e => e.node));
     displayedKey = key();
     area.scrollTop = follow ? area.scrollHeight : previous;
-    $('ai-history-note').textContent = `${t.omitted ? '表示履歴は上限（12往復・512 Ki文字）により一部省略。' : '会話はこのページ内のみ。'} ${t.apiOmitted ? '再送履歴は32,000文字上限により一部省略。' : ''}再送時は過去のコードブロックを省略します。`;
+    // 省略が起きたときだけ出す知らせ。常時の説明（会話はこのページ内だけ・再送時のコードブロック
+    // 省略）は取説の「AI」へ移した。
+    $('ai-history-note').textContent = [
+      t.omitted ? '表示履歴は上限（12往復・512 Ki文字）により一部省略。' : '',
+      t.apiOmitted ? '再送履歴は32,000文字上限により一部省略。' : '',
+    ].filter(Boolean).join('');
   }
   function entry(t, prompt, snapshot) {
     const node = document.createElement('article'); node.className = 'ai-turn';
@@ -87,7 +92,9 @@ export function setupAI(monaco, host) {
     const valid = Boolean(host.failure(host.snapshot()));
     $('ai-attach').disabled = !valid;
     if (!valid) $('ai-attach').checked = false;
-    $('ai-attach-note').textContent = valid ? '現在のコード・設定に一致する失敗ログを添付できます' : '現在のコード・設定に一致するBuild失敗がありません';
+    // 添付できるかどうかは常時の1行では出さず、ホバー（label の title）に置く。無効な checkbox は
+    // ホバーを受け取らないので、title は input を包む label が持つ。
+    $('ai-attach').closest('label').title = valid ? '現在のコード・設定に一致する失敗ログを添付できます' : '現在のコード・設定に一致するBuild失敗がありません';
   }
   function changed() {
     buildChanged();
