@@ -275,7 +275,6 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .notice-close:hover:not(:disabled) { background: var(--bg-raised); }
 /* zip をエクスプローラへドラッグしている間だけ、受け取れることを示す */
 .sidebar-view.drop-target { outline: 2px dashed var(--accent); outline-offset: -4px; background: var(--accent-soft); }
-#project-save-message { color: var(--danger); }
 
 /* ---- sidebar: libraries --------------------------------------------------------------- */
 #library-search-form { position: sticky; top: 35px; z-index: 1; margin: 0 calc(-1 * var(--pad)); padding: 4px var(--pad) 8px; background: var(--bg-sidebar); }
