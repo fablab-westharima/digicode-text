@@ -177,6 +177,17 @@
   --code-font: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
   --row: 28px;
   --pad: 12px;
+  /* 寸法の刻み。テーマに依らないのでここに置く。新しい規則はこの変数だけを使う
+     （既存の px 直書きは今回は書き換えない）。 */
+  --fs-heading: 14px;
+  --fs-body: 13px;
+  --fs-small: 12px;
+  --fs-tiny: 11px;
+  --lh: 1.6;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 16px;
+  --radius: 4px;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -204,6 +215,62 @@ select { max-width: 100%; }
 input, textarea { background: var(--bg-input); }
 h1, h2, h3 { margin: 0; font-weight: 600; }
 
+/* ---- 共通の表示規則 ----------------------------------------------------------------------
+   役割ごとに1つの class を用意し、色と寸法は :root の変数だけで書く（生の色値は書かない）。
+   既存の id セレクタ規則（#project-notice ほか）は今回そのまま残してあるので、ここの class は
+   まだ web/styleguide.html の見本でしか使っていない。見本は web/app.css だけを読む。 */
+/* 見出し。左の3px の縦線で階層を示す。 */
+.heading { margin: var(--sp-3) 0 var(--sp-2); padding-left: var(--sp-2); border-left: 3px solid var(--accent-3); font-size: var(--fs-heading); font-weight: 600; line-height: var(--lh); color: var(--fg-strong); }
+/* 一覧の行。既存の .project-item / .library-item / .board-item と同じ見え方を class にしたもの。
+   button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。 */
+.list-row { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.list-row > strong, .list-row > span { flex: 1; min-width: 0; text-align: left; }
+/* 追加済みの印の幅は全行に確保する。✓ の有無で名前の左端が動かない。 */
+.list-row > strong::before { content: ''; display: inline-block; width: 1em; margin-right: 6px; color: var(--accent-2); }
+.list-row[data-added="true"] > strong::before { content: '✓'; }
+.list-row:hover:not(:disabled) { background: var(--bg-raised); }
+.list-row[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-3); }
+/* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
+.list-row::after { content: '▸'; color: var(--fg-muted); }
+.list-row[aria-expanded="true"]::after { content: '▾'; }
+/* 手順。1行1動作。番号だけを accent-2 の太字にする。 */
+.steps { margin: var(--sp-2) 0; padding-left: 1.7em; font-size: var(--fs-body); line-height: var(--lh); }
+.steps > li { margin-bottom: var(--sp-1); overflow-wrap: anywhere; }
+.steps > li::marker { color: var(--accent-2); font-weight: 700; }
+/* 注記。見出しと同じ左3px の縦線＋面。本文の色は変えず、線と NOTE ラベルだけで種類を示す。 */
+.note { margin: var(--sp-2) 0; padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--accent-3); border-radius: 0 var(--radius) var(--radius) 0; background: var(--bg-raised); font-size: var(--fs-body); line-height: var(--lh); overflow-wrap: anywhere; }
+.note::before { content: 'NOTE'; display: block; margin-bottom: var(--sp-1); font-size: var(--fs-tiny); font-weight: 600; letter-spacing: .08em; color: var(--fg-muted); }
+.note > :first-of-type { margin-top: 0; }
+.note > :last-child { margin-bottom: 0; }
+.note.danger { border-left-color: var(--danger); color: var(--fg); }
+.note.danger::before { color: var(--danger); }
+/* 知らせ。枠つきカードで、記号は ::before、×は .notice-close。 */
+.notice { position: relative; margin: var(--sp-2) 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: var(--radius); line-height: var(--lh); overflow-wrap: anywhere; }
+.notice::before { position: absolute; left: 8px; }
+.notice[data-state="ok"] { color: var(--accent-2); border-color: var(--accent-3); background: var(--bg-panel); }
+.notice[data-state="ok"]::before { content: '✓'; }
+.notice[data-state="error"] { color: var(--danger); border-color: var(--danger); background: var(--danger-soft); }
+.notice[data-state="error"]::before { content: '⚠'; }
+.notice:empty { display: none; }
+/* 表。見出し行だけ面を上げ、行の区切りは下罫線1本。 */
+.table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); line-height: var(--lh); }
+.table th { text-align: left; font-weight: 600; color: var(--fg-muted); background: var(--bg-raised); }
+.table th, .table td { padding: var(--sp-1) var(--sp-2); border-bottom: 1px solid var(--border); overflow-wrap: anywhere; vertical-align: top; }
+/* 入力1組 = ラベル＋入力欄＋補足文。組の中は --sp-2、組と組の間は --sp-3。 */
+.form-group { display: grid; gap: var(--sp-2); margin: var(--sp-3) 0; }
+.form-group > label { color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
+.form-group > .form-hint { margin: 0; color: var(--fg-muted); font-size: var(--fs-small); line-height: var(--lh); }
+.form-group > input, .form-group > select, .form-group > textarea { width: 100%; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+/* 主ボタン1つ＋副ボタンの列。画面の最後に貼り付けて、スクロールしても消えないようにする。 */
+.actions.primary-row { position: sticky; bottom: 0; z-index: 1; margin-top: var(--sp-3); padding: var(--sp-2) 0; background: var(--bg-sidebar); border-top: 1px solid var(--border); }
+/* 読ませる文。 */
+.prose { font-size: var(--fs-body); line-height: var(--lh); overflow-wrap: anywhere; }
+.prose p { margin: 0 0 var(--sp-2); }
+.prose > :last-child { margin-bottom: 0; }
+/* ボタンの小さい方。既定は var(--row) = 28px、これは 24px。 */
+button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-size: var(--fs-small); }
+
 /* ---- shell ---------------------------------------------------------------------------- */
 .shell {
   position: relative; height: 100dvh; display: grid; overflow: hidden;
@@ -223,9 +290,16 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .activity-spacer { flex: 1; }
 
 .sidebar { grid-column: 2; grid-row: 1; width: var(--sidebar-width); min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-sidebar); border-right: 1px solid var(--border); }
-.sidebar-scroll { flex: 1; min-height: 0; min-width: 0; display: flex; overflow-wrap: anywhere; }
-/* Each view is its own scroll container, so a view can scroll itself back to the top. */
-.sidebar-view { flex: 1; min-width: 0; overflow: auto; padding: 0 var(--pad) 16px; }
+/* 下の罫線は、view の終わりが広告枠の始まりであることを常に示す（続きが隠れていると読ませない）。 */
+.sidebar-scroll { flex: 1; min-height: 0; min-width: 0; display: flex; overflow-wrap: anywhere; border-bottom: 1px solid var(--border); }
+/* Each view is its own scroll container, so a view can scroll itself back to the top.
+   縦は常にスクロール扱いにして溝を確保する。スクロールできることが見えるようにするため。
+   横は今までどおり内容があるときだけ出す。 */
+.sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; padding: 0 var(--pad) 16px; }
+/* macOS の overlay scrollbar では溝が出ないので、常時見える細いバーを自前で描く。 */
+.sidebar-view::-webkit-scrollbar { width: 6px; height: 6px; }
+.sidebar-view::-webkit-scrollbar-track { background: transparent; }
+.sidebar-view::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius); }
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
 .view-header h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
 .view-section-title { margin: 16px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
@@ -488,6 +562,8 @@ button.status-item:hover:not(:disabled) { color: var(--fg-strong); background: v
 /* 狭い画面ではタブバーにBuildと書き込みだけを残す。接続手順はヘルプの「接続手順を見る」から開く
    （書き込みボタンを押したときのモーダルは幅にかかわらず出る）。 */
 .shell[data-narrow="true"] #flash-guide-open { display: none; }
+/* 狭い画面では sidebar が editor の上に浮くので、250px の広告枠は view をほぼ潰す。出さない。 */
+.shell[data-narrow="true"] .ad-slot { display: none; }
 
 /* ---- dialogs that stayed dialogs ------------------------------------------------------ */
 dialog { color: var(--fg); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 20px; width: min(540px, calc(100% - 24px)); max-height: calc(100dvh - 40px); }

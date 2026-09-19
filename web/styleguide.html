@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ja" data-theme="duotone-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DigiCode Text 表示スタイル見本</title>
+<link rel="stylesheet" href="app.css">
+<style>
+  /* このページ専用。役割の見た目は app.css の共通規則だけで描く。ここは並べ方だけを決める。
+     色は変数だけを使い、生の色値は書かない。 */
+  html, body { height: auto; overflow: visible; }
+  body { padding: 0 var(--sp-3) 48px; background: var(--bg-panel); }
+  .sg-top { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0 calc(-1 * var(--sp-3)) var(--sp-3); padding: var(--sp-2) var(--sp-3); background: var(--bg-activity); border-bottom: 1px solid var(--border); }
+  .sg-top h1 { font-size: var(--fs-heading); color: var(--fg-strong); }
+  .sg-top .actions { margin-left: auto; }
+  .sg-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .sg-card { min-width: 0; padding: 0 var(--sp-3) var(--sp-3); background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: var(--radius); }
+  .sg-list { display: grid; gap: 2px; }
+  /* 8 の見本用。主ボタンの列が「画面の最後に貼り付く」ことを見せるためのスクロール箱。 */
+  .sg-scroll { max-height: 280px; overflow-y: auto; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .sg-scroll > .form-group:first-child { margin-top: var(--sp-2); }
+  .sg-swatches { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
+  .sg-swatches li { flex: 1 1 64px; padding: var(--sp-1); border: 1px solid var(--border); border-radius: var(--radius); font-size: var(--fs-tiny); color: var(--fg-muted); text-align: center; }
+  @media (max-width: 900px) { .sg-grid { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+
+<div class="sg-top">
+  <h1>DigiCode Text 表示スタイル見本</h1>
+  <div class="actions">
+    <button type="button" class="compact" data-set-theme="duotone-dark">Dark</button>
+    <button type="button" class="compact" data-set-theme="duotone-sea">Sea</button>
+    <button type="button" class="compact" data-set-theme="duotone-space">Space</button>
+    <button type="button" class="compact" data-set-theme="duotone-earth">Earth</button>
+  </div>
+</div>
+
+<div class="prose" style="max-width: 72ch">
+  <p>このページは画面部品の役割を 1 枚に並べた見本です。見た目はすべて「app.css」の共通規則で描いていて、ここに専用の色や余白は書いていません。</p>
+  <p>上のボタンでテーマを切り替えられます。「?theme=duotone-sea」のように URL で指定することもできます。</p>
+</div>
+
+<div class="sg-grid">
+
+  <!-- 1 -->
+  <section class="sg-card">
+    <h2 class="heading">1 見出し</h2>
+    <div class="prose">
+      <p>節の始まりを示します。左の 3 px の縦線が「accent-3」で、文字は 14 px の太字です。</p>
+    </div>
+    <h3 class="heading">1.1 下位の見出し</h3>
+    <div class="prose">
+      <p>階層は番号で示し、線と文字の大きさは変えません。番号の付け方だけで深さが読めるようにします。</p>
+    </div>
+    <h3 class="heading">1.2 見出しの間隔</h3>
+    <div class="prose">
+      <p>見出しの上は「--sp-3」、下は「--sp-2」です。上を広く取ることで、前の節との切れ目が見えます。</p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="sg-card">
+    <h2 class="heading">2 一覧の行</h2>
+    <div class="prose">
+      <p>一覧では名前だけを出します。押すと選択され、右端の印が「▸」から「▾」に変わって詳細が開きます。</p>
+    </div>
+    <div class="sg-list">
+      <button type="button" class="list-row"><strong>blink</strong></button>
+      <button type="button" class="list-row" data-added="true"><strong>ArduinoJson</strong></button>
+      <button type="button" class="list-row" aria-current="true" aria-expanded="true"><strong>XIAO RP2040</strong></button>
+      <button type="button" class="list-row" data-added="true"><strong>とても長い名前のプロジェクトで行が折り返す場合の見え方</strong></button>
+    </div>
+    <h3 class="heading">2.1 印の意味</h3>
+    <div class="prose">
+      <p>先頭の「✓」は追加済みを表し、印が無い行でも幅は同じだけ空けます。名前の左端が行によって動かないようにするためです。</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="sg-card">
+    <h2 class="heading">3 詳細の箱</h2>
+    <div class="prose">
+      <p>選択中の 1 件だけを、行より内側に寄せた箱で見せます。面の色と枠線で、一覧の行と区別します。</p>
+    </div>
+    <dl class="detail-box">
+      <dt>ボード</dt><dd>XIAO RP2040</dd>
+      <dt>MCU</dt><dd>RP2040</dd>
+      <dt>書き込み</dt><dd>UF2（BOOTSEL ドライブへコピー）</dd>
+      <dt>保存先</dt><dd class="library-description">このブラウザの中です。同期やバックアップではありません。</dd>
+      <div class="detail-actions">
+        <button type="button" class="compact">選ぶ</button>
+        <button type="button" class="compact quiet">削除</button>
+      </div>
+    </dl>
+  </section>
+
+  <!-- 4 -->
+  <section class="sg-card">
+    <h2 class="heading">4 手順</h2>
+    <div class="prose">
+      <p>1 行に 1 動作だけ書きます。番号は「accent-2」の太字にして、本文より先に目に入るようにします。</p>
+    </div>
+    <ol class="steps">
+      <li>ボードを USB でつなぐ。</li>
+      <li>「BOOT」ボタンを押したまま「RESET」を 1 回押す。</li>
+      <li>ドライブが出たら「BOOT」から指を離す。</li>
+      <li>「.uf2」をそのドライブへコピーする。</li>
+      <li>ドライブが消えたら書き込み完了。</li>
+    </ol>
+    <h3 class="heading">4.1 入れ子にしない</h3>
+    <div class="prose">
+      <p>手順の中にさらに手順を作りません。分けたい場合は節を分けて、番号を振り直します。</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section class="sg-card">
+    <h2 class="heading">5 注記</h2>
+    <div class="prose">
+      <p>本文の流れを止めずに、読み飛ばすと困ることだけを置きます。線と「NOTE」ラベルで種類を示し、本文の色は変えません。</p>
+    </div>
+    <div class="note">
+      <p>ビルドに使うのは保存済みの内容です。編集したら、先に保存してください。</p>
+    </div>
+    <div class="note danger">
+      <p>書き込み中にケーブルを抜かないでください。途中で止まるとボードが起動しなくなることがあります。</p>
+    </div>
+    <h3 class="heading">5.1 二種類だけ</h3>
+    <div class="prose">
+      <p>既定の注記と「danger」の 2 つだけです。段階を増やすと、どれが重いのか読めなくなります。</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section class="sg-card">
+    <h2 class="heading">6 知らせ</h2>
+    <div class="prose">
+      <p>操作の結果をその場に出します。成功は「✓」、失敗は「⚠」で、右上の「×」で閉じられます。</p>
+    </div>
+    <p class="notice" data-state="ok">ArduinoJson 7.4.2 を追加しました。<button type="button" class="notice-close" aria-label="閉じる"></button></p>
+    <p class="notice" data-state="error">ビルドに失敗しました。出力パネルのログを見てください。<button type="button" class="notice-close" aria-label="閉じる"></button></p>
+    <h3 class="heading">6.1 注記との違い</h3>
+    <div class="prose">
+      <p>知らせは操作のたびに出て消えるもので、注記はページに常にあるものです。消えないものを知らせにしません。</p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section class="sg-card">
+    <h2 class="heading">7 表</h2>
+    <div class="prose">
+      <p>見出し行だけ面を上げ、行の区切りは下の罫線 1 本にします。縦の罫線は引きません。</p>
+    </div>
+    <table class="table">
+      <thead><tr><th>ラベル</th><th>GPIO</th><th>使える機能</th></tr></thead>
+      <tbody>
+        <tr><td>D0</td><td>GPIO26</td><td>ADC0、PWM</td></tr>
+        <tr><td>D1</td><td>GPIO27</td><td>ADC1、PWM</td></tr>
+        <tr><td>D6</td><td>GPIO0</td><td>UART TX、I2C SDA</td></tr>
+        <tr><td>D7</td><td>GPIO1</td><td>UART RX、I2C SCL</td></tr>
+      </tbody>
+    </table>
+    <h3 class="heading">7.1 幅の扱い</h3>
+    <div class="prose">
+      <p>列は内容に合わせて伸び、長い語はセルの中で折り返します。横スクロールは作りません。</p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section class="sg-card">
+    <h2 class="heading">8 入力</h2>
+    <div class="prose">
+      <p>ラベル、入力欄、補足文で 1 組です。組の中は狭く、組と組の間は広く取ります。</p>
+      <p>下の箱はスクロールします。中身が流れても、ボタンの列は箱の下端に貼り付いたままです。</p>
+    </div>
+    <div class="sg-scroll">
+      <div class="form-group">
+        <label for="sg-model">モデル</label>
+        <select id="sg-model">
+          <option>claude-sonnet-4-6</option>
+          <option>claude-opus-4-1</option>
+        </select>
+        <p class="form-hint">選んだモデルはこのブラウザに残ります。</p>
+      </div>
+      <div class="form-group">
+        <label for="sg-name">プロジェクト名</label>
+        <input id="sg-name" value="blink" maxlength="60">
+        <p class="form-hint">半角英数字と「-」「_」が使えます。</p>
+      </div>
+      <div class="form-group">
+        <label for="sg-note">メモ</label>
+        <textarea id="sg-note" rows="2">LED を 1 秒ごとに点滅させる</textarea>
+        <p class="form-hint">ビルドには使いません。</p>
+      </div>
+      <div class="actions primary-row">
+        <button type="button" class="primary">保存して閉じる</button>
+        <button type="button">保存せず使う</button>
+        <button type="button" class="quiet">キャンセル</button>
+      </div>
+    </div>
+    <h3 class="heading">8.1 主ボタンは 1 つ</h3>
+    <div class="prose">
+      <p>列の主ボタンは 1 つだけにします。列は画面の最後に貼り付けて、スクロールしても消えないようにします。</p>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section class="sg-card">
+    <h2 class="heading">9 本文</h2>
+    <div class="prose">
+      <p>1 段落は 2 文までにします。3 文目が要るときは、段落を分けるか節を分けます。</p>
+      <p>用語は「」で囲み、太字にしません。太字は見出しとボタンの文字だけに残します。</p>
+      <p>行間は「--lh」の 1.6 で、段落の間は「--sp-2」です。字を小さくするより、余白で読みやすくします。</p>
+    </div>
+    <ul class="sg-swatches">
+      <li>--fs-heading<br>14px</li>
+      <li>--fs-body<br>13px</li>
+      <li>--fs-small<br>12px</li>
+      <li>--fs-tiny<br>11px</li>
+    </ul>
+    <ul class="sg-swatches">
+      <li>--sp-1<br>4px</li>
+      <li>--sp-2<br>8px</li>
+      <li>--sp-3<br>16px</li>
+      <li>--radius<br>4px</li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section class="sg-card">
+    <h2 class="heading">10 ボタン</h2>
+    <div class="prose">
+      <p>既定の高さは「--row」の 28 px です。行や帯の中に置くときだけ「compact」の 24 px を使います。</p>
+    </div>
+    <h3 class="heading">10.1 既定（28 px）</h3>
+    <div class="actions">
+      <button type="button" class="primary">Build</button>
+      <button type="button">検索</button>
+      <button type="button" class="quiet">閉じる</button>
+      <button type="button" class="danger">削除</button>
+      <button type="button" class="download">UF2 ダウンロード</button>
+      <button type="button" disabled>書き込み</button>
+    </div>
+    <h3 class="heading">10.2 小さい方（24 px）</h3>
+    <div class="actions">
+      <button type="button" class="compact primary">Build</button>
+      <button type="button" class="compact">コピー</button>
+      <button type="button" class="compact quiet">切断</button>
+      <button type="button" class="compact" disabled>一時停止</button>
+    </div>
+    <div class="note">
+      <p>2 つの高さを同じ列に混ぜません。列ごとにどちらかへ揃えます。</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // テーマは <html data-theme> だけで切り替わる。?theme= で指定でき、既定は Dark。
+  (function () {
+    var names = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth'];
+    function apply(name) {
+      if (names.indexOf(name) === -1) name = names[0];
+      document.documentElement.dataset.theme = name;
+    }
+    apply(new URLSearchParams(location.search).get('theme'));
+    document.querySelectorAll('[data-set-theme]').forEach(function (b) {
+      b.addEventListener('click', function () { apply(b.dataset.setTheme); });
+    });
+  })();
+</script>
+
+</body>
+</html>
