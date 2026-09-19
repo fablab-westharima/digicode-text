@@ -1,4 +1,4 @@
-// Shell helpers for the VS Code style layout: the board select lives in the Boards sidebar view
+// Shell helpers for the VS Code style layout: the board list lives in the Boards sidebar view
 // and the project list plus the file menu live in the Explorer view, so a test has to bring the
 // right view forward before driving those controls. Clicking an activity button that is already
 // showing collapses the sidebar, which is why each helper checks first.
@@ -8,13 +8,21 @@ export async function openExplorer(page) {
 }
 
 export async function openBoards(page) {
-  if (!await page.locator('#env').isVisible()) await page.click('#view-boards');
+  if (!await page.locator('#boards-view').isVisible()) await page.click('#view-boards');
 }
 
-/** Select a build board, the way a user does: Boards view, then the select. */
-export async function selectBoard(page, env) {
+/** Open one board's box in the Boards view (a second click on an open row would close it). */
+export async function openBoardBox(page, env) {
   await openBoards(page);
-  await page.selectOption('#env', env);
+  const row = page.locator(`#board-list li[data-board-id="${env}"] .board-item`);
+  if (await row.getAttribute('aria-expanded') !== 'true') await row.click();
+}
+
+/** Select a build board, the way a user does: Boards view, the board's row, then the button in its box. */
+export async function selectBoard(page, env) {
+  await openBoardBox(page, env);
+  // The box of the board that is already the build target has no button to press.
+  if (await page.locator('#board-select').count()) await page.click('#board-select');
 }
 
 /** Open the file menu in the Explorer view and choose one of its items (`project-new`, …). */

@@ -12,7 +12,7 @@ import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
 import { setupLayout } from './layout.js';
 import { setupThemes, THEMES } from './themes/duotone.js';
-import { renderBoardFacts } from './boards.js';
+import { setupBoardList } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
 import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
 
@@ -115,10 +115,14 @@ renderTabs();
 
 function showBoard() {
   const board = BOARDS.get($('env').value);
-  renderBoardFacts(board);
   $('status-board').textContent = board?.name ?? '';
   $('status-board').title = `ボード: ${board?.name ?? ''}`;
+  boardList?.render();
 }
+const boardList = setupBoardList(BOARDS, () => $('env').value, (id) => {
+  $('env').value = id;
+  $('env').dispatchEvent(new Event('change'));
+});
 $('status-board').onclick = () => layout.showView('boards');
 
 // The status bar mirrors what the Serial panel and the AI panel already say, so those modules

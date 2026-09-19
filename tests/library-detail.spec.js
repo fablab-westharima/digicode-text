@@ -89,7 +89,7 @@ test('追加済みの行と、検索結果の追加済み行に ✓ が付き、
   const name = (scope, id) => scope.locator(`[data-library-id="${id}"] .library-item strong`);
   // 追加する前は、検索結果のどの行にも ✓ が無い。見出し「検索結果」は候補があるので出ている。
   await expect(page.locator('#library-results-label')).toBeVisible();
-  expect(await mark(name(page, json.id))).toBe('none');
+  expect(await mark(name(page, json.id))).not.toContain('✓'); // 幅だけ確保した空の印
 
   await row(page, json.id).locator('.library-item').click();
   await row(page, json.id).getByRole('button', { name: 'バージョンを選択' }).click();
@@ -99,7 +99,7 @@ test('追加済みの行と、検索結果の追加済み行に ✓ が付き、
   await expect(addedName).toHaveCount(1);
   expect(await mark(addedName)).toContain('✓');
   expect(await mark(name(page, json.id))).toContain('✓');
-  expect(await mark(name(page, servo.id))).toBe('none');
+  expect(await mark(name(page, servo.id))).not.toContain('✓');
   // ✓ は飾りで、名前の文字列には入らない。
   await expect(addedName).toHaveText(json.name);
   await expect(name(page, json.id)).toHaveText(json.name);
@@ -167,4 +167,41 @@ test('追加の知らせのカードは × で消える', async ({ page }) => {
   await expect(status).toBeHidden();
   await expect(status).toHaveText('');
   await expect(page.locator('#library-added-count')).toHaveText('1'); // 消えるのは知らせだけ
+});
+
+test('追加できた知らせは数秒で消え、失敗の知らせはタイマーでは消えない', async ({ page }) => {
+  await mocks(page); await search(page);
+  const status = page.locator('#library-status');
+  await row(page, json.id).locator('.library-item').click();
+  await row(page, json.id).locator('.library-version').click();
+  await row(page, json.id).getByRole('button', { name: 'プロジェクトに追加' }).click();
+  await expect(status).toHaveAttribute('data-state', 'ok');
+  await expect(status).toContainText('プロジェクトに追加しました。');
+  await expect(status).toHaveText('', { timeout: 9000 });
+  await expect(page.locator('#library-added-count')).toHaveText('1'); // 消えるのは知らせだけ
+
+  // 失敗の知らせ（検索できない）は 6 秒を過ぎても残る。
+  await page.route('**/libraries/search?*', r => r.fulfill({ status: 502, json: { error: 'Registry に接続できません' } }));
+  await page.fill('#library-query', 'servo');
+  await page.locator('#library-search-form button').click();
+  await expect(status).toHaveAttribute('data-state', 'error');
+  await expect(status).toContainText('Registry に接続できません');
+  await page.waitForTimeout(6500);
+  await expect(status).toContainText('Registry に接続できません');
+});
+
+test('✓ の有無で名前の左端が動かない', async ({ page }) => {
+  await mocks(page); await search(page);
+  const name = id => page.locator(`#library-results [data-library-id="${id}"] .library-item strong`);
+  // 名前の文字が始まる位置（::before の印の右）を、文字の範囲から測る。
+  const textX = locator => locator.evaluate(el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().x; });
+  const before = await textX(name(json.id));
+  expect(await textX(name(servo.id))).toBe(before);
+  await row(page, json.id).locator('.library-item').click();
+  await row(page, json.id).locator('.library-version').click();
+  await row(page, json.id).getByRole('button', { name: 'プロジェクトに追加' }).click();
+  await expect(page.locator('#library-added-count')).toHaveText('1');
+  expect(await name(json.id).evaluate(el => getComputedStyle(el, '::before').content)).toContain('✓');
+  expect(await textX(name(json.id))).toBe(before);
+  expect(await textX(name(servo.id))).toBe(before);
 });

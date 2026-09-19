@@ -9,14 +9,14 @@ async function fits(page) {
   const size = await page.evaluate(() => ({ w: innerWidth, h: innerHeight, sw: document.documentElement.scrollWidth, sh: document.documentElement.scrollHeight }));
   expect(size.sw).toBeLessThanOrEqual(size.w);
   expect(size.sh).toBeLessThanOrEqual(size.h);
-  // The board select is a Boards view control now, so bring that view forward to measure it and
+  // The board list is a Boards view control, so bring that view forward to measure it and
   // put the sidebar back the way it was found (a narrow window keeps it out of the editor's way).
   // Wait until the shell's resize handler has caught up with the current window width before
   // reading the sidebar's state; right after setViewportSize it may not have run yet.
   await expect(page.locator('#shell')).toHaveAttribute('data-narrow', String(size.w < 900));
   const sidebarWasOpen = await page.locator('#sidebar').isVisible();
   await openBoards(page);
-  for (const id of ['env', 'build', 'panel-toggle']) {
+  for (const id of ['board-list', 'build', 'panel-toggle']) {
     const r = await page.locator('#' + id).boundingBox();
     expect(r.x).toBeGreaterThanOrEqual(0);
     expect(r.x + r.width).toBeLessThanOrEqual(size.w);

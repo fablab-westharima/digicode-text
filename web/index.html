@@ -59,10 +59,8 @@
 
       <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>
         <header class="view-header"><h2 id="boards-title">ボード</h2></header>
-        <label class="field" for="env">ビルド対象のボード</label>
-        <select id="env" aria-label="ボード"></select>
-        <p class="storage-hint">以下は compiler が返すボード事実です。AI にも同じ内容を渡しています。編集はできません。</p>
-        <div id="board-facts" aria-live="polite"></div>
+        <select id="env" aria-label="ボード" hidden></select>
+        <div id="board-list"></div>
       </section>
 
       <section class="sidebar-view" id="ai-settings" data-view="settings" aria-labelledby="ai-settings-title" hidden>

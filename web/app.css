@@ -260,7 +260,7 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .detail-box dt { color: var(--fg-muted); white-space: nowrap; }
 .detail-box dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
 /* 箱の中の操作（バージョン選択・削除）は2列をまたいで下に置く。 */
-.detail-box .detail-actions { grid-column: 1 / -1; margin-top: 6px; }
+.detail-box .detail-actions { grid-column: 1 / -1; margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .file-kind { color: var(--accent); font-size: 10px; font-weight: 700; font-family: var(--ui-font); }
 /* 知らせは一覧の下の枠つきカード。記号は ::before で描くので、文そのものは message だけ。 */
 #project-notice, #project-save-message { position: relative; margin: 6px 0; padding: 6px 28px 6px 26px; border: 1px solid var(--border); border-radius: 4px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -295,7 +295,9 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .library-item { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
 .library-item > strong { flex: 1; min-width: 0; text-align: left; }
 /* 追加済みの印。文字ではなく飾りなので、名前の textContent には入らない。 */
-.library-item[data-added="true"] > strong::before { content: '✓'; margin-right: 6px; color: var(--accent-2); }
+/* 印の幅は全行に確保する。✓ の有無で名前の左端が動かない。 */
+.library-item > strong::before { content: ''; display: inline-block; width: 1em; margin-right: 6px; color: var(--accent-2); }
+.library-item[data-added="true"] > strong::before { content: '✓'; }
 .library-item:hover:not(:disabled) { background: var(--bg-raised); }
 .library-meta { min-width: 0; color: var(--fg-muted); font-size: 12px; overflow-wrap: anywhere; }
 /* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
@@ -331,9 +333,19 @@ h1, h2, h3 { margin: 0; font-weight: 600; }
 .detail-box dd.library-incompatible { color: var(--danger); overflow-wrap: anywhere; }
 
 /* ---- sidebar: boards ------------------------------------------------------------------ */
-.board-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0; font-size: 12px; }
-.board-summary dt { color: var(--fg-muted); }
-.board-summary dd { margin: 0; overflow-wrap: anywhere; }
+/* ボード view の一覧。行と箱はライブラリ view と同じ見え方。 */
+.board-vendor { margin: 12px 0 4px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+.board-group { list-style: none; padding: 0; margin: 0; }
+.board-group > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
+.board-item { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.board-item > strong { flex: 1; min-width: 0; text-align: left; }
+.board-item[aria-current="true"] { background: var(--accent-soft); border-color: var(--accent-3); }
+.board-item:hover:not(:disabled) { background: var(--bg-raised); }
+.board-item::after { content: '▸'; color: var(--fg-muted); }
+.board-item[aria-expanded="true"]::after { content: '▾'; }
+.detail-box .board-current { color: var(--accent-2); }
+#board-facts { grid-column: 1 / -1; min-width: 0; margin-top: 6px; }
+.board-variant { margin: 4px 0 0; color: var(--fg-muted); font-size: 12px; }
 .board-warning { margin: 8px 0; padding: 8px 10px; border: 1px solid var(--accent-3); border-radius: 4px; background: var(--accent-soft); line-height: 1.6; }
 .pin-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
 .pin-table th { text-align: left; font-weight: 600; color: var(--fg-muted); }

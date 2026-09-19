@@ -33,9 +33,13 @@ export function setupLibraries(store, change, boards) {
   statusClose.id = 'library-status-close'; statusClose.type = 'button';
   statusClose.setAttribute('aria-label', '知らせを閉じる');
   statusClose.onclick = () => message('');
+  let statusTimer;
   function message(text, state = '') {
+    clearTimeout(statusTimer);
     $('library-status').textContent = text; $('library-status').dataset.state = state;
     if (text && (state === 'ok' || state === 'error')) $('library-status').append(statusClose);
+    // うまくいった知らせは数秒で引っ込める。失敗は次の操作まで残す（エクスプローラの知らせと同じ）。
+    if (text && state === 'ok') statusTimer = setTimeout(() => message(''), 6000);
   }
   function clearResults() {
     items = []; candidates = []; openResult = null;

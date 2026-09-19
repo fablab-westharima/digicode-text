@@ -123,6 +123,13 @@ test('projectContext sends the board as one sentence built from the /boards entr
   expect(() => projectContext({ env: 'pico', source, libraries: [] }, null, 'auto')).toThrow('ボード情報');
 });
 
+test('every /boards entry names its vendor', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  expect(boards.length).toBeGreaterThan(0);
+  for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', wio_node: 'Seeed Studio' });
+});
+
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);

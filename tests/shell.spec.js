@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { openBoards, openExplorer, openAI } from './shell.js';
+import { openBoards, selectBoard, openExplorer, openAI } from './shell.js';
 
 const LAYOUT = 'digicode-text.layout.v1';
 const PROJECTS = 'digicode-text.projects.v1';
@@ -151,9 +151,12 @@ test('The Boards view shows exactly what /boards reports for the selected board'
   await ready(page);
   await openBoards(page);
   for (const board of boards) {
-    await page.selectOption('#env', board.id);
-    await expect(page.locator('#board-facts')).toContainText(board.name);
-    await expect(page.locator('#board-facts')).toContainText(board.core);
+    await selectBoard(page, board.id);
+    await expect(page.locator(`#board-list li[data-board-id="${board.id}"] .board-item`)).toHaveText(board.name);
+    await expect(page.locator('#board-detail')).toContainText(board.core);
+    // The pin table and the notes are the lower stage of the box; it starts closed.
+    await expect(page.locator('#board-facts')).toBeHidden();
+    await page.click('#board-pins-toggle');
     await expect(page.locator('#board-facts')).toContainText(board.flashHint);
     await expect(page.locator('#status-board')).toHaveText(board.name);
 
