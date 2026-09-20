@@ -69,6 +69,11 @@ const SSCI_ESPR_C5_SCHEMATIC = 'https://doc.switch-science.com/media/files/bdfd7
 // Espressif's module datasheet, hosted by the same vendor and linked from that page: the only
 // document that says what the in-package PSRAM does to GPIO15.
 const ESP32C5_WROOM_DATASHEET = 'https://doc.switch-science.com/media/files/bed45d54-6f49-4269-a6cf-f8ff7dfaa6ab.pdf';
+// M5's own product page for the StampC5: the pad list, the two LEDs and the antenna.
+const M5_STAMP_C5 = 'https://docs.m5stack.com/en/core/Stamp-C5';
+// The board's own schematic, published by M5 and linked from that page: the only document that
+// says where G4 comes out and what the test pads are wired to.
+const M5_STAMP_C5_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1258/S016_StampC5_V0.3_SCH_PDF_20260207_2026_02_07_11_34_57.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -188,6 +193,21 @@ const BOARDS = new Map([
       { text: 'USB-Cは33オームを介してGPIO13（D−）とGPIO14（D+）へ直結しているので、USBを使っている間この2本は汎用I/Oにできない', source: SSCI_ESPR_C5_SCHEMATIC },
       { text: '基板中央のQwiicコネクタはGND、3V3、GPIO0（SDA）、GPIO1（SCL）の4極。VINは3.6Vから6Vを受ける入力で、VOUTにはUSBの5VとVINの高い方からショットキー1段ぶん落ちた電圧が出る', source: SSCI_ESPR_C5_SCHEMATIC },
       { text: 'ESP32-C5のADCはADC1だけで、チャンネルはGPIO1からGPIO6の6本。ADC2は無い', source: ESP32C5_DATASHEET },
+      { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、GPIOに5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
+    ] }],
+  ['m5stamp_c5', { project: path.join(here, 'pio-esp32c5'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'M5StampC5', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stamp_c5,
+    // The generic esp32c5 variant defines no Dn macros, so the board's own pad markings are what
+    // a sketch is written against; they are listed here, before the table.
+    pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA5はArduinoのアナログ名で、同じ行のGPIO番号がその実体。基板のパッドのG1からG10とG28という印字はそのままGPIO番号で、2.54mmのパッドは片側が3V3、G1、G2、G3、BAT、VUSB、GND、もう片側がG5、G6、G7、G8、G9、G10、G28/BOOT。このvariantのLED_BUILTINはGPIO番号を持たない擬似ピンなので、基板の青いLEDはGPIO28と書いて動かす。',
+    pinNotes: [
+      { text: 'G4はG2とG3の間の半ピッチずれた位置にある穴の無い小さなキャスタレーションに出ていて、2.54mmのピンヘッダでは取り出せない', source: M5_STAMP_C5_SCHEMATIC },
+      { text: 'Extと印字された12ピンのFPCコネクタには3V3、3V3、GPIO23、GPIO0、GPIO24、GPIO25、GND、GPIO26、GPIO27、GPIO11（TXD）、GND、GPIO12（RXD）がこの順で出ている', source: M5_STAMP_C5_SCHEMATIC },
+      { text: '物理ボタンは無く、基板表面の丸いパッドのRSTがCHIP_EN、BOOTがGPIO28で、GNDに落とすとそれぞれリセットとブートになる', source: M5_STAMP_C5_SCHEMATIC },
+      { text: '青のLEDはGPIO28に繋がっていてLowにすると点灯する。赤のLEDは充電ICの状態出力なのでGPIOからは動かせない', source: M5_STAMP_C5 },
+      { text: 'USB-Cはコモンモードフィルタを通してESP32-C5のGPIO13とGPIO14へ直結していて、USBシリアル変換チップは載っていない', source: M5_STAMP_C5_SCHEMATIC },
+      { text: '基板にアンテナは載っておらず、無線を使うには裏面のIPEXコネクタに外付けアンテナを挿す', source: M5_STAMP_C5 },
+      { text: '載っているのはESP32-C5HF4で、Flashを4MB内蔵しPSRAMは持たない', source: M5_STAMP_C5 },
       { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、GPIOに5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',

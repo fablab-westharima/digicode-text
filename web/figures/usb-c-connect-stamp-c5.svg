@@ -1,0 +1,37 @@
+<!-- M5StampC5 を上から見た平面図。17.6x19.1mm のほぼ正方形で、USB-C は一辺の中央から外へ
+     張り出す（図はその辺を上にして描いている）。2.54mm のキャスタレーションは片側 7 個ずつ
+     14 個。G2 と G3 の間の半ピッチずれた位置に、穴の無い小さなキャスタレーション（G4）が
+     1 個だけある。反対の辺には Ext. と印字された 12 ピンの FPC コネクタ。基板表面の中央には
+     USB の D+/D-、TXD、RXD、RST、BOOT を出した丸いテストパッドが 6 個。
+     物理ボタンは無いので押す所は描かない。アンテナはオンボードではなく裏面の IPEX コネクタ
+     なので、表から見たこの図には出てこない（シールド缶と LED も裏面）。
+     出所は M5 の pinout 画像と回路図 S016_StampC5_V0.3。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="112" y="100" width="96" height="104" rx="5"/>
+  <!-- 2.54mm のキャスタレーション 7 個ずつ -->
+  <path class="fig-pad" d="M107,108h10v8h-10zM107,121h10v8h-10zM107,134h10v8h-10zM107,147h10v8h-10zM107,160h10v8h-10zM107,173h10v8h-10zM107,186h10v8h-10z"/>
+  <path class="fig-pad" d="M203,108h10v8h-10zM203,121h10v8h-10zM203,134h10v8h-10zM203,147h10v8h-10zM203,160h10v8h-10zM203,173h10v8h-10zM203,186h10v8h-10z"/>
+  <!-- G4 だけは半ピッチずれた位置の、穴の無い小さなキャスタレーション -->
+  <path class="fig-pad" d="M110,143h7v5h-7z"/>
+  <!-- 表面中央のテストパッド 6 個 -->
+  <circle class="fig-face" cx="138" cy="132" r="5"/>
+  <circle class="fig-face" cx="160" cy="132" r="5"/>
+  <circle class="fig-face" cx="182" cy="132" r="5"/>
+  <circle class="fig-face" cx="138" cy="156" r="5"/>
+  <circle class="fig-face" cx="160" cy="156" r="5"/>
+  <circle class="fig-face" cx="182" cy="156" r="5"/>
+  <!-- 反対の辺の Ext. 12 ピン FPC コネクタ -->
+  <rect class="fig-part" x="128" y="184" width="64" height="12" rx="2"/>
+  <!-- 挿す先: 一辺の中央から張り出す USB-C -->
+  <rect class="fig-part fig-accent" x="134" y="86" width="52" height="28" rx="5"/>
+  <rect class="fig-board fig-accent fig-thin" x="143" y="93" width="34" height="9" rx="4.5"/>
+  <!-- USB-Cケーブルは上から差し込む。rotate(90 160 60) の中でfig-cableが横へ動く＝画面では下向き。 -->
+  <g transform="rotate(90 160 60)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="152" y="46" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="124" y="53" width="30" height="14" rx="6"/>
+      <path d="M130,60 L70,60"/>
+    </g>
+  </g>
+</svg>

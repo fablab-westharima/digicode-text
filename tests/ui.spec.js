@@ -20,8 +20,15 @@ async function fits(page) {
     const r = await page.locator('#' + id).boundingBox();
     expect(r.x).toBeGreaterThanOrEqual(0);
     expect(r.x + r.width).toBeLessThanOrEqual(size.w);
-    expect(r.y + r.height).toBeLessThanOrEqual(size.h);
+    // ボード一覧はボードの数だけ縦に伸びるので、窓に収まるのは一覧そのものではなく、
+    // 一覧を入れているスクロール領域の方（.sidebar-view の overflow-y）。下は別に測る。
+    if (id !== 'board-list') expect(r.y + r.height, id).toBeLessThanOrEqual(size.h);
   }
+  // そのスクロール領域が窓に収まっていて、はみ出したぶんは中でスクロールして届く。
+  const view = await page.locator('#boards-view').boundingBox();
+  expect(view.y + view.height).toBeLessThanOrEqual(size.h);
+  expect(await page.locator('#boards-view').evaluate(el => el.scrollHeight > el.clientHeight
+    ? getComputedStyle(el).overflowY : 'fits')).toMatch(/^(scroll|auto|fits)$/);
   if (!sidebarWasOpen) await page.click('#view-boards');
 }
 

@@ -16,6 +16,7 @@ import bootselHoldPicoW from './bootsel-hold-pico-w.svg';
 import usbCConnectXiaoC5 from './usb-c-connect-xiao-c5.svg';
 import usbCConnectC5Devkitc from './usb-c-connect-c5-devkitc.svg';
 import usbCConnectEsprC5 from './usb-c-connect-espr-c5.svg';
+import usbCConnectStampC5 from './usb-c-connect-stamp-c5.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -41,4 +42,6 @@ export const FIGURES = {
   'usb-c-connect-c5-devkitc': usbCConnectC5Devkitc,
   // ESPr Developer C5 は押すボタンこそ無いが、入らなかったときに押す 2 つの名前を図でも示す。
   'usb-c-connect-espr-c5': usbCConnectEsprC5,
+  // M5StampC5 はボタンが無いので、挿す口と取り出せるパッドだけを描く。
+  'usb-c-connect-stamp-c5': usbCConnectStampC5,
 };
