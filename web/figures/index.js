@@ -13,6 +13,7 @@ import portDialogUsbSerial from './port-dialog-usb-serial.svg';
 import microUsbConnectDevkitc from './micro-usb-connect-devkitc.svg';
 import usbCConnectXiaoS3 from './usb-c-connect-xiao-s3.svg';
 import bootselHoldPicoW from './bootsel-hold-pico-w.svg';
+import usbCConnectXiaoC5 from './usb-c-connect-xiao-c5.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -33,4 +34,5 @@ export const FIGURES = {
   'usb-c-connect-xiao-s3': usbCConnectXiaoS3,
   // Pico W は無印 Pico と外形が同じでも、下辺のアンテナ区画と無線モジュールがある。
   'bootsel-hold-pico-w': bootselHoldPicoW,
+  'usb-c-connect-xiao-c5': usbCConnectXiaoC5,
 };

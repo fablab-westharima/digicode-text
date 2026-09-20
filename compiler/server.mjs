@@ -47,6 +47,8 @@ const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datashee
 const ESP32_DATASHEET = 'https://documentation.espressif.com/esp32_datasheet_en.pdf';
 const ESP32S3_DATASHEET = 'https://documentation.espressif.com/esp32-s3_datasheet_en.pdf';
 const SEEED_XIAO_ESP32S3 = 'https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/';
+const ESP32C5_DATASHEET = 'https://documentation.espressif.com/esp32-c5_datasheet_en.pdf';
+const SEEED_XIAO_ESP32C5 = 'https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -112,6 +114,20 @@ const BOARDS = new Map([
       { text: 'ADCに使えるGPIO26からGPIO29はIOVDD（3V3）への内部逆方向ダイオードを持ち、入力電圧はIOVDDより約300mV高い値を超えてはならない', source: RPI_PICO_W_DATASHEET },
       { text: 'VSYSは1.8Vから5.5Vの範囲で入れられ、オンボードのbuck-boost SMPSが3.3Vを作る', source: RPI_PICO_W_DATASHEET },
       { text: 'BOOTSELを押したまま電源を入れるとUSBマスストレージとして現れ、uf2ファイルを置くとFlashに書かれて再起動する', source: RPI_PICO_W_DATASHEET },
+    ] }],
+  ['xiao_esp32c5', { project: path.join(here, 'pio-esp32c5'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'XIAO ESP32C5', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c5,
+    // The A-macros are the trap here: only one of them is a side pad.
+    pinTableNote: 'ピン表のA1からA4（GPIO2からGPIO5）は基板の側面パッドには出ていない。GPIO2、GPIO3、GPIO4は裏面のJTAGパッド（MTMS、MTDI、MTCK）で、GPIO5はSeeedのピンマップに載っていない。側面パッドで使えるアナログ入力はA0（D0、GPIO1）の1本だけ。LED_BUILTIN（GPIO27）も基板上のLEDで、パッドには出ていない。',
+    pinNotes: [
+      { text: 'ピンマップのD0からD10は順にGPIO1、GPIO0、GPIO25、GPIO7、GPIO23、GPIO24、GPIO11、GPIO12、GPIO8、GPIO9、GPIO10', source: SEEED_XIAO_ESP32C5 },
+      { text: 'アナログ入力が使えるのはD0（GPIO1）と裏面のJTAGパッドMTMS（GPIO2）、MTDI（GPIO3）、MTCK（GPIO4）、電池電圧用のGPIO6の5本', source: SEEED_XIAO_ESP32C5 },
+      { text: 'User LEDはGPIO27で、LED_BUILTINをLowにすると点灯する', source: SEEED_XIAO_ESP32C5 },
+      { text: 'ResetボタンはCHIP_EN、BootボタンはGPIO28に繋がっている', source: SEEED_XIAO_ESP32C5 },
+      { text: '電池電圧はGPIO26をHighにして測定回路を有効にしてからGPIO6で読む。100kオーム2本の分圧なので読んだ値を2倍する', source: SEEED_XIAO_ESP32C5 },
+      { text: '2.4GHzと5GHzのデュアルバンドWi-Fi 6に対応する', source: SEEED_XIAO_ESP32C5 },
+      { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本で、ブートモードはGPIO26、GPIO27、GPIO28で決まる', source: ESP32C5_DATASHEET },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,

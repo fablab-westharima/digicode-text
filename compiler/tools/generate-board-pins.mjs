@@ -28,6 +28,7 @@ export const PIO_HOME = process.env.PLATFORMIO_CORE_DIR ?? path.join(os.homedir(
 export const ENVS = [
   { env: 'esp32_devkitc_v4', project: 'pio-esp32' },
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
+  { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
   { env: 'xiao_esp32c3', project: 'pio-esp32c3' },
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },

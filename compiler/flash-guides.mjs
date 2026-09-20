@@ -30,6 +30,14 @@ export const FLASH_GUIDES = {
     ],
     notes: ['書き込みの前後のリセットは自動で行われるので、ボタン操作は要らない。'],
   },
+  // XIAO ESP32C5 も USB がチップに直結。S3 と同じ理由で、行は帯の図で描く。
+  xiao_esp32c5: {
+    steps: [
+      { text: 'USB-CケーブルでボードをPCに接続する。', figure: 'usb-c-connect-xiao-c5' },
+      { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+    ],
+    notes: ['書き込みの前後のリセットは自動で行われるので、ボタン操作は要らない。'],
+  },
   // XIAO ESP32S3 は USB がチップに直結。ダイアログに出る名前はこの板でまだ確かめていないので、
   // C3 と違って行は帯の図で描き、何を選ぶかは手順文で言う。
   xiao_esp32s3: {
