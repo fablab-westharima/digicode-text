@@ -265,7 +265,8 @@ test('The Boards view shows exactly what /boards reports for the selected board'
     const expected = [
       ...board.pins.pins.map(p => [p.label, p.gpio === null ? `— (pin ${p.pin})` : `GPIO${p.gpio}`,
         [...p.functions, ...(p.adc && p.adc !== p.label ? [p.adc] : []), ...(p.note ? [p.note] : [])].join('、')]),
-      ...(board.pins.unlabelledFunctions ?? []).map(f => ['—', `GPIO${f.gpio}`,
+      // GPIO を持たない機能（Pico W の LED_BUILTIN は CYW43 側）は、行と同じ書き方になる。
+      ...(board.pins.unlabelledFunctions ?? []).map(f => ['—', f.gpio === null ? `— (pin ${f.pin})` : `GPIO${f.gpio}`,
         [f.name, 'ラベル無し', ...(f.note ? [f.note] : [])].join('、')]),
     ];
     expect(rows).toEqual(expected);

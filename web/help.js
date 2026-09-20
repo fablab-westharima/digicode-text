@@ -50,7 +50,8 @@ function pinTable(pins) {
   for (const f of pins.unlabelledFunctions ?? []) {
     const row = element('tr');
     row.append(element('td', '—', 'nowrap'));
-    row.append(element('td', `GPIO${f.gpio}`, 'nowrap'));
+    // ボード view の同じ表と同じ書き方。GPIO 番号を持たない機能（Pico W の LED_BUILTIN）がある。
+    row.append(element('td', f.gpio === null ? `— (pin ${f.pin})` : `GPIO${f.gpio}`, 'nowrap'));
     row.append(element('td', [f.name, 'ラベル無し', ...(f.note ? [f.note] : [])].join('、')));
     body.append(row);
   }

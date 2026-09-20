@@ -38,7 +38,9 @@ function pinTable(pins) {
   for (const f of pins.unlabelledFunctions ?? []) {
     const row = element('tr');
     row.append(element('td', '—', 'nowrap pin-label'));
-    row.append(element('td', `GPIO${f.gpio}`, 'nowrap pin-gpio'));
+    // GPIO 番号を持たない機能もある（Pico W の LED_BUILTIN は CYW43 側にあり、core は
+    // 擬似ピン番号を割り当てている）。上の行と同じ書き方にして、GPIOnull を出さない。
+    row.append(element('td', f.gpio === null ? `— (pin ${f.pin})` : `GPIO${f.gpio}`, 'nowrap pin-gpio'));
     row.append(element('td', [f.name, 'ラベル無し', ...(f.note ? [f.note] : [])].join('、')));
     body.append(row);
   }

@@ -32,6 +32,7 @@ export const ENVS = [
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },
   { env: 'pico', project: 'pio-rp2040' },
+  { env: 'pico_w', project: 'pio-rp2040' },
 ];
 // Labels read out of the variant header. Digital/analog labels become rows; the rest become
 // functions attached to the row that carries the same GPIO number.

@@ -21,6 +21,8 @@ const rp2040Guide = (button, holdFigure) => ({
 export const FLASH_GUIDES = {
   xiao_rp2040: rp2040Guide('ボードのBボタン（BOOTSEL）', 'bootsel-hold-xiao'),
   pico: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico'),
+  // 手順は無印 Pico と同じ。基板の図だけ、下辺にアンテナ区画のある Pico W のものにする。
+  pico_w: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico-w'),
   xiao_esp32c3: {
     steps: [
       { text: 'USB-CケーブルでボードをPCに接続する。', figure: 'usb-c-connect' },

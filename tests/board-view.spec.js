@@ -126,7 +126,7 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
     expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(label));
   }
   expect(await page.locator('#board-list .board-item').allTextContents())
-    .toEqual(['ESP32-DevKitC V4実機確認待ち', 'Raspberry Pi Pico', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32S3実機確認待ち', 'XIAO RP2040']);
+    .toEqual(['ESP32-DevKitC V4実機確認待ち', 'Raspberry Pi Pico', 'Raspberry Pi Pico W実機確認待ち', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32S3実機確認待ち', 'XIAO RP2040']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
   // 小見出しは view の見出しより一段小さい。
   const size = sel => page.locator(sel).first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));

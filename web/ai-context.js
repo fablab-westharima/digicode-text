@@ -43,8 +43,11 @@ function pinLines(p) {
     const adc = pin.adc && pin.adc !== pin.label ? [pin.adc] : [];
     lines.push([pin.label, number, ...pin.functions, ...adc].join('、'));
   }
+  // A function can sit on a pin number that is not a GPIO at all: arduino-pico gives Pico W's
+  // LED_BUILTIN pin 64, because the LED hangs off the CYW43 radio and not off the RP2040.
+  // Those are written the same way as a row without a GPIO, never as "GPIOnull".
   for (const f of p.unlabelledFunctions)
-    lines.push(`${f.name}、GPIO${f.gpio}、ラベル無し${f.note ? `（coreの注記: ${f.note}）` : ''}`);
+    lines.push(`${f.name}、${f.gpio === null ? `GPIO番号なし（ピン番号${f.pin}）` : `GPIO${f.gpio}`}、ラベル無し${f.note ? `（coreの注記: ${f.note}）` : ''}`);
   return lines;
 }
 // The URL each note was read from is listed once at the end, so repeated sources cost one line.

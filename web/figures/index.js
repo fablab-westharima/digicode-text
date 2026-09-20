@@ -12,6 +12,7 @@ import portDialogFt234x from './port-dialog-ft234x.svg';
 import portDialogUsbSerial from './port-dialog-usb-serial.svg';
 import microUsbConnectDevkitc from './micro-usb-connect-devkitc.svg';
 import usbCConnectXiaoS3 from './usb-c-connect-xiao-s3.svg';
+import bootselHoldPicoW from './bootsel-hold-pico-w.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -30,4 +31,6 @@ export const FIGURES = {
   'micro-usb-connect-devkitc': microUsbConnectDevkitc,
   // XIAOは基板の形が共通でも、前面の部品の位置がボードで違う。図はボード別に持つ。
   'usb-c-connect-xiao-s3': usbCConnectXiaoS3,
+  // Pico W は無印 Pico と外形が同じでも、下辺のアンテナ区画と無線モジュールがある。
+  'bootsel-hold-pico-w': bootselHoldPicoW,
 };

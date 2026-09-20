@@ -11,12 +11,17 @@
 export const LIBRARY_INCOMPAT = [
   {
     library: 'adafruit/Adafruit MQTT Library',
-    platforms: ['esp32'],
-    reason: 'このライブラリの依存宣言（WiFiNINA fork）が ESP32 の WiFi.h を別実装で覆うため Build が失敗します',
+    // 同じ原因が rp2040 でも出た。pico_w のケースの build ログに
+    // 「Compiling .../WiFiNINA_-_Adafruit_Fork/WiFiClient.cpp.o」が出たうえで、
+    // ESP32 のときと同じ 'class WiFiClass' has no member named 'mode' で落ちている。
+    // 無線を持たない pico と xiao_rp2040 にはこのライブラリのケースが無く（skip）、
+    // platform 単位の行なので、この 2 台にも同じ行が出る。
+    platforms: ['esp32', 'rp2040'],
+    reason: 'このライブラリの依存宣言（WiFiNINA fork）が core の WiFi.h を別実装で覆うため Build が失敗します',
     alternative: 'knolleary/PubSubClient',
     // A platform row covers every board on that platform, so a new esp32 board does not inherit
     // this row on trust: the same case was run on it before the row was allowed to apply.
-    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish, 2026-09-20 xiao_esp32s3/45-adafruit-mqtt-publish',
+    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish, 2026-09-20 xiao_esp32s3/45-adafruit-mqtt-publish, 2026-09-20 pico_w/39-adafruit-mqtt-skip',
   },
 ];
 

@@ -51,15 +51,20 @@ test('lookup is by owner/name without case, and only for the platforms the row n
   assert.equal(row.alternative, 'knolleary/PubSubClient');
   assert.deepEqual(findIncompat({ owner: 'adafruit', name: 'Adafruit MQTT Library' }, 'esp32'), row);
   assert.deepEqual(findIncompat('ADAFRUIT/adafruit mqtt library', 'esp32'), row);
+  // rp2040 fails the same way: harness pico_w/39-adafruit-mqtt-skip pulls the same
+  // WiFiNINA fork over the core's WiFi.h. The row is per platform, so all three RP2040
+  // boards carry it, including the two without a radio, which have no case of their own.
+  assert.deepEqual(findIncompat(MQTT, 'rp2040'), row);
   // ESP8266 builds this library: harness wio_node/42-adafruit-mqtt-publish is ok.
-  for (const platform of ['esp8266', 'rp2040', 'esp', '', null, undefined])
+  // 'esp' is a family, never a platform value, so it matches nothing.
+  for (const platform of ['esp8266', 'esp', '', null, undefined])
     assert.equal(findIncompat(MQTT, platform), null, String(platform));
   assert.equal(findIncompat('knolleary/PubSubClient', 'esp32'), null);
   assert.equal(findIncompat(null, 'esp32'), null);
   assert.equal(findIncompat({ owner: 'adafruit' }, 'esp32'), null);
   assert.deepEqual(incompatFor('esp32'), [findIncompat(MQTT, 'esp32')]);
   assert.deepEqual(incompatFor('esp8266'), []);
-  assert.deepEqual(incompatFor('rp2040'), []);
+  assert.deepEqual(incompatFor('rp2040'), [row]);
   assert.deepEqual(incompatFor(undefined), []);
 });
 
@@ -88,9 +93,15 @@ test('details adds incompatible only for a board whose platform the row names', 
   assert.deepEqual({ ...c3, incompatible: undefined }, { ...plain, incompatible: undefined });
 
   // The ESP8266 board shares family 'esp' with the C3 but builds this library, so it gets the
-  // untouched response — the same bytes as no board at all.
-  for (const board of ['wio_node', 'pico', 'xiao_rp2040', 'no_such_board'])
+  // untouched response — the same bytes as no board at all. An unknown board too.
+  for (const board of ['wio_node', 'no_such_board'])
     assert.deepEqual(await details({ ...coordinates, board }), plain, board);
+  // Every RP2040 board carries the rp2040 row, measured on pico_w.
+  for (const board of ['pico_w', 'pico', 'xiao_rp2040'])
+    assert.deepEqual((await details({ ...coordinates, board })).incompatible, {
+      reason: findIncompat(MQTT, 'rp2040').reason,
+      alternative: findIncompat(MQTT, 'rp2040').alternative,
+    }, board);
 
   // A library no row names is untouched on every board.
   const other = await details({ owner: 'knolleary', name: 'PubSubClient' });

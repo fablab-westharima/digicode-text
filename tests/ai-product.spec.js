@@ -129,7 +129,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -146,7 +146,8 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
     // One line per pin, label then GPIO number in decimal.
     for (const pin of b.pins.pins)
       expect(facts).toContain(`\n${pin.label}、${pin.gpio === null ? `GPIO番号なし（ピン番号${pin.pin}）` : `GPIO${pin.gpio}`}`);
-    for (const fn of b.pins.unlabelledFunctions) expect(facts).toContain(`\n${fn.name}、GPIO${fn.gpio}`);
+    for (const fn of b.pins.unlabelledFunctions)
+      expect(facts).toContain(`\n${fn.name}、${fn.gpio === null ? `GPIO番号なし（ピン番号${fn.pin}）` : `GPIO${fn.gpio}`}`);
     for (const note of b.pinNotes) { expect(facts).toContain(note.text); expect(facts).toContain(note.source); }
     expect(facts).toContain('注意点');
     // Prose and a plain list: no JSON, and none of the key names the entry uses internally.
@@ -187,7 +188,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -206,6 +207,29 @@ test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 
   expect(facts).toContain('SPI flashの通信に基板内部で使われている');
   // 板が届くまでは実機で確かめていない。表にその事実が載る。
   expect(devkit.hardwareVerified).toBe(false);
+});
+
+test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const w = boards.find(b => b.id === 'pico_w');
+  const plain = boards.find(b => b.id === 'pico');
+  expect(w.pins.variant).toBe('rpipicow');
+  expect(w.pins.board).toBe('rpipicow');
+  // 同じ platform・同じ core・同じ uf2 の作り。違うのは board 定義だけ。
+  expect(w.pins.platform).toBe(plain.pins.platform);
+  expect(w.pins.core).toBe('earlephilhower');
+  expect(w.artifact).toBe('uf2');
+  // 無印 Pico の LED は D25 の行に付く。Pico W の LED はどの GPIO にも付かない。
+  expect(plain.pins.pins.find(p => p.label === 'D25').functions).toContain('LED_BUILTIN');
+  expect(w.pins.pins.every(p => !p.functions.includes('LED_BUILTIN'))).toBe(true);
+  expect(w.pins.unlabelledFunctions).toEqual([{ name: 'LED_BUILTIN', pin: 64, gpio: null, note: null }]);
+  // その擬似ピンは GPIOnull ではなく、GPIO 番号を持たないものとして書かれる。
+  const facts = boardFacts(w);
+  expect(facts).not.toContain('GPIOnull');
+  expect(facts).toContain('LED_BUILTIN、GPIO番号なし（ピン番号64）');
+  // 読み方の断りが表より先に出る。
+  expect(facts.indexOf('無線チップCYW43439のためにボード内部で使われていて')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(w.hardwareVerified).toBe(false);
 });
 
 test('XIAO ESP32S3 のピン表は core の variant そのままで、D6/D7 に ADC が無く LED_BUILTIN はパッドに出ていない', async ({ request }) => {

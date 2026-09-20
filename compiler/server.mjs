@@ -40,6 +40,9 @@ const SEEED_XIAO_ESP32C3 = 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_St
 // so the page that carries the link is named here, with the link's own text.
 const SEEED_WIO_NODE_SCHEMATIC = 'https://wiki.seeedstudio.com/Wio_Node/ の Resources → Hardware → Schematic File in PDF（Wio Node v1.0）';
 const RPI_PICO_DATASHEET = 'https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf';
+// Pico W has its own datasheet. The Pico one is not reused: the radio moves the user LED,
+// VBUS sense and the SMPS control off the RP2040's GPIO, so the Pico sentences are wrong here.
+const RPI_PICO_W_DATASHEET = 'https://datasheets.raspberrypi.com/picow/pico-w-datasheet.pdf';
 const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datasheet_en.pdf';
 const ESP32_DATASHEET = 'https://documentation.espressif.com/esp32_datasheet_en.pdf';
 const ESP32S3_DATASHEET = 'https://documentation.espressif.com/esp32-s3_datasheet_en.pdf';
@@ -95,6 +98,20 @@ const BOARDS = new Map([
       { text: 'このボードにLED_BUILTINは無い', source: SEEED_XIAO_ESP32C3 },
       { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
+    ] }],
+  ['pico_w', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
+    name: 'Raspberry Pi Pico W', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: false, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico_w,
+    // The four GPIO the radio takes over are exactly what a Pico sketch gets wrong on this board.
+    pinTableNote: 'ピン表のD23、D24、D25、D29は無線チップCYW43439のためにボード内部で使われていて、ヘッダには出ていない。無印PicoでGPIO25だったユーザーLEDもこのボードには無く、LED_BUILTINはGPIO番号を持たない擬似ピン64になる（coreがCYW43側へ渡すため）。',
+    pinNotes: [
+      { text: 'GPIOはオンボードの3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_W_DATASHEET },
+      { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_W_DATASHEET },
+      { text: 'GPIO23は無線チップの電源ON信号、GPIO24は無線SPIのデータ兼IRQ、GPIO25は無線SPIのCS、GPIO29は無線SPIのCLK兼VSYS/3を測るADC3として基板内部で使われている', source: RPI_PICO_W_DATASHEET },
+      { text: 'ユーザーLEDはRP2040のGPIOではなく無線チップCYW43439のWL_GPIO0に繋がっていて、VBUSの有無はWL_GPIO2で検出する', source: RPI_PICO_W_DATASHEET },
+      { text: 'GPIO25をHighにすると、GPIO29がVSYSを読むADCピンとして有効になる。無線SPIのCLKと共用なので、SPI転送中はVSYSを読めない', source: RPI_PICO_W_DATASHEET },
+      { text: 'ADCに使えるGPIO26からGPIO29はIOVDD（3V3）への内部逆方向ダイオードを持ち、入力電圧はIOVDDより約300mV高い値を超えてはならない', source: RPI_PICO_W_DATASHEET },
+      { text: 'VSYSは1.8Vから5.5Vの範囲で入れられ、オンボードのbuck-boost SMPSが3.3Vを作る', source: RPI_PICO_W_DATASHEET },
+      { text: 'BOOTSELを押したまま電源を入れるとUSBマスストレージとして現れ、uf2ファイルを置くとFlashに書かれて再起動する', source: RPI_PICO_W_DATASHEET },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,

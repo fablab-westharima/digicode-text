@@ -1,0 +1,282 @@
+{
+  "env": "pico_w",
+  "platform": "https://github.com/maxgerhardt/platform-raspberrypi.git",
+  "board": "rpipicow",
+  "mcu": "rp2040",
+  "core": "earlephilhower",
+  "variant": "rpipicow",
+  "frameworkPackage": "framework-arduinopico",
+  "frameworkVersion": "1.60000.0",
+  "sources": {
+    "platformioIni": "compiler/pio-rp2040/platformio.ini",
+    "boardDefinition": "platforms/raspberrypi@src-ff76a3915224135aafad379817f41edd/boards/rpipicow.json",
+    "variantHeader": "packages/framework-arduinopico/variants/rpipicow/pins_arduino.h",
+    "digitalLabelsFrom": "pins_arduino.h"
+  },
+  "pins": [
+    {
+      "label": "D0",
+      "pin": 0,
+      "gpio": 0,
+      "functions": [
+        "TX"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D1",
+      "pin": 1,
+      "gpio": 1,
+      "functions": [
+        "RX"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D2",
+      "pin": 2,
+      "gpio": 2,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D3",
+      "pin": 3,
+      "gpio": 3,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D4",
+      "pin": 4,
+      "gpio": 4,
+      "functions": [
+        "SDA"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D5",
+      "pin": 5,
+      "gpio": 5,
+      "functions": [
+        "SCL"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D6",
+      "pin": 6,
+      "gpio": 6,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D7",
+      "pin": 7,
+      "gpio": 7,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D8",
+      "pin": 8,
+      "gpio": 8,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D9",
+      "pin": 9,
+      "gpio": 9,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D10",
+      "pin": 10,
+      "gpio": 10,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D11",
+      "pin": 11,
+      "gpio": 11,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D12",
+      "pin": 12,
+      "gpio": 12,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D13",
+      "pin": 13,
+      "gpio": 13,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D14",
+      "pin": 14,
+      "gpio": 14,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D15",
+      "pin": 15,
+      "gpio": 15,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D16",
+      "pin": 16,
+      "gpio": 16,
+      "functions": [
+        "MISO"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D17",
+      "pin": 17,
+      "gpio": 17,
+      "functions": [
+        "SS"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D18",
+      "pin": 18,
+      "gpio": 18,
+      "functions": [
+        "SCK"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D19",
+      "pin": 19,
+      "gpio": 19,
+      "functions": [
+        "MOSI"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D20",
+      "pin": 20,
+      "gpio": 20,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D21",
+      "pin": 21,
+      "gpio": 21,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D22",
+      "pin": 22,
+      "gpio": 22,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D23",
+      "pin": 23,
+      "gpio": 23,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D24",
+      "pin": 24,
+      "gpio": 24,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D25",
+      "pin": 25,
+      "gpio": 25,
+      "functions": [],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D26",
+      "pin": 26,
+      "gpio": 26,
+      "functions": [],
+      "adc": "A0",
+      "note": null
+    },
+    {
+      "label": "D27",
+      "pin": 27,
+      "gpio": 27,
+      "functions": [],
+      "adc": "A1",
+      "note": null
+    },
+    {
+      "label": "D28",
+      "pin": 28,
+      "gpio": 28,
+      "functions": [],
+      "adc": "A2",
+      "note": null
+    },
+    {
+      "label": "D29",
+      "pin": 29,
+      "gpio": 29,
+      "functions": [],
+      "adc": "A3",
+      "note": null
+    }
+  ],
+  "unlabelledFunctions": [
+    {
+      "name": "LED_BUILTIN",
+      "pin": 64,
+      "gpio": null,
+      "note": null
+    }
+  ]
+}
