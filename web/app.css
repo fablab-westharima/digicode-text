@@ -816,7 +816,10 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 /* スクロールバーは細いものにして、つまみだけを見せる（溝は背景のまま）。 */
 .sidebar-view { flex: 1; min-width: 0; overflow-x: auto; overflow-y: scroll; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding: 0 var(--pad) 16px; }
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
-.view-header h2 { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+/* 見出しが残りの幅をとるので、タイトル行のボタンは何個あっても右端にまとまる。 */
+.view-header h2 { margin-right: auto; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+/* ピン留めのアイコンボタン。留めている間は、一覧の行や .actions の選択中と同じ面と枠で示す。 */
+.sidebar-pin[aria-pressed="true"] { color: var(--fg-strong); background: var(--accent-soft); border-color: var(--accent-3); }
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }

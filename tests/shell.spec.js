@@ -196,6 +196,84 @@ test('Layout state is saved and restored: view, widths, panel height, AI panel, 
   expect(Math.round((await box(page, '#sidebar')).width)).toBe(320);
 });
 
+test('ピン留め中は畳まれず、解除すると畳め、再読み込みでも留まったまま', async ({ page }) => {
+  await ready(page);
+  await expect(page.locator('#explorer-view')).toBeVisible();
+  const pin = page.locator('#explorer-pin');
+  await expect(pin).toHaveAttribute('aria-pressed', 'false');
+
+  // 既定（ピン留めなし）は今までどおり：同じボタンをもう一度押すと畳まれる。
+  await page.click('#view-explorer');
+  await expect(page.locator('#sidebar')).toBeHidden();
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+
+  await pin.click();
+  await expect(pin).toHaveAttribute('aria-pressed', 'true');
+  await expect(pin).toHaveAttribute('title', 'ピン留めを外す');
+  expect((await layout(page)).sidebarPinned).toBe(true);
+
+  // 表示中の view のボタンをもう一度押しても畳まれない（エクスプローラとライブラリは別経路）。
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+  await page.click('#libraries-open');
+  await expect(page.locator('#libraries-dialog')).toBeVisible();
+  await page.click('#libraries-open');
+  await expect(page.locator('#libraries-dialog')).toBeVisible();
+  // 別の view への切り替えはピン留め中も効く。
+  await page.click('#view-boards');
+  await expect(page.locator('#boards-view')).toBeVisible();
+  await expect(page.locator('#boards-pin')).toHaveAttribute('aria-pressed', 'true');
+
+  // 幅のドラッグは最小幅で止まるだけで、畳まれない。
+  const handle = await box(page, '#sidebar-resize');
+  const y = handle.y + handle.height / 2;
+  await page.mouse.move(handle.x + handle.width / 2, y);
+  await page.mouse.down();
+  await page.mouse.move(60, y, { steps: 10 });
+  await page.mouse.up();
+  await expect(page.locator('#boards-view')).toBeVisible();
+  expect(Math.round((await box(page, '#sidebar')).width)).toBe(320);
+
+  // 明示的に閉じる操作（ライブラリの「閉じる」）はピン留め中も効く。
+  await page.click('#libraries-open');
+  await page.click('#libraries-close');
+  await expect(page.locator('#sidebar')).toBeHidden();
+
+  // 再読み込みしても留まったまま。
+  await page.reload();
+  await expect(page.locator('#build')).toBeEnabled();
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+
+  // 解除すると畳める。
+  await page.click('#explorer-pin');
+  await expect(page.locator('#explorer-pin')).toHaveAttribute('aria-pressed', 'false');
+  expect((await layout(page)).sidebarPinned).toBe(false);
+  await page.click('#view-explorer');
+  await expect(page.locator('#sidebar')).toBeHidden();
+
+  // 狭い画面ではサイドバーが編集画面の上に浮くので、ピン留めは効かせず、ボタンも出さない
+  // （閉じられないと編集画面に戻れなくなるため）。状態そのものは残る。
+  await page.click('#view-explorer');
+  await page.click('#explorer-pin');
+  await expect(page.locator('#explorer-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+  await expect(page.locator('#explorer-pin')).toBeHidden();
+  await page.click('#view-explorer');
+  await expect(page.locator('#sidebar')).toBeHidden();
+  expect((await layout(page)).sidebarPinned).toBe(true);
+  await page.setViewportSize({ width: 1100, height: 850 });
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-pin')).toBeVisible();
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+});
+
 test('The output panel stays inside the editor column, beside the sidebar and the AI panel', async ({ page }, info) => {
   await ready(page);
   await openAI(page);

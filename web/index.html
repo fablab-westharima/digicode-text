@@ -21,6 +21,7 @@
   <g id="i-ai"><!-- lucide sparkles --><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></g>
   <g id="i-settings"><!-- lucide settings --><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g>
   <g id="i-help"><!-- lucide circle-question-mark (the file behind the circle-help name) --><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></g>
+  <g id="i-pin"><!-- lucide pin --><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></g>
 </defs></svg>
 
 <div class="shell" id="shell">
@@ -40,6 +41,7 @@
       <section class="sidebar-view" id="explorer-view" data-view="explorer" aria-labelledby="explorer-title" hidden>
         <header class="view-header"><h2 id="explorer-title">エクスプローラ</h2>
           <button id="projects-open" class="quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
+          <button id="explorer-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button>
         </header>
         <h3 class="heading view-section-title">プロジェクト</h3>
         <div id="project-list" aria-label="保存したプロジェクト"></div>
@@ -48,7 +50,7 @@
       </section>
 
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
-        <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button></header>
+        <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button><button id="libraries-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
         <p class="current-project" title="ライブラリを追加・削除する対象のプロジェクトとボード"><strong id="library-target"></strong><span id="library-board"></span></p>
         <form id="library-search-form" class="form-group"><label for="library-query">ライブラリを検索</label><div class="actions library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
         <p class="form-group library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
@@ -61,7 +63,7 @@
       </section>
 
       <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>
-        <header class="view-header"><h2 id="boards-title">ボード</h2></header>
+        <header class="view-header"><h2 id="boards-title">ボード</h2><button id="boards-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
         <select id="env" aria-label="ボード" hidden></select>
         <div id="board-list"></div>
       </section>
