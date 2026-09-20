@@ -201,6 +201,9 @@ test('ピン留め中は畳まれず、解除すると畳め、再読み込み�
   await expect(page.locator('#explorer-view')).toBeVisible();
   const pin = page.locator('#explorer-pin');
   await expect(pin).toHaveAttribute('aria-pressed', 'false');
+  // 色だけでなく絵そのものが変わる：外れている間は輪郭だけのピン（塗りなし）。
+  const pinFill = () => pin.locator('.icon').evaluate(el => getComputedStyle(el).fill);
+  expect(await pinFill()).toBe('none');
 
   // 既定（ピン留めなし）は今までどおり：同じボタンをもう一度押すと畳まれる。
   await page.click('#view-explorer');
@@ -212,6 +215,8 @@ test('ピン留め中は畳まれず、解除すると畳め、再読み込み�
   await expect(pin).toHaveAttribute('aria-pressed', 'true');
   await expect(pin).toHaveAttribute('title', 'ピン留めを外す');
   expect((await layout(page)).sidebarPinned).toBe(true);
+  // 留めている間は塗りつぶしたピン（文字色で塗る）。
+  expect(await pinFill()).toBe(await pin.evaluate(el => getComputedStyle(el).color));
 
   // 表示中の view のボタンをもう一度押しても畳まれない（エクスプローラとライブラリは別経路）。
   await page.click('#view-explorer');
@@ -272,6 +277,72 @@ test('ピン留め中は畳まれず、解除すると畳め、再読み込み�
   await expect(page.locator('#explorer-pin')).toBeVisible();
   await page.click('#view-explorer');
   await expect(page.locator('#explorer-view')).toBeVisible();
+});
+
+test('AIパネルもピン留めでき、留めている間は AI ボタンをもう一度押しても畳まれない', async ({ page }) => {
+  await ready(page);
+  await openAI(page);
+  const pin = page.locator('#ai-pin');
+  await expect(pin).toHaveAttribute('aria-pressed', 'false');
+  await expect(pin).toHaveAttribute('title', 'AIパネルをピン留めする（不意に畳まれないようにする）');
+
+  // 既定（ピン留めなし）は今までどおり：AI ボタンをもう一度押すと畳まれる。
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeHidden();
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeVisible();
+
+  await pin.click();
+  await expect(pin).toHaveAttribute('aria-pressed', 'true');
+  await expect(pin).toHaveAttribute('title', 'ピン留めを外す');
+  const pinned = await layout(page);
+  expect(pinned.aiPinned).toBe(true);
+  expect(pinned.sidebarPinned).toBe(false); // サイドバーのピン留めとは別の状態
+
+  // ピン留め中は AI ボタンをもう一度押しても畳まれない。サイドバーは巻き込まれない。
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeVisible();
+  await page.click('#view-explorer');
+  await expect(page.locator('#sidebar')).toBeHidden();
+  await page.click('#view-explorer');
+  await expect(page.locator('#explorer-view')).toBeVisible();
+
+  // 明示的に閉じる操作（パネルの「閉じる」）はピン留め中も効く。
+  await page.click('#ai-close');
+  await expect(page.locator('#ai-pane')).toBeHidden();
+
+  // 再読み込みしても留まったまま。
+  await page.click('#ai-open');
+  await page.reload();
+  await expect(page.locator('#build')).toBeEnabled();
+  await expect(page.locator('#ai-pane')).toBeVisible();
+  await expect(page.locator('#ai-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeVisible();
+
+  // 解除すると畳める。
+  await page.click('#ai-pin');
+  await expect(page.locator('#ai-pin')).toHaveAttribute('aria-pressed', 'false');
+  expect((await layout(page)).aiPinned).toBe(false);
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeHidden();
+
+  // 狭い画面では AI パネルも編集画面の上に浮くので、サイドバーと揃えてピン留めは効かせず、
+  // ボタンも出さない。状態そのものは残る。
+  await page.click('#ai-open');
+  await page.click('#ai-pin');
+  await expect(page.locator('#ai-pin')).toHaveAttribute('aria-pressed', 'true');
+  await page.setViewportSize({ width: 390, height: 700 });
+  await expect(page.locator('#ai-pane')).toBeVisible();
+  await expect(page.locator('#ai-pin')).toBeHidden();
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeHidden();
+  expect((await layout(page)).aiPinned).toBe(true);
+  await page.setViewportSize({ width: 1100, height: 850 });
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pin')).toBeVisible();
+  await page.click('#ai-open');
+  await expect(page.locator('#ai-pane')).toBeVisible();
 });
 
 test('The output panel stays inside the editor column, beside the sidebar and the AI panel', async ({ page }, info) => {

@@ -818,8 +818,12 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .view-header { position: sticky; top: 0; z-index: 2; height: 35px; margin: 0 calc(-1 * var(--pad)); padding: 0 var(--pad); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg-sidebar); }
 /* 見出しが残りの幅をとるので、タイトル行のボタンは何個あっても右端にまとまる。 */
 .view-header h2 { margin-right: auto; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
-/* ピン留めのアイコンボタン。留めている間は、一覧の行や .actions の選択中と同じ面と枠で示す。 */
-.sidebar-pin[aria-pressed="true"] { color: var(--fg-strong); background: var(--accent-soft); border-color: var(--accent-3); }
+/* ピン留めのアイコンボタン（サイドバーと AI パネルで同じ部品）。留めている間は、一覧の行や
+   .actions の選択中と同じ面と枠で示す。加えて絵そのものを変える：外れているときは輪郭だけの
+   ピン、留めているときは塗りつぶしたピン（しおりや星と同じ読み方）。畳んだ節の ▸ / ▾ と同じで、
+   印は aria 属性から CSS が描く。 */
+.pin-toggle[aria-pressed="true"] { color: var(--fg-strong); background: var(--accent-soft); border-color: var(--accent-3); }
+.pin-toggle[aria-pressed="true"] .icon { fill: currentColor; }
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }

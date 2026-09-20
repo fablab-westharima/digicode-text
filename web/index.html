@@ -41,7 +41,7 @@
       <section class="sidebar-view" id="explorer-view" data-view="explorer" aria-labelledby="explorer-title" hidden>
         <header class="view-header"><h2 id="explorer-title">エクスプローラ</h2>
           <button id="projects-open" class="quiet" aria-haspopup="menu" aria-expanded="false" aria-controls="file-menu">ファイル <span aria-hidden="true">⌄</span></button>
-          <button id="explorer-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button>
+          <button id="explorer-pin" type="button" class="quiet compact pin-toggle" data-pin="sidebar" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button>
         </header>
         <h3 class="heading view-section-title">プロジェクト</h3>
         <div id="project-list" aria-label="保存したプロジェクト"></div>
@@ -50,7 +50,7 @@
       </section>
 
       <section class="sidebar-view" id="libraries-dialog" data-view="libraries" aria-labelledby="libraries-title" hidden>
-        <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button><button id="libraries-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
+        <header class="view-header"><h2 id="libraries-title">ライブラリ</h2><button id="libraries-close" class="quiet">閉じる</button><button id="libraries-pin" type="button" class="quiet compact pin-toggle" data-pin="sidebar" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
         <p class="current-project" title="ライブラリを追加・削除する対象のプロジェクトとボード"><strong id="library-target"></strong><span id="library-board"></span></p>
         <form id="library-search-form" class="form-group"><label for="library-query">ライブラリを検索</label><div class="actions library-controls"><input id="library-query" maxlength="120" autocomplete="off" placeholder="名前・キーワード（例：ArduinoJson）"><button type="submit">検索</button></div></form>
         <p class="form-group library-incompatible-toggle"><label for="library-show-incompatible"><input type="checkbox" id="library-show-incompatible">このボードで使えないライブラリも表示</label></p>
@@ -63,7 +63,7 @@
       </section>
 
       <section class="sidebar-view" id="boards-view" data-view="boards" aria-labelledby="boards-title" hidden>
-        <header class="view-header"><h2 id="boards-title">ボード</h2><button id="boards-pin" type="button" class="quiet compact sidebar-pin" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
+        <header class="view-header"><h2 id="boards-title">ボード</h2><button id="boards-pin" type="button" class="quiet compact pin-toggle" data-pin="sidebar" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></header>
         <select id="env" aria-label="ボード" hidden></select>
         <div id="board-list"></div>
       </section>
@@ -124,7 +124,7 @@
     <!-- The model display is itself the way into the settings dialog; there is no separate API設定
          button, because 設定 in the activity bar opens the same dialog. It keeps the id
          ai-settings-open, which is the hook ai-settings.js (unchanged) binds its opener to. -->
-    <div class="view-header ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button></div>
+    <div class="view-header ai-heading"><strong>AI開発支援</strong><button id="ai-settings-open" class="quiet" title="API設定を開く"><small id="ai-connection"></small></button><button id="ai-close" class="quiet" aria-label="AIパネルを閉じる">閉じる</button><button id="ai-pin" type="button" class="quiet compact pin-toggle" data-pin="ai" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-pin"/></svg></button></div>
     <!-- #ai-history-note は常時の説明ではなく、履歴が上限で省略されたときだけ出る知らせ（ai.js が入れる）。 -->
     <div class="actions ai-conversation-tools"><small id="ai-history-note" class="form-hint"></small><button id="ai-latest" class="quiet">最新へ</button><button id="ai-clear" class="quiet">会話を消去</button></div>
     <div id="ai-history" tabindex="0" aria-label="AIとの会話"></div>

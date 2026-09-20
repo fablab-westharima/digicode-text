@@ -9,9 +9,14 @@ export const LAYOUT_KEY = 'digicode-text.layout.v1';
 const NARROW = 900; // below this the sidebar and the AI panel float over the editor column
 const ACTIVITY = 56; // the activity bar's width in app.css; a floating panel never covers it
 const LIMITS = { sidebarWidth: [320, 640], aiWidth: [320, 720], panelHeight: [100, 500] };
-const DEFAULTS = { sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320, panelOpen: false, panelHeight: 220, aiOpen: false, aiWidth: 420, sidebarPinned: false };
+const DEFAULTS = { sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320, panelOpen: false, panelHeight: 220, aiOpen: false, aiWidth: 420, sidebarPinned: false, aiPinned: false };
+// ピン留めの対象（data-pin の値）と、それが指す state のキー。
+const PINS = { sidebar: 'sidebarPinned', ai: 'aiPinned' };
 // タイトル行のピン留めボタンの説明（title と aria-label に同じ文を出す）。
-const PIN_TITLE = { on: 'ピン留めを外す', off: 'サイドバーをピン留めする（不意に畳まれないようにする）' };
+const PIN_TITLE = {
+  sidebar: { on: 'ピン留めを外す', off: 'サイドバーをピン留めする（不意に畳まれないようにする）' },
+  ai: { on: 'ピン留めを外す', off: 'AIパネルをピン留めする（不意に畳まれないようにする）' },
+};
 // Views whose element answers the <dialog> protocol (open / showModal() / close() / 'close' event),
 // because libraries.js drives its section through exactly that interface.
 const DIALOG_VIEWS = { libraries: 'libraries-dialog' };
@@ -30,6 +35,7 @@ function readState() {
       // view at all, so a layout saved before either became a dialog falls back to the explorer.
       if (VIEWS.includes(saved.sidebarView) && !DIALOG_VIEWS[saved.sidebarView]) state.sidebarView = saved.sidebarView;
       if (typeof saved.sidebarPinned === 'boolean') state.sidebarPinned = saved.sidebarPinned;
+      if (typeof saved.aiPinned === 'boolean') state.aiPinned = saved.aiPinned;
       if (typeof saved.panelOpen === 'boolean') state.panelOpen = saved.panelOpen;
       if (typeof saved.aiOpen === 'boolean') state.aiOpen = saved.aiOpen;
       for (const key of ['sidebarWidth', 'aiWidth', 'panelHeight']) {
@@ -58,13 +64,15 @@ export function setupLayout() {
   // Libraries stays, because it is the task that replaced a modal dialog.
   let wasNarrow = null, hiddenByNarrow = null;
 
-  // ピン留めは「不意に畳まれる」操作（表示中の view のボタンをもう一度押す）だけを止める。
-  // 明示的に閉じる操作（ライブラリの「閉じる」、Escape）はピン留め中も効く。幅のドラッグは
-  // LIMITS.sidebarWidth の最小 320px で止まり、もともと畳むことがないので何も足さない。
-  // 狭い画面ではサイドバーが編集画面の上に浮き、エクスプローラとボードには「閉じる」が無いので、
-  // ピン留めを効かせると戻れなくなる。そのため狭い画面では効かせず、ボタンも出さない（状態は残る）。
-  const pinButtons = [...document.querySelectorAll('.sidebar-pin')];
-  const pinActive = () => state.sidebarPinned && innerWidth >= NARROW;
+  // ピン留めは「不意に畳まれる」操作、つまり活動バーの同じボタンをもう一度押すこと（表示中の
+  // view のボタン、AI パネルでは AI ボタン）だけを止める。明示的に閉じる操作（ライブラリの
+  // 「閉じる」、AI パネルの「閉じる」、Escape）と「レイアウトを初期化」はピン留め中も効く。
+  // 幅のドラッグは LIMITS の最小（320px）で止まり、もともと畳むことがないので何も足さない。
+  // 狭い画面では両方とも編集画面の上に浮く。サイドバーのエクスプローラとボードには「閉じる」が
+  // 無く、ピン留めを効かせると戻れなくなる。AI パネルには「閉じる」があるが、両者で読み方が
+  // 変わらないよう揃えて、狭い画面では効かせず、ボタンも出さない（状態そのものは残る）。
+  const pinButtons = [...document.querySelectorAll('.pin-toggle')];
+  const pinActive = (target) => state[PINS[target]] && innerWidth >= NARROW;
 
   function render() {
     const narrow = innerWidth < NARROW;
@@ -91,9 +99,11 @@ export function setupLayout() {
       }
     }
     for (const button of pinButtons) {
+      const target = button.dataset.pin;
+      const pinned = state[PINS[target]];
       button.hidden = narrow;
-      button.setAttribute('aria-pressed', String(state.sidebarPinned));
-      const label = state.sidebarPinned ? PIN_TITLE.on : PIN_TITLE.off;
+      button.setAttribute('aria-pressed', String(pinned));
+      const label = pinned ? PIN_TITLE[target].on : PIN_TITLE[target].off;
       button.title = label;
       button.setAttribute('aria-label', label);
     }
@@ -125,16 +135,22 @@ export function setupLayout() {
     render(); persist();
   }
   function toggleView(view) {
-    if (state.sidebarOpen && state.sidebarView === view) { if (!pinActive()) collapseSidebar(); }
+    if (state.sidebarOpen && state.sidebarView === view) { if (!pinActive('sidebar')) collapseSidebar(); }
     else showView(view);
   }
-  function setPinned(pinned) {
-    state.sidebarPinned = pinned;
+  function setPinned(target, pinned) {
+    state[PINS[target]] = pinned;
     render(); persist();
   }
   function setAI(open) {
     state.aiOpen = open;
     render(); persist();
+  }
+  // 活動バーの AI ボタン。開いているときのもう一度の押下が「不意に畳む」経路なので、そこだけ
+  // ピン留めが止める。パネル内の「閉じる」は setAI(false) を直に呼ぶので、ピン留め中も効く。
+  function toggleAI() {
+    if (state.aiOpen && pinActive('ai')) return;
+    setAI(!state.aiOpen);
   }
 
   // Activity bar. AI支援 only toggles the right panel; it never changes the sidebar selection.
@@ -158,11 +174,15 @@ export function setupLayout() {
     event.stopPropagation();
     event.preventDefault();
     // ピン留め中は畳まない。クリックは libraries.js にも渡さない（渡すと検索がやり直しになる）。
-    if (!pinActive()) collapseSidebar();
+    if (!pinActive('sidebar')) collapseSidebar();
   }, true);
 
-  // ピン留めのボタンは view ごとのタイトル行にあるが、押す先は1つの状態。
-  for (const button of pinButtons) button.onclick = () => setPinned(!state.sidebarPinned);
+  // サイドバーのピン留めボタンは view ごとのタイトル行に3つあるが、押す先は1つの状態。
+  // AI パネルのボタンは1つで、押す先は AI 側の状態。どちらを指すかは data-pin が持つ。
+  for (const button of pinButtons) {
+    const target = button.dataset.pin;
+    button.onclick = () => setPinned(target, !state[PINS[target]]);
+  }
 
   // The <dialog> protocol the sidebar's Libraries view answers to.
   for (const [view, id] of Object.entries(DIALOG_VIEWS)) {
@@ -216,8 +236,7 @@ export function setupLayout() {
   render();
 
   return {
-    showView, collapseSidebar, toggleView, setAI,
-    toggleAI: () => setAI(!state.aiOpen),
+    showView, collapseSidebar, toggleView, setAI, toggleAI,
     get aiOpen() { return state.aiOpen; },
     get sidebarOpen() { return state.sidebarOpen; },
     get sidebarView() { return state.sidebarView; },
