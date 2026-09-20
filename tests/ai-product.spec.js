@@ -49,7 +49,7 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
       expect(note.text, `${env}: GPIO numbers are decimal`).not.toMatch(/0x/i);
       // 出所はボードの製造元・チップの製造元自身のページだけ。docs.espressif.com は
       // ボードの user guide と ESP-IDF のリファレンス（データシートに無い事実の出所）。
-      expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com|docs\.espressif\.com|akizukidenshi\.com)\//);
+      expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com|docs\.espressif\.com|akizukidenshi\.com|www\.switch-science\.com|doc\.switch-science\.com)\//);
     }
     const ini = await read('compiler/' + path.basename(b.project) + '/platformio.ini');
     const section = ini.split(`[env:${env}]`)[1]?.split(/\n\[env:/)[0];
@@ -130,7 +130,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -162,7 +162,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'xiao_esp32s3', 'esp32_devkitc_v4']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'xiao_esp32s3', 'esp32_devkitc_v4']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -208,7 +208,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -268,6 +268,23 @@ test('ESP32-C5-DevKitC-1 は 2 つの USB 口と、PSRAM が塞ぐ GPIO15 を先
   // 書き込みはチップ直結の USB 口。板が届くまでこの方式を実機で通したのは C3 だけ。
   expect(dev.flashRoute).toBe('esp-usb-cdc');
   expect(dev.routeVerifiedBy).toEqual(['XIAO ESP32C3']);
+});
+
+test('ESPr Developer C5 はヘッダ 2 列の並びと、PSRAM が塞ぐ GPIO15 を先に言う', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const espr = boards.find(b => b.id === 'espr_developer_c5');
+  expect(espr.pins.variant).toBe('esp32c5');
+  expect(espr.pins.sources.digitalLabelsFrom).toBe('none');
+  // platform が持たないボードなので、定義はこの repo 側。16MB の N16R8。
+  expect(espr.pins.board).toBe('espr_developer_c5');
+  expect(espr.pins.sources.boardDefinition).toBe('compiler/pio-esp32c5/boards/espr_developer_c5.json');
+  const facts = boardFacts(espr);
+  expect(facts.indexOf('GPIO番号を直接書く')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(facts).toContain('RESETボタン側がJ2');
+  expect(facts).toContain('FLASHボタン側がJ3');
+  expect(facts).toContain('ESP32-C5-WROOM-1-N16R8');
+  expect(facts).toContain('SPICS1として内部で使われていて外からは使えない');
+  expect(espr.flashRoute).toBe('esp-usb-cdc');
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {

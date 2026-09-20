@@ -15,6 +15,7 @@ import usbCConnectXiaoS3 from './usb-c-connect-xiao-s3.svg';
 import bootselHoldPicoW from './bootsel-hold-pico-w.svg';
 import usbCConnectXiaoC5 from './usb-c-connect-xiao-c5.svg';
 import usbCConnectC5Devkitc from './usb-c-connect-c5-devkitc.svg';
+import usbCConnectEsprC5 from './usb-c-connect-espr-c5.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -38,4 +39,6 @@ export const FIGURES = {
   'usb-c-connect-xiao-c5': usbCConnectXiaoC5,
   // ESP32-C5-DevKitC-1 は USB-C が 2 口あるので、どちらに挿すかまで図で言う。
   'usb-c-connect-c5-devkitc': usbCConnectC5Devkitc,
+  // ESPr Developer C5 は押すボタンこそ無いが、入らなかったときに押す 2 つの名前を図でも示す。
+  'usb-c-connect-espr-c5': usbCConnectEsprC5,
 };

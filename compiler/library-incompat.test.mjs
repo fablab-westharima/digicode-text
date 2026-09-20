@@ -9,6 +9,7 @@ const ONEWIRE = 'paulstoffregen/OneWire';
 const C3 = { id: 'xiao_esp32c3', platform: 'esp32' };
 const C5 = { id: 'xiao_esp32c5', platform: 'esp32' };
 const C5_DEVKITC = { id: 'esp32_c5_devkitc_1', platform: 'esp32' };
+const C5_ESPR = { id: 'espr_developer_c5', platform: 'esp32' };
 const S3 = { id: 'xiao_esp32s3', platform: 'esp32' };
 const DEVKITC = { id: 'esp32_devkitc_v4', platform: 'esp32' };
 const PICO_W = { id: 'pico_w', platform: 'rp2040' };
@@ -98,16 +99,17 @@ test('a board row applies to that board alone, while the other boards of its pla
   const row = findIncompat(ONEWIRE, C5);
   assert.ok(row);
   assert.equal(row.alternative, 'pstolarz/OneWireNg');
-  assert.deepEqual(row.boards, ['xiao_esp32c5', 'esp32_c5_devkitc_1']);
+  assert.deepEqual(row.boards, ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5']);
   assert.ok(!('platforms' in row));
   // Every C5 board carries it: the failure is the chip's register layout, not one board's wiring.
-  assert.equal(findIncompat(ONEWIRE, C5_DEVKITC), row);
+  for (const board of [C5_DEVKITC, C5_ESPR]) assert.equal(findIncompat(ONEWIRE, board), row, board.id);
   // The same platform, the boards that are not C5: harness 09/10/29/31 are ok on each of them.
   for (const board of [C3, S3, DEVKITC]) assert.equal(findIncompat(ONEWIRE, board), null, board.id);
   for (const board of [PICO_W, WIO]) assert.equal(findIncompat(ONEWIRE, board), null, board.id);
   // C5 carries both rows: the platform one it shares with the other ESP32 boards, and its own.
   assert.deepEqual(incompatFor(C5), [findIncompat(MQTT, C5), row]);
   assert.deepEqual(incompatFor(C5_DEVKITC), [findIncompat(MQTT, C5_DEVKITC), row]);
+  assert.deepEqual(incompatFor(C5_ESPR), [findIncompat(MQTT, C5_ESPR), row]);
   assert.deepEqual(incompatFor(C3), [findIncompat(MQTT, C3)]);
   assert.deepEqual(incompatFor(DEVKITC), [findIncompat(MQTT, DEVKITC)]);
 });

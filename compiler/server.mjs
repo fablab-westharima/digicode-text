@@ -60,6 +60,15 @@ const ESP32_C5_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits
 // marked with which one it is. The shop page is what names the variant actually bought here,
 // and the build (8MB flash, quad PSRAM) is set from it, so it is cited rather than implied.
 const AKIZUKI_C5_DEVKITC = 'https://akizukidenshi.com/catalog/g/g131642/';
+// ESPr Developer C5 is Switch Science's own board. Their product page is the only document that
+// names the module variant it carries and what the Qwiic connector is wired to.
+const SSCI_ESPR_C5 = 'https://www.switch-science.com/products/11006';
+// The board's own schematic, published by the same vendor and linked from that page: the only
+// document that says what the two buttons and the USB-C are actually connected to.
+const SSCI_ESPR_C5_SCHEMATIC = 'https://doc.switch-science.com/media/files/bdfd7dc8-09b4-4459-bc5b-ce191022f9df.pdf';
+// Espressif's module datasheet, hosted by the same vendor and linked from that page: the only
+// document that says what the in-package PSRAM does to GPIO15.
+const ESP32C5_WROOM_DATASHEET = 'https://doc.switch-science.com/media/files/bed45d54-6f49-4269-a6cf-f8ff7dfaa6ab.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -165,6 +174,21 @@ const BOARDS = new Map([
       { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本で、ブートモードはGPIO26、GPIO27、GPIO28で決まる', source: ESP32C5_DATASHEET },
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
       { text: '通販コード131642で売られている品種はN8R8で、8MBのFlashと8MBのPSRAMを載せる', source: AKIZUKI_C5_DEVKITC },
+    ] }],
+  ['espr_developer_c5', { project: path.join(here, 'pio-esp32c5'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ESPr Developer C5', vendor: 'Switch Science', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.espr_developer_c5,
+    // The generic esp32c5 variant defines no Dn macros, so the board's own two header rows are
+    // what a sketch is actually written against; they are listed here, before the table.
+    pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA5はArduinoのアナログ名で、同じ行のGPIO番号がその実体。基板の2列のヘッダは、RESETボタン側がJ2でUSB-C側から3V3、EN、0、1、10、13、14、6、GND、VIN、7、8、9、3、2の順、FLASHボタン側がJ3でGND、26、25、24、23、TX、RX、28、GND、VOUT、15、27、4、5の順。数字はそのままGPIO番号で、TXはGPIO11、RXはGPIO12。どちらの列も残りの穴は末尾のGNDを除いて未接続。このvariantのLED_BUILTINはGPIO番号を持たない擬似ピンなので、基板の青いLEDはGPIO27と書いて動かす。',
+    pinNotes: [
+      { text: '搭載モジュールはESP32-C5-WROOM-1-N16R8で、Flashが16MB、PSRAMが8MB', source: SSCI_ESPR_C5 },
+      { text: 'ヘッダに15と印刷された穴はGPIO15だが、PSRAMを載せたモジュールではSPICS1として内部で使われていて外からは使えない', source: ESP32C5_WROOM_DATASHEET },
+      { text: '青のLEDは3V3から1kオームを通してGPIO27へ入っているので、GPIO27をLowにすると点灯する', source: SSCI_ESPR_C5_SCHEMATIC },
+      { text: 'RESETボタンはENを、FLASHボタンはGPIO28をGNDへ落とすだけの手動スイッチで、USBシリアル変換チップも自動で書き込みモードに入れる回路も載っていない', source: SSCI_ESPR_C5_SCHEMATIC },
+      { text: 'USB-Cは33オームを介してGPIO13（D−）とGPIO14（D+）へ直結しているので、USBを使っている間この2本は汎用I/Oにできない', source: SSCI_ESPR_C5_SCHEMATIC },
+      { text: '基板中央のQwiicコネクタはGND、3V3、GPIO0（SDA）、GPIO1（SCL）の4極。VINは3.6Vから6Vを受ける入力で、VOUTにはUSBの5VとVINの高い方からショットキー1段ぶん落ちた電圧が出る', source: SSCI_ESPR_C5_SCHEMATIC },
+      { text: 'ESP32-C5のADCはADC1だけで、チャンネルはGPIO1からGPIO6の6本。ADC2は無い', source: ESP32C5_DATASHEET },
+      { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、GPIOに5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,

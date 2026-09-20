@@ -33,10 +33,10 @@ export const LIBRARY_INCOMPAT = [
     // fails, because OneWire's util/OneWire_direct_gpio.h reads and writes GPIO.in / GPIO.out_w1tc
     // as plain 32-bit registers, while the C5's soc/gpio_struct.h declares them as bit-field
     // structs. It is the chip, so each C5 board is listed only after its own harness run.
-    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1'],
+    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5'],
     reason: 'このライブラリがGPIOレジスタを直接読み書きする部分が、このボードのcoreのレジスタ定義と合わないためBuildが失敗します',
     alternative: 'pstolarz/OneWireNg',
-    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20 と esp32_c5_devkitc_1/62-onewireng-ds18b20 が ok',
+    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1 と 2026-09-21 espr_developer_c5 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20、esp32_c5_devkitc_1/62-onewireng-ds18b20、espr_developer_c5/62-onewireng-ds18b20 が ok',
   },
 ];
 

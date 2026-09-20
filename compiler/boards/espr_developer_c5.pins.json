@@ -1,0 +1,108 @@
+{
+  "env": "espr_developer_c5",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
+  "board": "espr_developer_c5",
+  "mcu": "esp32c5",
+  "core": "esp32",
+  "variant": "esp32c5",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.3.12",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32c5/platformio.ini",
+    "boardDefinition": "compiler/pio-esp32c5/boards/espr_developer_c5.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/esp32c5/pins_arduino.h",
+    "digitalLabelsFrom": "none"
+  },
+  "pins": [
+    {
+      "label": "A0",
+      "pin": 1,
+      "gpio": 1,
+      "functions": [
+        "SCL"
+      ],
+      "adc": "A0",
+      "note": null
+    },
+    {
+      "label": "A1",
+      "pin": 2,
+      "gpio": 2,
+      "functions": [],
+      "adc": "A1",
+      "note": null
+    },
+    {
+      "label": "A2",
+      "pin": 3,
+      "gpio": 3,
+      "functions": [],
+      "adc": "A2",
+      "note": null
+    },
+    {
+      "label": "A3",
+      "pin": 4,
+      "gpio": 4,
+      "functions": [],
+      "adc": "A3",
+      "note": null
+    },
+    {
+      "label": "A4",
+      "pin": 5,
+      "gpio": 5,
+      "functions": [],
+      "adc": "A4",
+      "note": null
+    },
+    {
+      "label": "A5",
+      "pin": 6,
+      "gpio": 6,
+      "functions": [
+        "SS"
+      ],
+      "adc": "A5",
+      "note": null
+    }
+  ],
+  "unlabelledFunctions": [
+    {
+      "name": "SDA",
+      "pin": 0,
+      "gpio": 0,
+      "note": null
+    },
+    {
+      "name": "TX",
+      "pin": 11,
+      "gpio": 11,
+      "note": null
+    },
+    {
+      "name": "RX",
+      "pin": 12,
+      "gpio": 12,
+      "note": null
+    },
+    {
+      "name": "MOSI",
+      "pin": 8,
+      "gpio": 8,
+      "note": null
+    },
+    {
+      "name": "MISO",
+      "pin": 9,
+      "gpio": 9,
+      "note": null
+    },
+    {
+      "name": "SCK",
+      "pin": 10,
+      "gpio": 10,
+      "note": null
+    }
+  ]
+}

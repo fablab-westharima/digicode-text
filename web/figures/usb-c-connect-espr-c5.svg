@@ -1,0 +1,38 @@
+<!-- ESPr Developer C5 を上から見た平面図。63.5x25.4mm、ヘッダは長辺に 20 穴ずつの 2 列で、
+     2 列の中心間は 22.86mm、USB-C 側の端の穴は基板端から 6.35mm（基板図の寸法線）。
+     USB-C は片方の短辺の中央から外へ張り出し、ESP32-C5-WROOM-1 は反対の短辺と面一で、
+     アンテナはその端を向く。RESET と FLASH のボタンは USB-C のある短辺の両角にあり、
+     シルクはそれぞれボタンの内側。基板中央の Qwiic コネクタ（CN1）と 3V3 レギュレータは
+     モジュールの手前。位置は基板図を寸法線で較正して読んだもの。
+     この手順で押すボタンは無いが、書き込みモードに入らないときの補足が 2 つの名前を呼ぶので、
+     どれがそのボタンかが分かるようにシルクごと描く。図に書く文字はこの 2 語だけ。
+     青の LED（IO27）は FLASH 側の長辺沿いにあるが、この手順では光らないので描かない。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="126" y="92" width="160" height="64" rx="4"/>
+  <!-- 長辺のヘッダ 20 穴ずつ -->
+  <path class="fig-pad" d="M142,87h5v5h-5zM148,87h5v5h-5zM155,87h5v5h-5zM161,87h5v5h-5zM168,87h5v5h-5zM174,87h5v5h-5zM180,87h5v5h-5zM187,87h5v5h-5zM193,87h5v5h-5zM200,87h5v5h-5zM206,87h5v5h-5zM212,87h5v5h-5zM219,87h5v5h-5zM225,87h5v5h-5zM232,87h5v5h-5zM238,87h5v5h-5zM244,87h5v5h-5zM251,87h5v5h-5zM257,87h5v5h-5zM264,87h5v5h-5z"/>
+  <path class="fig-pad" d="M142,156h5v5h-5zM148,156h5v5h-5zM155,156h5v5h-5zM161,156h5v5h-5zM168,156h5v5h-5zM174,156h5v5h-5zM180,156h5v5h-5zM187,156h5v5h-5zM193,156h5v5h-5zM200,156h5v5h-5zM206,156h5v5h-5zM212,156h5v5h-5zM219,156h5v5h-5zM225,156h5v5h-5zM232,156h5v5h-5zM238,156h5v5h-5zM244,156h5v5h-5zM251,156h5v5h-5zM257,156h5v5h-5zM264,156h5v5h-5z"/>
+  <!-- ESP32-C5-WROOM-1 のシールド面と、基板端を向くアンテナの区画 -->
+  <rect class="fig-face" x="217" y="101" width="69" height="46" rx="2"/>
+  <rect class="fig-board fig-thin" x="270" y="107" width="12" height="34" rx="2"/>
+  <!-- Qwiic コネクタ（CN1）と 3V3 レギュレータ -->
+  <rect class="fig-part" x="202" y="117" width="12" height="14" rx="2"/>
+  <rect class="fig-part" x="188" y="119" width="11" height="11" rx="1"/>
+  <!-- RESET / FLASH のボタンと、そのシルク -->
+  <rect class="fig-part" x="127" y="95" width="13" height="13" rx="3"/>
+  <circle class="fig-face" cx="133.5" cy="101.5" r="4"/>
+  <text class="fig-small" x="144" y="106" text-anchor="start">RESET</text>
+  <rect class="fig-part" x="127" y="140" width="13" height="13" rx="3"/>
+  <circle class="fig-face" cx="133.5" cy="146.5" r="4"/>
+  <text class="fig-small" x="144" y="151" text-anchor="start">FLASH</text>
+  <!-- 挿す先: 短辺から張り出す USB-C -->
+  <rect class="fig-part fig-accent" x="106" y="110" width="26" height="28" rx="4"/>
+  <rect class="fig-board fig-accent fig-thin" x="112" y="120" width="12" height="8" rx="4"/>
+  <!-- USB-Cケーブルは左から差し込む。fig-cable はそのまま横へ動く＝画面では右向き。 -->
+  <g class="fig-cable fig-accent">
+    <rect class="fig-part fig-accent" x="68" y="110" width="32" height="28" rx="5"/>
+    <rect class="fig-part fig-accent" x="40" y="117" width="28" height="14" rx="6"/>
+    <path d="M42,124 L0,124"/>
+  </g>
+</svg>

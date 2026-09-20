@@ -30,6 +30,7 @@ export const ENVS = [
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
   { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
   { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
+  { env: 'espr_developer_c5', project: 'pio-esp32c5' },
   { env: 'xiao_esp32c3', project: 'pio-esp32c3' },
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },

@@ -120,14 +120,14 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
   await ready(page);
   const vendors = [...new Set(boards.map(b => b.vendor))].sort((a, b) => a.localeCompare(b));
   expect(await page.locator('#board-list > h4.board-vendor').allTextContents()).toEqual(vendors);
-  expect(vendors).toEqual(['Espressif', 'Raspberry Pi', 'Seeed Studio']);
+  expect(vendors).toEqual(['Espressif', 'Raspberry Pi', 'Seeed Studio', 'Switch Science']);
   // 見出しのすぐ下の ul に、その vendor のボードが名前順で入る。
   for (const vendor of vendors) {
     const names = await page.locator('#board-list > h4.board-vendor', { hasText: vendor }).locator('xpath=following-sibling::ul[1]').locator('.board-item').allTextContents();
     expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(b => b.name));
   }
   expect(await page.locator('#board-list .board-item').allTextContents())
-    .toEqual(['ESP32-C5-DevKitC-1', 'ESP32-DevKitC V4', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32S3', 'XIAO RP2040']);
+    .toEqual(['ESP32-C5-DevKitC-1', 'ESP32-DevKitC V4', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32S3', 'XIAO RP2040', 'ESPr Developer C5']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
   // メーカーの見出しは view の見出しと同じ .heading の型（15px・左4px の縦線）。深さは
   // 字の大きさではなく、括りの中に行が入っていることで示す。
