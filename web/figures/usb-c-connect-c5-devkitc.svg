@@ -1,37 +1,56 @@
 <!-- ESP32-C5-DevKitC-1 を上から見た平面図。53.6x25.4mm で、モジュールのアンテナ区画が短辺から
-     6.5mm はみ出す（公式の寸法図 v1.2）。向きは Espressif の部品名入り写真と同じ横置き：
-     アンテナが左、USB-C 2 口が右辺に縦に並ぶ。上が ESP32-C5 直結の USB 口、下が USB シリアル
-     変換チップ側の UART 口で、その変換チップは 2 口の左に描いている。ヘッダは長辺に 16 穴ずつ。
-     基板では UART と USB のシルクが 2 つのコネクタの隙間に縦書きで入っているが、この縮尺では
-     隙間に文字が入らないので、それぞれの口のすぐ左に置いている。図に書く文字は基板に実際に
-     印字されているこの 2 語だけで、どちらに挿すかは手順文の側で言う。
-     BOOT と RESET のボタンは 2 口の左にあるが、この手順ではどちらも押さないので描かない。
-     この手順で挿すのは USB 口なので、そこだけ強調する。
+     はみ出す（公式の寸法図 v1.2）。向きは Espressif の部品名入り写真と同じ横置き：アンテナが左、
+     USB-C 2 口が右辺に縦に並ぶ。上が ESP32-C5 直結の USB 口、下が USB シリアル変換チップ
+     （CP2102N）側の UART 口。部品の位置は user guide の部品名入り写真と v1.2 のピン配置図を
+     重ねて読んだもの：右端の 2 口の左に BOOT（上）と RESET（下）が縦に並び、RESET の左下に
+     RGB LED、その上に変換チップ、モジュールとの間に 5V→3.3V の DC/DC と電源 LED、下寄りに
+     J5 のジャンパ。ヘッダは長辺に 16 穴ずつ（user guide の J1 / J3 の表）で、アンテナ側の端から
+     ボタンの手前まで。
+     基板では USB / UART / BOOT / RESET のシルクがどれも部品の脇に小さく縦書きで入っていて、
+     この縮尺では入らないので、USB と UART は基板の外（それぞれの口の上下）、BOOT と RESET は
+     基板の中（それぞれのボタンの上下）に横書きで置いている。図に書く文字は基板に実際に
+     印字されているこの 4 語だけで、どちらに挿すかは手順文の側で言う。
+     この手順で押すボタンは無い。挿すのは USB 口なので、そこだけ強調する。
      線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
 <svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
   <!-- 基板の短辺からはみ出すモジュールのアンテナ区画 -->
-  <rect class="fig-board fig-thin" x="22" y="99" width="18" height="46" rx="2"/>
-  <rect class="fig-board" x="40" y="92" width="150" height="60" rx="4"/>
-  <!-- 長辺のヘッダ 16 穴ずつ -->
-  <path class="fig-pad" d="M48,87h6v5h-6zM56,87h6v5h-6zM64,87h6v5h-6zM72,87h6v5h-6zM80,87h6v5h-6zM88,87h6v5h-6zM96,87h6v5h-6zM104,87h6v5h-6zM112,87h6v5h-6zM120,87h6v5h-6zM128,87h6v5h-6zM136,87h6v5h-6zM144,87h6v5h-6zM152,87h6v5h-6zM160,87h6v5h-6zM168,87h6v5h-6z"/>
-  <path class="fig-pad" d="M48,152h6v5h-6zM56,152h6v5h-6zM64,152h6v5h-6zM72,152h6v5h-6zM80,152h6v5h-6zM88,152h6v5h-6zM96,152h6v5h-6zM104,152h6v5h-6zM112,152h6v5h-6zM120,152h6v5h-6zM128,152h6v5h-6zM136,152h6v5h-6zM144,152h6v5h-6zM152,152h6v5h-6zM160,152h6v5h-6zM168,152h6v5h-6z"/>
-  <!-- ESP32-C5-WROOM-1 のシールド面 -->
-  <rect class="fig-face" x="40" y="99" width="64" height="46" rx="2"/>
-  <!-- USBシリアル変換チップ -->
-  <rect class="fig-part" x="120" y="108" width="14" height="16" rx="1"/>
+  <rect class="fig-board fig-thin" x="12" y="84" width="29" height="66" rx="2"/>
+  <rect class="fig-board" x="38" y="72" width="188" height="90" rx="4"/>
+  <!-- 長辺のヘッダ 16 穴ずつ（J1 / J3） -->
+  <path class="fig-pad" d="M42,67h7v5h-7zM51,67h7v5h-7zM60,67h7v5h-7zM69,67h7v5h-7zM78,67h7v5h-7zM87,67h7v5h-7zM96,67h7v5h-7zM105,67h7v5h-7zM114,67h7v5h-7zM123,67h7v5h-7zM132,67h7v5h-7zM141,67h7v5h-7zM150,67h7v5h-7zM159,67h7v5h-7zM168,67h7v5h-7zM177,67h7v5h-7z"/>
+  <path class="fig-pad" d="M42,162h7v5h-7zM51,162h7v5h-7zM60,162h7v5h-7zM69,162h7v5h-7zM78,162h7v5h-7zM87,162h7v5h-7zM96,162h7v5h-7zM105,162h7v5h-7zM114,162h7v5h-7zM123,162h7v5h-7zM132,162h7v5h-7zM141,162h7v5h-7zM150,162h7v5h-7zM159,162h7v5h-7zM168,162h7v5h-7zM177,162h7v5h-7z"/>
+  <!-- ESP32-C5-WROOM-1 の金属シールド面 -->
+  <rect class="fig-face" x="41" y="84" width="65" height="66" rx="2"/>
+  <!-- 3.3V 電源 LED と、5V から 3.3V の DC/DC -->
+  <rect class="fig-face" x="112" y="92" width="5" height="8" rx="1"/>
+  <rect class="fig-part" x="119" y="106" width="10" height="12" rx="1"/>
+  <!-- モジュールの電流を測る J5 のジャンパ -->
+  <rect class="fig-part" x="122" y="132" width="13" height="15" rx="1"/>
+  <!-- USB シリアル変換チップ（CP2102N） -->
+  <rect class="fig-part" x="148" y="100" width="18" height="19" rx="1"/>
+  <!-- RGB LED -->
+  <rect class="fig-face" x="152" y="131" width="12" height="12" rx="1"/>
+  <circle class="fig-board fig-thin" cx="158" cy="137" r="2.5"/>
+  <!-- BOOT（上）と RESET（下）。この手順ではどちらも押さない -->
+  <rect class="fig-part" x="170" y="90" width="13" height="14" rx="3"/>
+  <circle class="fig-face" cx="176.5" cy="97" r="4.5"/>
+  <text class="fig-small" x="176" y="62" text-anchor="middle">BOOT</text>
+  <rect class="fig-part" x="170" y="128" width="13" height="14" rx="3"/>
+  <circle class="fig-face" cx="176.5" cy="135" r="4.5"/>
+  <text class="fig-small" x="176" y="184" text-anchor="middle">RESET</text>
   <!-- 右辺の USB-C 2 口。上が ESP32-C5 直結の USB 口（この手順で挿す方）。 -->
-  <rect class="fig-part fig-accent fig-hit" x="178" y="88" width="28" height="26" rx="4"/>
-  <rect class="fig-board fig-accent fig-thin" x="186" y="97" width="12" height="8" rx="4"/>
-  <rect class="fig-part" x="178" y="126" width="28" height="26" rx="4"/>
-  <rect class="fig-board fig-thin" x="186" y="135" width="12" height="8" rx="4"/>
-  <text class="fig-small fig-accent" x="172" y="104" text-anchor="end">USB</text>
-  <text class="fig-small" x="172" y="146" text-anchor="end">UART</text>
-  <!-- USB-Cケーブルは右から差し込む。rotate(180 240 101) の中で fig-cable が横へ動く＝画面では左向き。 -->
-  <g transform="rotate(180 240 101)">
+  <rect class="fig-part fig-accent fig-hit" x="198" y="80" width="32" height="28" rx="4"/>
+  <rect class="fig-board fig-accent fig-thin" x="208" y="90" width="13" height="8" rx="4"/>
+  <rect class="fig-part" x="198" y="130" width="32" height="28" rx="4"/>
+  <rect class="fig-board fig-thin" x="208" y="140" width="13" height="8" rx="4"/>
+  <text class="fig-small fig-accent" x="236" y="74" text-anchor="start">USB</text>
+  <text class="fig-small" x="236" y="148" text-anchor="start">UART</text>
+  <!-- USB-Cケーブルは右から差し込む。rotate(180 239 94) の中で fig-cable が横へ動く＝画面では左向き。 -->
+  <g transform="rotate(180 239 94)">
     <g class="fig-cable fig-accent">
-      <rect class="fig-part fig-accent" x="236" y="87" width="34" height="28" rx="5"/>
-      <rect class="fig-part fig-accent" x="208" y="94" width="28" height="14" rx="6"/>
-      <path d="M208,101 L162,101"/>
+      <rect class="fig-part fig-accent" x="212" y="80" width="34" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="184" y="87" width="28" height="14" rx="6"/>
+      <path d="M186,94 L158,94"/>
     </g>
   </g>
 </svg>

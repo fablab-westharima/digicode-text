@@ -284,7 +284,7 @@ test('ESP32-DevKitC V4の手順はMicro-USBとポート選択の2枚で、ボタ
 test('図に書く文字は、画面で実際に見える文字列だけ', async () => {
   const dir = new URL('../web/figures/', import.meta.url);
   const allowed = new Set([
-    'B', 'BOOTSEL', 'FUNC', 'RST', 'PORT0', 'PORT1', 'USB', 'UART', 'RESET', 'FLASH', // ボードに印字されているボタン名・コネクタ名
+    'B', 'BOOT', 'BOOTSEL', 'FUNC', 'RST', 'PORT0', 'PORT1', 'USB', 'UART', 'RESET', 'FLASH', // ボードに印字されているボタン名・コネクタ名
     'RPI-RP2', 'NO NAME', 'USB JTAG/serial debug unit', 'FT234X', // PC側の画面に出る名前
   ]);
   const files = (await readdir(dir)).filter(f => f.endsWith('.svg'));
