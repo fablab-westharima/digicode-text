@@ -1,15 +1,15 @@
 {
   "env": "xiao_esp32c3",
-  "platform": "espressif32@7.0.1",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
   "board": "seeed_xiao_esp32c3",
   "mcu": "esp32c3",
   "core": "esp32",
   "variant": "XIAO_ESP32C3",
   "frameworkPackage": "framework-arduinoespressif32",
-  "frameworkVersion": "3.20017.241212+sha.dcc1105b",
+  "frameworkVersion": "3.3.12",
   "sources": {
     "platformioIni": "compiler/pio-esp32c3/platformio.ini",
-    "boardDefinition": "platforms/espressif32@7.0.1/boards/seeed_xiao_esp32c3.json",
+    "boardDefinition": "platforms/espressif32/boards/seeed_xiao_esp32c3.json",
     "variantHeader": "packages/framework-arduinoespressif32/variants/XIAO_ESP32C3/pins_arduino.h",
     "digitalLabelsFrom": "pins_arduino.h"
   },
@@ -43,7 +43,7 @@
       "pin": 5,
       "gpio": 5,
       "functions": [],
-      "adc": "A3",
+      "adc": null,
       "note": null
     },
     {

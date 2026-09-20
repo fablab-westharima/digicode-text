@@ -5,7 +5,7 @@ root=Path(__file__).resolve().parent.parent
 manifest=json.loads(Path(sys.argv[1]).read_text())
 assert manifest['format']=='digicode-text-flash-set' and manifest['version']==2
 assert manifest['board']=='seeed_xiao_esp32c3' and manifest['chip']=='esp32c3'
-assert manifest['platform']=='espressif32@7.0.1'
+assert manifest['platform']=='espressif32@55.03.312' # pioarduino's platform, pinned in compiler/pio-esp32c3/platformio.ini
 assert [x['address'] for x in manifest['images']]==['0x0','0x8000','0xe000','0x10000']
 assert [x['file'] for x in manifest['images']]==['bootloader.bin','partitions.bin','boot_app0.bin','firmware.bin']
 images={}

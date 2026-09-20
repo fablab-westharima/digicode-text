@@ -8,9 +8,10 @@
 //   compiler/pio-*/platformio.ini  [env:<env>] platform + board
 //     -> ~/.platformio/platforms/<platform>/boards/<board>.json  build.variant + build.core
 //     -> ~/.platformio/packages/<framework package>/variants/<variant>/pins_arduino.h
-// The framework package is platform.json frameworks.arduino.package, except for
-// build.core "earlephilhower", which the community platform's builder resolves to
-// framework-arduinopico (builder/frameworks/arduino/arduino.py).
+// The framework package is platform.json frameworks.arduino.package where the manifest names
+// one; pioarduino's espressif32 names none, so its first installed framework package is used.
+// The exception is build.core "earlephilhower", which the community platform's builder
+// resolves to framework-arduinopico (builder/frameworks/arduino/arduino.py).
 import { readFile, writeFile, readdir, access } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -63,11 +64,15 @@ async function platformDir(spec) {
   if (/^(https?|git)[:+]/.test(spec)) {
     const want = spec.replace(/\.git$/, '');
     for (const name of dirs) {
+      // An archive install records the URL it came from in .piopm; a git checkout has no
+      // .piopm at all, so its origin remote is the only thing that names the source.
+      const meta = await readJson(path.join(full(name), '.piopm')).catch(() => null);
+      if (meta?.spec?.uri?.replace(/\.git$/, '') === want) return full(name);
       if (!await exists(path.join(full(name), '.git'))) continue;
       const { stdout } = await run('git', ['-C', full(name), 'remote', 'get-url', 'origin']).catch(() => ({ stdout: '' }));
       if (stdout.trim().replace(/\.git$/, '') === want) return full(name);
     }
-    throw new Error(`no installed platform checked out from ${spec}`);
+    throw new Error(`no installed platform from ${spec}`);
   }
   const [name, version] = spec.split('@');
   const candidates = dirs.filter(d => d === spec || d === name || d.startsWith(name + '@'));
@@ -78,6 +83,39 @@ async function platformDir(spec) {
     if (meta?.name === name && meta.version === version) return full(dir);
   }
   throw new Error(`platform ${spec} is not installed under ${PIO_HOME}/platforms`);
+}
+
+// Directory under ~/.platformio/packages for one of a platform's packages. A package whose
+// manifest version is a URL is unpacked into "<name>@src-<hash>", so the name alone is not the
+// directory; the .piopm of the candidates carries the URL the manifest asked for. Two platforms
+// installed side by side can name the same package from different sources, so the URL is what
+// tells their directories apart.
+async function packageDir(pkg, platformMeta) {
+  const source = platformMeta.packages?.[pkg]?.version ?? '';
+  const under = name => path.join(PIO_HOME, 'packages', name);
+  if (!/^(https?|git|file)[:+]/.test(source)) return under(pkg);
+  for (const name of (await readdir(path.join(PIO_HOME, 'packages'))).filter(d => d === pkg || d.startsWith(pkg + '@'))) {
+    const meta = await readJson(path.join(under(name), '.piopm')).catch(() => null);
+    // A git checkout carries no .piopm; nothing else records where that directory came from,
+    // so the plain <name> one is taken. A directory whose .piopm names a different source was
+    // installed for another platform and is never used, however it is named.
+    if (meta ? meta.name === pkg && meta.spec?.uri === source : name === pkg) return under(name);
+  }
+  throw new Error(`package ${pkg} from ${source} is not installed under ${PIO_HOME}/packages`);
+}
+
+// The package that carries the Arduino core's variants, as the platform's builder resolves it:
+// the manifest's own name for it where there is one (espressif8266), otherwise the platform's
+// first installed framework package (pioarduino's espressif32 arduino entry has only a script).
+async function arduinoPackage(platformMeta) {
+  const named = platformMeta.frameworks?.arduino?.package;
+  if (named) return named;
+  for (const [name, options] of Object.entries(platformMeta.packages ?? {})) {
+    if (options.type !== 'framework') continue;
+    const dir = await packageDir(name, platformMeta).catch(() => null);
+    if (dir && await exists(dir)) return name;
+  }
+  return null;
 }
 
 // Strip block comments; keep each line's trailing // comment so "not pinned out" style
@@ -161,9 +199,9 @@ export async function generate(spec) {
   const boardDef = await readJson(boardFile);
   const core = section['board_build.core'] ?? boardDef.build.core;
   const platformMeta = await readJson(path.join(platform, 'platform.json'));
-  const pkg = core === 'earlephilhower' ? 'framework-arduinopico' : platformMeta.frameworks?.arduino?.package;
+  const pkg = core === 'earlephilhower' ? 'framework-arduinopico' : await arduinoPackage(platformMeta);
   if (!pkg) throw new Error(`${spec.env}: no arduino framework package for platform ${section.platform}`);
-  const pkgDir = path.join(PIO_HOME, 'packages', pkg);
+  const pkgDir = await packageDir(pkg, platformMeta);
   const variantDir = path.join(pkgDir, 'variants', boardDef.build.variant);
   const header = path.join(variantDir, 'pins_arduino.h');
   if (!await exists(header)) throw new Error(`${spec.env}: ${header} is missing`);

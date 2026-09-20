@@ -14,8 +14,19 @@ from pathlib import Path
 
 
 def framework_package(platform, env):
-    """The framework package name from the platform manifest (never a hard-coded name)."""
-    return platform.frameworks[env.subst("$PIOFRAMEWORK").split()[0]]["package"]
+    """The framework package name from the platform manifest (never a hard-coded name).
+
+    espressif8266 names the package for its framework. pioarduino's espressif32 gives the
+    framework a build script and no package name, so the platform's first installed framework
+    package is used: its Arduino core, which is the package whose version identifies the core.
+    """
+    framework = platform.frameworks[env.subst("$PIOFRAMEWORK").split()[0]]
+    if "package" in framework:
+        return framework["package"]
+    for name, options in platform.packages.items():
+        if options.get("type") == "framework" and platform.get_package_dir(name):
+            return name
+    raise RuntimeError("no installed framework package for platform " + platform.name)
 
 
 def flash_parameters(env, board):
