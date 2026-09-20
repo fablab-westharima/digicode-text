@@ -65,7 +65,7 @@ function renderThemes() {
       list = document.createElement('ul');
       list.className = 'board-group';
       const heading = document.createElement('h4');
-      heading.className = 'board-vendor';
+      heading.className = 'heading board-vendor';
       heading.textContent = family;
       root.append(heading, list);
     }

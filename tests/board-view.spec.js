@@ -129,9 +129,11 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
   expect(await page.locator('#board-list .board-item').allTextContents())
     .toEqual(['ESP32-DevKitC V4', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32S3', 'XIAO RP2040']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
-  // 小見出しは view の見出しより一段小さい。
+  // メーカーの見出しは view の見出しと同じ .heading の型（16px・左4px の縦線）。深さは
+  // 字の大きさではなく、括りの中に行が入っていることで示す。
   const size = sel => page.locator(sel).first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
-  expect(await size('.board-vendor')).toBeLessThan(await size('.view-section-title'));
+  expect(await size('.board-vendor')).toBe(await size('.view-section-title'));
+  await expect(page.locator('#board-list > h4.board-vendor').first()).toHaveClass(/(^|\s)heading(\s|$)/);
 });
 
 const vendorToggle = (page, vendor) => page.locator('#board-list > h4.board-vendor', { hasText: vendor }).locator('button');

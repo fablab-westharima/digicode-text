@@ -120,7 +120,7 @@ export function setupBoardList(boards, selectedId, select) {
   // 見出しの中の button が aria-expanded を持ち、開閉の印は CSS が描く。畳んだ節は選択中の
   // ボードを含んでいても畳んだままで、次に開いたときも畳まれている。
   function vendorHeading(vendor, list) {
-    const heading = element('h4', null, 'board-vendor');
+    const heading = element('h4', null, 'heading board-vendor');
     const toggle = element('button', vendor, 'board-vendor-toggle');
     toggle.type = 'button';
     list.id = `board-group-${vendor.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;

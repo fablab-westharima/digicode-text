@@ -143,8 +143,11 @@ test('見出し：全 view の .heading が型と一致する', async ({ page })
   await expect(page.locator('#library-results-label')).toBeVisible();
   expect(await diff(page, { target: '#library-results-label', ref: HEADING }), 'ライブラリ「検索結果」').toEqual({});
 
-  // ボード詳細の 4 見出し（ピン・注意点・出所・書き込み）
+  // ボード一覧のメーカーの見出し（中の button が節を畳む。見出しそのものは型のまま）
   await openBoards(page);
+  expect(await diff(page, { target: '#board-list > .board-vendor', ref: HEADING }), 'ボード一覧のメーカー').toEqual({});
+
+  // ボード詳細の 4 見出し（ピン・注意点・出所・書き込み）
   await page.locator('#board-list li[data-board-id="xiao_rp2040"] .board-item').click();
   await page.click('#board-pins-toggle');
   const boardHeadings = page.locator('#board-facts > .heading');
@@ -197,6 +200,10 @@ test('行：3 view の .list-row が型と一致し、互いにも一致する',
   expect(await diff(page, { target: '.board-item[aria-expanded="true"]', ref: row(' aria-current="false" aria-expanded="true"') }), 'ボード 開').toEqual({});
   // ✓ が付かない行の印の枠（content: '' で 1em ぶん確保される）。
   expect(await diff(page, { target: '.board-item > strong', ref: row(), refPick: 'strong', refIn: '#board-list' }), '印の枠').toEqual({});
+  // 行の名前は通常の太さ（型の .list-row > strong が font-weight: 400）。太字は見出しとボタンの
+  // 文字だけ、という styleguide「9 本文」の決めごとに一覧の行も従う。3 view の行はこの上で
+  // 型と一致しているので、太さそのものはここで 1 つ留める。
+  expect(await style(page, { target: '.board-item > strong' })).toMatchObject({ fontWeight: '400' });
 
   // --- ライブラリ
   await libraryMocks(page);
