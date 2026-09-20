@@ -58,7 +58,8 @@ function noteLines(notes) {
     ...notes.map(n => `- ${n.text} [${sources.indexOf(n.source) + 1}]`),
     '出所: ' + sources.map((url, i) => `[${i + 1}] ${url}`).join(' ')];
 }
-// Libraries the compile harness saw fail to build on this board's platform. The rows arrive on
+// Libraries the compile harness saw fail to build on this board — on its platform as a whole, or
+// on this board alone where the other boards of that platform built them. The rows arrive on
 // the board's /boards entry (compiler/library-incompat.mjs is where they are written), so this
 // stays a pure function of its argument: the browser and a test agree on the same sentence.
 function unusableLines(rows) {
@@ -70,7 +71,11 @@ export function boardFacts(b) {
   // the board as a whole, and the reader should have them before the table it is easy to stop at.
   // pinTableNote comes before the table because it says how to read it (Wio Node's generic
   // variant labels are not the board's own markings). It is a board fact, so it lives in BOARDS.
-  return [head, ...unusableLines(b.incompatibleLibraries),
+  // coreNote qualifies the core the opening sentence named — which generation of its APIs this board
+  // builds with — so it comes with the whole-board material, ahead of the pin table. It is a board
+  // fact, so it lives in BOARDS, and only the boards that have one carry it; the all-board system
+  // prompt never says it.
+  return [head, ...unusableLines(b.incompatibleLibraries), ...(b.coreNote ? [b.coreNote] : []),
     ...(b.pinTableNote ? [b.pinTableNote] : []), ...(b.pins ? pinLines(b.pins) : []),
     ...(b.pinNotes?.length ? noteLines(b.pinNotes) : [])].join('\n');
 }

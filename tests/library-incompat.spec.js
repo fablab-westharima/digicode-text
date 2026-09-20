@@ -7,9 +7,15 @@ import { openAI, selectBoard } from './shell.js';
 // Registry coordinates; the search and details responses are mocked so no Registry call is made.
 const mqtt = { id: 1092, owner: 'adafruit', name: 'Adafruit MQTT Library', version: '2.6.6' };
 const pubsub = { id: 89, owner: 'knolleary', name: 'PubSubClient', version: '2.8' };
+// The second kind of row: written for one board, not for its platform. The harness saw OneWire
+// fail on the C5 alone; the other three esp32 boards build it.
+const onewire = { id: 1, owner: 'paulstoffregen', name: 'OneWire', version: '2.3.8' };
 const listed = p => ({ ...p, description: `${p.name} description`, frameworks: ['arduino'], platforms: ['*'] });
 const UNUSABLE = 'adafruit/Adafruit MQTT Library';
+const BOARD_ONLY = 'paulstoffregen/OneWire';
 const BLOCKED_BOARD = 'xiao_esp32c3', OK_BOARD = 'wio_node';
+// Same platform as BLOCKED_BOARD ('esp32'), so only a board row can tell them apart.
+const ONE_BOARD = 'xiao_esp32c5', SAME_PLATFORM = ['xiao_esp32c3', 'xiao_esp32s3', 'esp32_devkitc_v4'];
 const projectKey = 'digicode-text.projects.v1';
 const uiKey = 'digicode-text.libs-ui.v1';
 const mqttRow = page => page.locator(`[data-library-id="${mqtt.id}"]`);
@@ -26,6 +32,14 @@ async function mocks(page) {
   await page.route('**/libraries/details?*', route => {
     const url = new URL(route.request().url());
     const p = url.searchParams.get('name') === mqtt.name ? mqtt : pubsub;
+    return route.fulfill({ json: { ...listed(p), versions: [p.version] } });
+  });
+}
+async function onewireMocks(page) {
+  await page.route('**/libraries/search?*', route => route.fulfill({ json: { items: [listed(pubsub), listed(onewire)], total: 2 } }));
+  await page.route('**/libraries/details?*', route => {
+    const url = new URL(route.request().url());
+    const p = url.searchParams.get('name') === onewire.name ? onewire : pubsub;
     return route.fulfill({ json: { ...listed(p), versions: [p.version] } });
   });
 }
@@ -260,6 +274,73 @@ test('copying the build output carries the unusable dependency notice while it i
   expect((await page.evaluate(() => window.copied))[1]).toBe(second);
 });
 
+// A row written for one board, on a platform three other boards share. Every reader of the table
+// has to keep that distinction: the Libraries view, the Build notice, the AI's board sentence and
+// the 取説's table all read the same /boards entry, so all four are checked on one pass.
+test('a row written for one board reaches that board only, in the view, the Build notice, the AI sentence and the 取説 table', async ({ page, request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const entry = id => boards.find(b => b.id === id);
+  const rowOf = id => entry(id).incompatibleLibraries.find(r => r.library === BOARD_ONLY);
+
+  // /boards is the browser's only source, so the scoping is visible there first.
+  expect(rowOf(ONE_BOARD)).toBeTruthy();
+  expect(rowOf(ONE_BOARD).alternative).toBe('pstolarz/OneWireNg');
+  for (const id of [...SAME_PLATFORM, OK_BOARD, 'pico_w', 'pico', 'xiao_rp2040'])
+    expect(rowOf(id), id).toBeUndefined();
+  // The platform row is still a platform row: every esp32 board keeps it.
+  for (const id of [ONE_BOARD, ...SAME_PLATFORM])
+    expect(entry(id).incompatibleLibraries.some(r => r.library === UNUSABLE), id).toBe(true);
+
+  // AI's board sentence: the pure function the browser hands to the model.
+  expect(boardFacts(entry(ONE_BOARD))).toContain(`使えないライブラリ: ${BOARD_ONLY}`);
+  for (const id of SAME_PLATFORM) expect(boardFacts(entry(id)), id).not.toContain(BOARD_ONLY);
+
+  await onewireMocks(page); await ready(page);
+  await page.route('**/compile', route => route.fulfill({ contentType: 'application/json', body: flashSet }));
+  await selectBoard(page, ONE_BOARD);
+  await search(page);
+  const row = page.locator(`[data-library-id="${onewire.id}"]`);
+  await expect(row).toHaveCount(0); // hidden until the checkbox asks for it
+  await page.check('#library-show-incompatible');
+  await expect(row.locator('.library-badge')).toHaveText('使えません');
+
+  // Add it, and the Build notice names it on this board.
+  await row.locator('.library-item').click();
+  await row.getByRole('button', { name: 'バージョンを選択' }).click();
+  await row.getByRole('button', { name: 'プロジェクトに追加' }).click();
+  await page.click('#libraries-close');
+  await page.click('#build');
+  await expect(page.locator('#status')).toContainText('Build成功');
+  const notice = page.locator('#build-incompat');
+  await expect(notice).toHaveText(`${BOARD_ONLY} は ${entry(ONE_BOARD).name} で使えません: ${rowOf(ONE_BOARD).reason}。代替: ${rowOf(ONE_BOARD).alternative}`);
+
+  // The other boards on the same platform build it: no badge, no notice, and the row is listed
+  // without the checkbox being asked for.
+  for (const id of SAME_PLATFORM) {
+    await selectBoard(page, id);
+    await expect(notice, id).toBeHidden();
+    // 開き直すと候補は白紙に戻るので、行を見るにはもう一度検索する。
+    await search(page);
+    await expect(page.locator('#library-added .library-badge'), id).toHaveCount(0);
+    await page.uncheck('#library-show-incompatible');
+    await expect(row, id).toBeVisible(); // 伏せられていない = このボードでは使える
+    await page.click('#libraries-close');
+    await page.click('#build');
+    await expect(page.locator('#status')).toContainText('Build成功');
+    await expect(notice, id).toBeHidden();
+  }
+
+  // 取説の非互換表: one line per library, naming the boards it cannot be used on.
+  await page.click('#view-help');
+  await expect(page.locator('#help-dialog')).toBeVisible();
+  const line = page.locator('#help-incompat tbody tr').filter({ hasText: BOARD_ONLY });
+  await expect(line).toHaveCount(1);
+  await expect(line.locator('td').nth(1)).toHaveText(entry(ONE_BOARD).name);
+  await expect(line.locator('td').nth(2)).toContainText('pstolarz/OneWireNg');
+  const mqttLine = page.locator('#help-incompat tbody tr').filter({ hasText: UNUSABLE });
+  for (const id of [ONE_BOARD, ...SAME_PLATFORM]) await expect(mqttLine.locator('td').nth(1)).toContainText(entry(id).name);
+});
+
 test('the unusable badge wears the failure colour and the view names the board it speaks for', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   const boardName = id => boards.find(b => b.id === id).name;
@@ -273,6 +354,13 @@ test('the unusable badge wears the failure colour and the view names the board i
   await expect(badge).toHaveCSS('color', danger);
   await expect(badge).toHaveCSS('border-color', danger);
   await expect(badge).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+
+  // 使えない行は太さでは示さない。一覧の行の太さは型のまま（他の行と同じ）で、違うのは色だけ。
+  const name = mqttRow(page).locator('.library-item > strong');
+  const usable = page.locator(`[data-library-id="${pubsub.id}"] .library-item > strong`);
+  await expect(name).toHaveCSS('color', await themeColour(page, '--fg-muted'));
+  await expect(name).toHaveCSS('font-weight', await usable.evaluate(el => getComputedStyle(el).fontWeight));
+  expect(await usable.evaluate(el => getComputedStyle(el).color)).not.toBe(await themeColour(page, '--fg-muted'));
 
   // Everything hidden or flagged here is one board's statement, so the view names that board.
   const target = page.locator('#libraries-dialog .current-project');

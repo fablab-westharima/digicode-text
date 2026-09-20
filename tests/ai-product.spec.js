@@ -159,6 +159,25 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
   }
 });
 
+test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'xiao_esp32s3', 'esp32_devkitc_v4']);
+  for (const b of boards) {
+    const facts = boardFacts(b);
+    if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
+    // 同じ文が 4 板に複写されていない: 1 つの定数を参照している。
+    expect(b.coreNote, b.id).toBe(boards.find(x => x.id === 'xiao_esp32c3').coreNote);
+    expect(b.coreNote, b.id).toContain('arduino-esp32 3.x');
+    // core 系列を言った文のすぐ後、ピン表より前に出る。
+    expect(facts.indexOf(b.coreNote), b.id).toBeGreaterThan(0);
+    expect(facts.indexOf(b.coreNote), b.id).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+    for (const word of ['ledcSetup', 'ledcAttachPin', 'esp_task_wdt_config_t']) expect(facts, b.id).toContain(word);
+  }
+  // ボードごとの事実なので、全ボード共通の system プロンプトには入らない。
+  for (const word of ['ledcAttach', 'esp_task_wdt', 'pioarduino']) expect(systemFor()).not.toContain(word);
+});
+
 test('the Pico is served as an earlephilhower arduino-pico board, with the pin table generated from that core', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const pico = boards.find(b => b.id === 'pico');

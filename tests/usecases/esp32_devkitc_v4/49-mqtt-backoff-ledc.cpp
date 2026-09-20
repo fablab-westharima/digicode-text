@@ -16,7 +16,6 @@ static const char* TOPIC_STATE = "digicode/esp32-devkitc/link";
 
 // このボードにユーザー LED は無いので、LED_PIN は GPIO25 に外付けした LED のつもり。
 static const uint8_t LED_PIN = 25;
-static const uint8_t LEDC_CHANNEL = 0;
 static const uint32_t LEDC_FREQ = 5000;
 static const uint8_t LEDC_BITS = 10;
 static const uint32_t BACKOFF_MIN_MS = 1000;
@@ -32,8 +31,9 @@ static uint32_t mqttFailures = 0;
 static uint32_t reconnects = 0;
 static uint32_t lastPublish = 0;
 
+// arduino-esp32 3.x の LEDC は channel ではなく pin を指して書く。
 static void setLed(uint16_t duty) {
-  ledcWrite(LEDC_CHANNEL, duty);
+  ledcWrite(LED_PIN, duty);
 }
 
 static void noteFailure() {
@@ -91,8 +91,8 @@ static void publishLinkState() {
 void setup() {
   Serial.begin(115200);
   delay(200);
-  ledcSetup(LEDC_CHANNEL, LEDC_FREQ, LEDC_BITS);
-  ledcAttachPin(LED_PIN, LEDC_CHANNEL);
+  // arduino-esp32 3.x: ledcSetup + ledcAttachPin は ledcAttach 1 本になり、channel は core が割り当てる。
+  ledcAttach(LED_PIN, LEDC_FREQ, LEDC_BITS);
   setLed(0);
 
   WiFi.persistent(false);

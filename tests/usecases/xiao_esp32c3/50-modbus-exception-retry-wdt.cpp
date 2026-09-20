@@ -108,7 +108,14 @@ void setup() {
   exceptionCount = prefs.getUInt("except", 0);
   prefs.end();
 
-  esp_task_wdt_init(WDT_TIMEOUT_S, true);
+  // arduino-esp32 3.x (ESP-IDF 5.x) の Task WDT。init は設定構造体を 1 つだけ受け取る。
+  // core が先に初期化していると init は ESP_ERR_INVALID_STATE を返すので、その場合は時間を入れ替える。
+  const esp_task_wdt_config_t wdtConfig = {
+    .timeout_ms = WDT_TIMEOUT_S * 1000,
+    .idle_core_mask = 0, // idle task は見ない。見るのはこのタスクだけ
+    .trigger_panic = true,
+  };
+  if (esp_task_wdt_init(&wdtConfig) == ESP_ERR_INVALID_STATE) esp_task_wdt_reconfigure(&wdtConfig);
   esp_task_wdt_add(NULL);
   Serial.println("modbus retry + task wdt");
 }

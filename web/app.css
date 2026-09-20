@@ -892,10 +892,14 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 /* 候補の見出しは行を独り占めして、候補のボタンが次の行から並ぶようにする。 */
 #library-suggestions p { width: 100%; }
 #library-suggestions button { max-width: 100%; height: auto; min-height: var(--row); white-space: normal; overflow-wrap: anywhere; }
-/* Libraries the compiler reports as unusable on the selected board. Search results are muted
-   and only shown when the toggle asks for them; the row wears a badge and the reason is in the box. */
+/* Libraries the compiler reports as unusable on the selected board. Search results are only shown
+   when the toggle asks for them; the row wears a badge and the reason is in the box.
+   太さは触らない：一覧の行は 400 が型（.list-row > strong）なので、ここで太くすると「使えない」行
+   だけが他の行より強く出てしまい、意味が逆になる。区別は色だけで付け、印は行の中の
+   「使えません」バッジ（--danger の枠と字）が受け持つ。名前の左端は他の行と同じ位置のままにする
+   （✓ の枠は追加済みの印のものなので奪わない）。 */
 .library-incompatible-toggle input { margin: 0 6px 0 0; vertical-align: -2px; }
-.library-result.library-unusable .library-item > strong { color: var(--fg-muted); font-weight: 600; }
+.library-result.library-unusable .library-item > strong { color: var(--fg-muted); }
 .detail-box dd.library-unusable-reason { color: var(--fg-muted); overflow-wrap: anywhere; }
 .detail-box dd.library-incompatible { color: var(--danger); overflow-wrap: anywhere; }
 
