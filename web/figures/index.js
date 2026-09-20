@@ -11,6 +11,7 @@ import portDialogUsbJtag from './port-dialog-usb-jtag.svg';
 import portDialogFt234x from './port-dialog-ft234x.svg';
 import portDialogUsbSerial from './port-dialog-usb-serial.svg';
 import microUsbConnectDevkitc from './micro-usb-connect-devkitc.svg';
+import usbCConnectXiaoS3 from './usb-c-connect-xiao-s3.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -27,4 +28,6 @@ export const FIGURES = {
   // USBシリアル変換チップを載せた板。ダイアログに出る名前は板ごとに違うので、行は帯で描く。
   'port-dialog-usb-serial': portDialogUsbSerial,
   'micro-usb-connect-devkitc': microUsbConnectDevkitc,
+  // XIAOは基板の形が共通でも、前面の部品の位置がボードで違う。図はボード別に持つ。
+  'usb-c-connect-xiao-s3': usbCConnectXiaoS3,
 };

@@ -28,6 +28,15 @@ export const FLASH_GUIDES = {
     ],
     notes: ['書き込みの前後のリセットは自動で行われるので、ボタン操作は要らない。'],
   },
+  // XIAO ESP32S3 は USB がチップに直結。ダイアログに出る名前はこの板でまだ確かめていないので、
+  // C3 と違って行は帯の図で描き、何を選ぶかは手順文で言う。
+  xiao_esp32s3: {
+    steps: [
+      { text: 'USB-CケーブルでボードをPCに接続する。', figure: 'usb-c-connect-xiao-s3' },
+      { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+    ],
+    notes: ['書き込みの前後のリセットは自動で行われるので、ボタン操作は要らない。'],
+  },
   // DevKitC は USB シリアル変換チップ経由。そのチップが EN と GPIO0 を駆動するので、
   // 書き込みのためのボタン操作は要らない（Espressif の boot-mode-selection の配線）。
   esp32_devkitc_v4: {

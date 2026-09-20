@@ -6,7 +6,11 @@ import { disconnectSerial } from './serial.js';
 import { hardResetPulse } from './esp-reset.js';
 
 // Same vendor filter as the donor: CP210x, CH340, FTDI, Espressif USB JTAG/serial.
-export const ESP_VENDOR_IDS = [0x10c4, 0x1a86, 0x0403, 0x303a];
+// 0x2886 is Seeed's own id. The XIAO ESP32S3 variant header sets USB_VID 0x2886 / USB_PID 0x0056
+// (packages/framework-arduinoespressif32/variants/XIAO_ESP32S3/pins_arduino.h), and the board
+// definition lists the same pair, so a board running its own USB CDC appears under that id and
+// would be filtered out of the port chooser without this entry. Not yet seen on real hardware.
+export const ESP_VENDOR_IDS = [0x10c4, 0x1a86, 0x0403, 0x303a, 0x2886];
 
 export function parseFlashSet(json) {
   if (!json || json.format !== 'digicode-text-flash-set' || !Array.isArray(json.images) || !json.images.length) throw new Error('書き込みデータの形式が不正です');

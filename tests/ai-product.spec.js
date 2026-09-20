@@ -129,7 +129,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -206,6 +206,31 @@ test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 
   expect(facts).toContain('SPI flashの通信に基板内部で使われている');
   // 板が届くまでは実機で確かめていない。表にその事実が載る。
   expect(devkit.hardwareVerified).toBe(false);
+});
+
+test('XIAO ESP32S3 のピン表は core の variant そのままで、D6/D7 に ADC が無く LED_BUILTIN はパッドに出ていない', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const s3 = boards.find(b => b.id === 'xiao_esp32s3');
+  expect(s3.pins.variant).toBe('XIAO_ESP32S3');
+  expect(s3.pins.sources.digitalLabelsFrom).toBe('pins_arduino.h');
+  // Seeed のピンマップと同じ並び: D0..D10 = 1,2,3,4,5,6,43,44,7,8,9。
+  expect(Object.fromEntries(s3.pins.pins.map(p => [p.label, p.gpio])))
+    .toEqual({ D0: 1, D1: 2, D2: 3, D3: 4, D4: 5, D5: 6, D6: 43, D7: 44, D8: 7, D9: 8, D10: 9 });
+  // UART の 2 本にだけ ADC が無い。
+  expect(s3.pins.pins.filter(p => p.adc === null).map(p => p.label)).toEqual(['D6', 'D7']);
+  // User LED はチップのピンで、パッドには出ていないので「ラベル無し」の行に出る。
+  expect(s3.pins.unlabelledFunctions).toEqual([{ name: 'LED_BUILTIN', pin: 21, gpio: 21, note: null }]);
+  expect(boardFacts(s3)).toContain('User LEDはGPIO21');
+  expect(s3.hardwareVerified).toBe(false);
+});
+
+test('XIAO ESP32S3 の USB は Seeed の vendor id で出るので、ポート選択の絞り込みに入っている', async () => {
+  // variant ヘッダーが USB_VID 0x2886 を定義している。書き込みと Serial モニタの両方の
+  // requestPort が同じ id を許していないと、この板はダイアログに並ばない。
+  const variant = '/Users/ohahiso/.platformio/packages/framework-arduinoespressif32/variants/XIAO_ESP32S3/pins_arduino.h';
+  const header = await readFile(variant, 'utf8').catch(() => null);
+  if (header) expect(header).toContain('#define USB_VID 0x2886');
+  for (const file of ['web/flash.js', 'web/serial.js']) expect(await read(file), file).toContain('0x2886');
 });
 
 test('実機確認待ちの印は、ボード表の hardwareVerified がそのまま出たもの', async ({ page, request }) => {

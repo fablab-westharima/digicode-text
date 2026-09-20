@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'xiao_esp32c3', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'xiao_esp32c3', 'xiao_esp32s3', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -205,6 +205,16 @@ test('Wio Nodeの手順はGroveのUSBシリアルとFUNC/RSTを図つきで出�
   await expect(page.locator('#flash-guide-notes')).toContainText('給電専用');
   expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
     .toEqual(['grove-serial-port0', 'func-rst', 'port-dialog-ft234x']);
+});
+
+test('XIAO ESP32S3の手順はこのボード専用の基板図で、C3の図を使い回さない', async ({ page }) => {
+  await ready(page, 'xiao_esp32s3');
+  await page.click('#flash-guide-open');
+  await expect(page.locator('#flash-guide-title')).toContainText('XIAO ESP32S3');
+  await expect(page.locator('#flash-guide-steps')).toContainText('USB-C');
+  await expect(page.locator('#flash-guide-notes')).toContainText('ボタン操作は要らない');
+  expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+    .toEqual(['usb-c-connect-xiao-s3', 'port-dialog-usb-serial']);
 });
 
 test('ESP32-DevKitC V4の手順はMicro-USBとポート選択の2枚で、ボタン操作は要らないと言う', async ({ page }) => {

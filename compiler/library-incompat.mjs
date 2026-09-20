@@ -16,7 +16,7 @@ export const LIBRARY_INCOMPAT = [
     alternative: 'knolleary/PubSubClient',
     // A platform row covers every board on that platform, so a new esp32 board does not inherit
     // this row on trust: the same case was run on it before the row was allowed to apply.
-    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish',
+    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish, 2026-09-20 xiao_esp32s3/45-adafruit-mqtt-publish',
   },
 ];
 

@@ -1,9 +1,10 @@
 const $ = (id) => document.getElementById(id);
 const log = (s) => { $('serial-log').textContent += s + '\n'; $('serial-log').scrollTop = $('serial-log').scrollHeight; };
 
-// USB-serial vendor IDs accepted by the monitor: Raspberry Pi (RP2040) plus the ESP-family
-// bridges (CP210x, CH340, FTDI, Espressif USB JTAG/serial). Web Serial only lists matching ports.
-export const SERIAL_VENDOR_IDS = [0x2e8a, 0x10c4, 0x1a86, 0x0403, 0x303a];
+// USB-serial vendor IDs accepted by the monitor: Raspberry Pi (RP2040), the ESP-family bridges
+// (CP210x, CH340, FTDI, Espressif USB JTAG/serial) and Seeed (0x2886), which is the id the XIAO
+// ESP32S3 variant header sets for the board's own USB CDC. Web Serial only lists matching ports.
+export const SERIAL_VENDOR_IDS = [0x2e8a, 0x10c4, 0x1a86, 0x0403, 0x303a, 0x2886];
 export const serialFilters = () => SERIAL_VENDOR_IDS.map(usbVendorId => ({ usbVendorId }));
 
 // Web Serial monitor. Only the Human connects a device; nothing here runs on its own.

@@ -42,6 +42,8 @@ const SEEED_WIO_NODE_SCHEMATIC = 'https://wiki.seeedstudio.com/Wio_Node/ の Res
 const RPI_PICO_DATASHEET = 'https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf';
 const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datasheet_en.pdf';
 const ESP32_DATASHEET = 'https://documentation.espressif.com/esp32_datasheet_en.pdf';
+const ESP32S3_DATASHEET = 'https://documentation.espressif.com/esp32-s3_datasheet_en.pdf';
+const SEEED_XIAO_ESP32S3 = 'https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -93,6 +95,18 @@ const BOARDS = new Map([
       { text: 'このボードにLED_BUILTINは無い', source: SEEED_XIAO_ESP32C3 },
       { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
+    ] }],
+  ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,
+    pinNotes: [
+      { text: 'ピンマップのD0からD10は順にGPIO1、GPIO2、GPIO3、GPIO4、GPIO5、GPIO6、GPIO43、GPIO44、GPIO7、GPIO8、GPIO9', source: SEEED_XIAO_ESP32S3 },
+      { text: 'アナログ入力が使えるのはD0からD5とD8からD10の9本で、UARTのD6（GPIO43）とD7（GPIO44）にADCは無い', source: SEEED_XIAO_ESP32S3 },
+      { text: 'User LEDはGPIO21で、ピンをLowにすると点灯しHighにすると消灯する', source: SEEED_XIAO_ESP32S3 },
+      { text: 'ResetボタンはCHIP_PU、BootボタンはGPIO0に繋がっていて、BOOTを押したままUSBケーブルを繋いで離すとBootLoaderモードに入る', source: SEEED_XIAO_ESP32S3 },
+      { text: '3V3は基板上のレギュレータ出力で700mAまで引ける。5VピンはUSBからの5V出力で、電池で動かしているときは電圧が出ない', source: SEEED_XIAO_ESP32S3 },
+      { text: '電池電圧を読むためのGPIOが用意されていないため、ソフトウェアから電池電圧を取得できない', source: SEEED_XIAO_ESP32S3 },
+      { text: 'ストラッピングピンはブートモードがGPIO0とGPIO46、VDD_SPIの電圧がGPIO45、ROMメッセージ出力がGPIO46、JTAG信号源がGPIO3', source: ESP32S3_DATASHEET },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
     ] }],
   ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
