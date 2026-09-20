@@ -567,6 +567,76 @@
   --danger: #F2777A;
   --danger-soft: #F2777A2E;
 }
+/* ayu dark — dempfi/ayu ayu-dark.sublime-color-scheme (MIT, Ike Kurghinyan) */
+:root[data-theme="ayu-dark"] {
+  --uno-1: #CBCDD3;
+  --uno-2: #B5B9C0;
+  --uno-3: #959AA3;
+  --uno-4: #74777D;
+  --uno-5: #48494C;
+  --duo-1: #E6B450;
+  --duo-2: #997F4C;
+  --duo-3: #5E5644;
+  --syntax-bg: #10141C;
+  --syntax-fg: #BFBDB6;
+  --syntax-guide: #2C313A;
+  --syntax-accent: #E6B450;
+  --syntax-selection: #193155;
+  --bg-editor: #10141C;
+  --bg-panel: #0C0F15;
+  --bg-sidebar: #080A0E;
+  --bg-activity: #040507;
+  --bg-statusbar: #040507;
+  --bg-raised: #171D29;
+  --bg-input: #040507;
+  --line-highlight: #161B26;
+  --border: #48494C;
+  --fg-strong: #CBCDD3;
+  --fg: #B5B9C0;
+  --fg-muted: #7B7F85;
+  --accent: #E6B450;
+  --accent-2: #997F4C;
+  --accent-3: #5E5644;
+  --accent-soft: #E6B4502E;
+  --selection: #E6B45026;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* ayu mirage — dempfi/ayu ayu-mirage.sublime-color-scheme (MIT, Ike Kurghinyan) */
+:root[data-theme="ayu-mirage"] {
+  --uno-1: #D8DADF;
+  --uno-2: #C3C5CB;
+  --uno-3: #A2A6AF;
+  --uno-4: #808389;
+  --uno-5: #4E5053;
+  --duo-1: #FFCC66;
+  --duo-2: #BE9B55;
+  --duo-3: #807052;
+  --syntax-bg: #242936;
+  --syntax-fg: #CCCAC2;
+  --syntax-guide: #434854;
+  --syntax-accent: #FFCC66;
+  --syntax-selection: #284168;
+  --bg-editor: #242936;
+  --bg-panel: #1C202A;
+  --bg-sidebar: #14161E;
+  --bg-activity: #0C0D11;
+  --bg-statusbar: #0C0D11;
+  --bg-raised: #2C3242;
+  --bg-input: #0C0D11;
+  --line-highlight: #2A303F;
+  --border: #4E5053;
+  --fg-strong: #D8DADF;
+  --fg: #C3C5CB;
+  --fg-muted: #8D9095;
+  --accent: #FFCC66;
+  --accent-2: #BE9B55;
+  --accent-3: #807052;
+  --accent-soft: #FFCC662E;
+  --selection: #FFCC6626;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
 
 :root {
   color-scheme: dark;

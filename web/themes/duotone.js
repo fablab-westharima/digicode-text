@@ -2,6 +2,7 @@
 // Agila Theme (Arvi Acuzar, MIT — see LICENSE-agila.txt).
 // Material Theme (Mattia Astorino, MIT — see LICENSE-material.txt).
 // Kronuz Theme (Germán Méndez Bravo, MIT — see LICENSE-kronuz.txt).
+// ayu (Ike Kurghinyan, MIT — see LICENSE-ayu.txt).
 //
 // Where the colours come from
 // ---------------------------
@@ -49,6 +50,8 @@ export const THEMES = [
   { id: 'material-darker', family: 'Material', name: 'Material Darker', repo: 'SublimeText/material-theme' },
   { id: 'material-palenight', family: 'Material', name: 'Material Palenight', repo: 'SublimeText/material-theme' },
   { id: 'kronuz', family: 'Kronuz', name: 'Kronuz', repo: 'Kronuz/kronuz-theme-sublime' },
+  { id: 'ayu-dark', family: 'ayu', name: 'ayu dark', repo: 'dempfi/ayu' },
+  { id: 'ayu-mirage', family: 'ayu', name: 'ayu mirage', repo: 'dempfi/ayu' },
 ];
 const ids = new Set(THEMES.map(t => t.id));
 export const isTheme = (id) => ids.has(id);
