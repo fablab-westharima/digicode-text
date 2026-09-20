@@ -14,7 +14,9 @@ export const LIBRARY_INCOMPAT = [
     platforms: ['esp32'],
     reason: 'このライブラリの依存宣言（WiFiNINA fork）が ESP32 の WiFi.h を別実装で覆うため Build が失敗します',
     alternative: 'knolleary/PubSubClient',
-    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish',
+    // A platform row covers every board on that platform, so a new esp32 board does not inherit
+    // this row on trust: the same case was run on it before the row was allowed to apply.
+    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish',
   },
 ];
 

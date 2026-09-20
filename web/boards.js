@@ -119,6 +119,13 @@ export function setupBoardList(boards, selectedId, select) {
       // 選択中の行はエクスプローラの選択中プロジェクトと同じハイライト。
       row.setAttribute('aria-current', String(selectedId() === board.id));
       row.append(element('strong', board.name));
+      // 実機で動かして確かめたかどうかは、この repo の事実。build と書き込みセットまでは
+      // 実測しているが板が手元に無いボードに印を付ける（説明はホバーへ）。
+      if (board.hardwareVerified === false) {
+        const badge = element('span', '実機確認待ち', 'board-badge');
+        badge.title = 'このボードはBuildと書き込みセットまで確かめてあり、実機での動作はまだ確かめていない';
+        row.append(badge);
+      }
       row.onclick = () => { openId = openId === board.id ? null : board.id; pinsOpen = false; render(board.id); };
       item.append(row);
       if (openId === board.id) item.append(detailBox(board));

@@ -92,7 +92,9 @@ function boardBlock(board) {
   for (const step of board.flashGuide?.steps ?? []) steps.append(element('li', step.text));
   if (steps.childElementCount) parts.push(steps);
   // 書き込みの補足と、ピン表の読み方（pinTableNote）は1枚の NOTE にまとめて表の直前に置く。
-  const before = [...(board.flashGuide?.notes ?? []), ...(board.pinTableNote ? [board.pinTableNote] : [])];
+  const before = [
+    ...(board.hardwareVerified === false ? ['このボードはBuildと書き込みセットまで確かめてある。実機での動作はまだ確かめていない。'] : []),
+    ...(board.flashGuide?.notes ?? []), ...(board.pinTableNote ? [board.pinTableNote] : [])];
   if (before.length) parts.push(note(before));
   if (board.pins) {
     parts.push(pinTable(board.pins));

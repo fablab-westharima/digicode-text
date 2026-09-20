@@ -891,6 +891,9 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .board-group { list-style: none; padding: 0; margin: 0; }
 .board-group > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
 .detail-box .board-current { color: var(--accent-2); }
+/* 実機確認待ちの印。ライブラリの非互換バッジと同じ形で、色だけ危険ではなく控えめにする：
+   使えないという話ではなく、まだ板で確かめていないという話なので。 */
+.list-row > .board-badge { flex: none; padding: 0 5px; border: 1px solid var(--border); border-radius: 3px; font-size: var(--fs-tiny); color: var(--fg-muted); background: transparent; }
 #board-facts { grid-column: 1 / -1; min-width: 0; margin-top: 6px; }
 /* ラベルと GPIO 番号を等幅で読ませる。折り返さない・幅を詰めるは .table の .nowrap が持つ。 */
 .pin-table .pin-label, .pin-table .pin-gpio { font-family: var(--code-font); }

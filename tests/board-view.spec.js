@@ -10,11 +10,13 @@ async function ready(page) {
 const item = (page, id) => page.locator(`#board-list li[data-board-id="${id}"]`);
 const rowOf = (page, id) => item(page, id).locator('.board-item');
 
-test('一覧は /boards の 4 行で名前だけ、選択中の行はハイライト、初期は箱なし', async ({ page, request }) => {
+test('一覧は /boards の行で名前だけ（実機確認待ちの印は付く）、選択中の行はハイライト、初期は箱なし', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   await ready(page);
-  expect((await page.locator('#board-list .board-item').allTextContents()).sort()).toEqual(boards.map(b => b.name).sort());
-  await expect(page.locator('#board-list .board-item')).toHaveCount(4);
+  // 行の文字は名前だけ。実機確認待ちの板だけ、名前のうしろに印が付く。
+  const label = b => b.name + (b.hardwareVerified === false ? '実機確認待ち' : '');
+  expect((await page.locator('#board-list .board-item').allTextContents()).sort()).toEqual(boards.map(label).sort());
+  await expect(page.locator('#board-list .board-item')).toHaveCount(boards.length);
   await expect(page.locator('#board-detail')).toHaveCount(0);
   await expect(page.locator('#board-facts')).toHaveCount(0);
   await expect(page.locator('#env')).toBeHidden();
@@ -116,13 +118,15 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
   await ready(page);
   const vendors = [...new Set(boards.map(b => b.vendor))].sort((a, b) => a.localeCompare(b));
   expect(await page.locator('#board-list > h4.board-vendor').allTextContents()).toEqual(vendors);
-  expect(vendors).toEqual(['Raspberry Pi', 'Seeed Studio']);
+  expect(vendors).toEqual(['Espressif', 'Raspberry Pi', 'Seeed Studio']);
+  const label = b => b.name + (b.hardwareVerified === false ? '実機確認待ち' : '');
   // 見出しのすぐ下の ul に、その vendor のボードが名前順で入る。
   for (const vendor of vendors) {
     const names = await page.locator('#board-list > h4.board-vendor', { hasText: vendor }).locator('xpath=following-sibling::ul[1]').locator('.board-item').allTextContents();
-    expect(names).toEqual(boards.filter(b => b.vendor === vendor).map(b => b.name).sort((a, b) => a.localeCompare(b)));
+    expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(label));
   }
-  expect(await page.locator('#board-list .board-item').allTextContents()).toEqual(['Raspberry Pi Pico', 'Wio Node', 'XIAO ESP32C3', 'XIAO RP2040']);
+  expect(await page.locator('#board-list .board-item').allTextContents())
+    .toEqual(['ESP32-DevKitC V4実機確認待ち', 'Raspberry Pi Pico', 'Wio Node', 'XIAO ESP32C3', 'XIAO RP2040']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
   // 小見出しは view の見出しより一段小さい。
   const size = sel => page.locator(sel).first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));

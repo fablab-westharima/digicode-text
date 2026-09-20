@@ -37,7 +37,7 @@ node tests/usecases/run.mjs --results latest --rerun     # 既存結果を無視
 // @desc WiFi 接続後に MQTT へ JSON を publish
 ```
 
-- `@board` は必須。`xiao_rp2040` / `pico` / `xiao_esp32c3` / `wio_node`。
+- `@board` は必須。`xiao_rp2040` / `pico` / `xiao_esp32c3` / `esp32_devkitc_v4` / `wio_node`。
 - `@lib` は `owner/Name@version`。version は具体版のみ (`^` や `latest` は不可)。
   コア同梱のライブラリ (ESP32 の `WiFi.h`、ESP8266 の `ESP8266WiFi.h` など) には `@lib` を書かない。
 - `@skip 理由` があれば compile せず skip に集計する。

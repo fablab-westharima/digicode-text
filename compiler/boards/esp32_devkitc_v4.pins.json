@@ -1,0 +1,196 @@
+{
+  "env": "esp32_devkitc_v4",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
+  "board": "esp32dev",
+  "mcu": "esp32",
+  "core": "esp32",
+  "variant": "esp32",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.3.12",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32/platformio.ini",
+    "boardDefinition": "platforms/espressif32/boards/esp32dev.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/esp32/pins_arduino.h",
+    "digitalLabelsFrom": "none"
+  },
+  "pins": [
+    {
+      "label": "A11",
+      "pin": 0,
+      "gpio": 0,
+      "functions": [],
+      "adc": "A11",
+      "note": null
+    },
+    {
+      "label": "A12",
+      "pin": 2,
+      "gpio": 2,
+      "functions": [],
+      "adc": "A12",
+      "note": null
+    },
+    {
+      "label": "A10",
+      "pin": 4,
+      "gpio": 4,
+      "functions": [],
+      "adc": "A10",
+      "note": null
+    },
+    {
+      "label": "A15",
+      "pin": 12,
+      "gpio": 12,
+      "functions": [],
+      "adc": "A15",
+      "note": null
+    },
+    {
+      "label": "A14",
+      "pin": 13,
+      "gpio": 13,
+      "functions": [],
+      "adc": "A14",
+      "note": null
+    },
+    {
+      "label": "A16",
+      "pin": 14,
+      "gpio": 14,
+      "functions": [],
+      "adc": "A16",
+      "note": null
+    },
+    {
+      "label": "A13",
+      "pin": 15,
+      "gpio": 15,
+      "functions": [],
+      "adc": "A13",
+      "note": null
+    },
+    {
+      "label": "A18",
+      "pin": 25,
+      "gpio": 25,
+      "functions": [],
+      "adc": "A18",
+      "note": null
+    },
+    {
+      "label": "A19",
+      "pin": 26,
+      "gpio": 26,
+      "functions": [],
+      "adc": "A19",
+      "note": null
+    },
+    {
+      "label": "A17",
+      "pin": 27,
+      "gpio": 27,
+      "functions": [],
+      "adc": "A17",
+      "note": null
+    },
+    {
+      "label": "A4",
+      "pin": 32,
+      "gpio": 32,
+      "functions": [],
+      "adc": "A4",
+      "note": null
+    },
+    {
+      "label": "A5",
+      "pin": 33,
+      "gpio": 33,
+      "functions": [],
+      "adc": "A5",
+      "note": null
+    },
+    {
+      "label": "A6",
+      "pin": 34,
+      "gpio": 34,
+      "functions": [],
+      "adc": "A6",
+      "note": null
+    },
+    {
+      "label": "A7",
+      "pin": 35,
+      "gpio": 35,
+      "functions": [],
+      "adc": "A7",
+      "note": null
+    },
+    {
+      "label": "A0",
+      "pin": 36,
+      "gpio": 36,
+      "functions": [],
+      "adc": "A0",
+      "note": null
+    },
+    {
+      "label": "A3",
+      "pin": 39,
+      "gpio": 39,
+      "functions": [],
+      "adc": "A3",
+      "note": null
+    }
+  ],
+  "unlabelledFunctions": [
+    {
+      "name": "SDA",
+      "pin": 21,
+      "gpio": 21,
+      "note": null
+    },
+    {
+      "name": "SCL",
+      "pin": 22,
+      "gpio": 22,
+      "note": null
+    },
+    {
+      "name": "TX",
+      "pin": 1,
+      "gpio": 1,
+      "note": null
+    },
+    {
+      "name": "RX",
+      "pin": 3,
+      "gpio": 3,
+      "note": null
+    },
+    {
+      "name": "MOSI",
+      "pin": 23,
+      "gpio": 23,
+      "note": null
+    },
+    {
+      "name": "MISO",
+      "pin": 19,
+      "gpio": 19,
+      "note": null
+    },
+    {
+      "name": "SCK",
+      "pin": 18,
+      "gpio": 18,
+      "note": null
+    },
+    {
+      "name": "SS",
+      "pin": 5,
+      "gpio": 5,
+      "note": null
+    }
+  ]
+}

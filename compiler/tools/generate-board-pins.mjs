@@ -26,6 +26,7 @@ export const OUT_DIR = path.join(COMPILER_DIR, 'boards');
 export const PIO_HOME = process.env.PLATFORMIO_CORE_DIR ?? path.join(os.homedir(), '.platformio');
 // Each env and the PlatformIO project template that defines it (compiler/server.mjs BOARDS).
 export const ENVS = [
+  { env: 'esp32_devkitc_v4', project: 'pio-esp32' },
   { env: 'xiao_esp32c3', project: 'pio-esp32c3' },
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },
@@ -224,8 +225,14 @@ export async function generate(spec) {
   // common.h also carries the wider RP2350B block (D30..D47, A4..A7), which this MCU does not have.
   if (digitalCount !== null) digital = digital.filter(l => l.pin < digitalCount);
   if (analogCount !== null) analog = analog.filter(l => Number(ANALOG.exec(l.label)[1]) < analogCount);
-  const digitalFrom = digital.length ? 'pins_arduino.h' : 'variant.cpp';
-  if (!digital.length) digital = await digitalFromVariantCpp(variantDir);
+  // Where the digital rows came from. A variant that defines no Dn labels and carries no
+  // g_APinDescription table (the generic esp32 variant) has no digital labels at all; saying
+  // "variant.cpp" there would name a file nothing was read from, so it is recorded as 'none'.
+  let digitalFrom = 'pins_arduino.h';
+  if (!digital.length) {
+    digital = await digitalFromVariantCpp(variantDir);
+    digitalFrom = digital.length ? 'variant.cpp' : 'none';
+  }
 
   // Every other named function, resolved to its GPIO number.
   const functions = [];

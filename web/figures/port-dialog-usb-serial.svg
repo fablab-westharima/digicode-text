@@ -1,0 +1,26 @@
+<!-- ブラウザのポート選択ダイアログ（USBシリアル変換チップを載せたボード）。並んだポートのうち、
+     ボードを挿したときに増えた行を選ぶ。行の名前は文字で書かず帯で表す：この板のUSBシリアル
+     変換チップの型番は Espressif の user_guide にも書かれておらず（「Single USB-to-UART bridge
+     chip」としか無い）、ダイアログに出る文字列を確かめられないため。何を選ぶかは手順文で言う。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="34" y="46" width="252" height="148" rx="6"/>
+  <path class="fig-thin" d="M34,76 H286"/>
+  <path class="fig-thin" d="M50,62 H136"/>
+  <!-- 選ぶポートの行 -->
+  <g class="fig-appear fig-accent">
+    <rect class="fig-hit" x="46" y="84" width="228" height="26" rx="3"/>
+    <rect class="fig-thin" x="54" y="91" width="16" height="12" rx="2"/>
+    <path class="fig-thin" d="M70,97 H76"/>
+    <rect class="fig-thin" x="84" y="92" width="150" height="10" rx="5"/>
+  </g>
+  <!-- 同じ一覧に並ぶ、別のポート -->
+  <g>
+    <rect class="fig-thin" x="54" y="125" width="16" height="12" rx="2"/>
+    <path class="fig-thin" d="M70,131 H76"/>
+    <rect class="fig-thin" x="84" y="126" width="104" height="10" rx="5"/>
+  </g>
+  <!-- 取り消しと接続 -->
+  <rect class="fig-part" x="112" y="158" width="74" height="24" rx="4"/>
+  <rect class="fig-part fig-accent" x="196" y="158" width="74" height="24" rx="4"/>
+</svg>

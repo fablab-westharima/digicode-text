@@ -1,0 +1,33 @@
+<!-- ESP32-DevKitC V4 を上から見た平面図。27.9x54.4mm の縦長、短辺にMicro-USBが張り出し、
+     その両脇にBootボタンとENボタン、ヘッダは片側19ピン。中央はESP32-WROOM-32のシールド面。
+     ピン数とMicro-USBであることは user_guide の J2/J3 表と「Micro-USB port」の記述から。
+     2つのボタンがUSBを挟む配置は、同じ guide の部品表が 5V LED から時計回りに
+     Boot button → USB-to-UART Port → EN button と並べていることによる（写真と一致するが、
+     「左」「右」と書いた文は無い）。線画のみ。色は app.css の .flash-figure が変数で与える。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="122" y="62" width="76" height="148" rx="4"/>
+  <!-- 片側19ピンのヘッダ -->
+  <path class="fig-pad" d="M117,74h10v5h-10zM117,81h10v5h-10zM117,88h10v5h-10zM117,95h10v5h-10zM117,102h10v5h-10zM117,109h10v5h-10zM117,116h10v5h-10zM117,123h10v5h-10zM117,130h10v5h-10zM117,137h10v5h-10zM117,144h10v5h-10zM117,151h10v5h-10zM117,158h10v5h-10zM117,165h10v5h-10zM117,172h10v5h-10zM117,179h10v5h-10zM117,186h10v5h-10zM117,193h10v5h-10zM117,200h10v5h-10z"/>
+  <path class="fig-pad" d="M193,74h10v5h-10zM193,81h10v5h-10zM193,88h10v5h-10zM193,95h10v5h-10zM193,102h10v5h-10zM193,109h10v5h-10zM193,116h10v5h-10zM193,123h10v5h-10zM193,130h10v5h-10zM193,137h10v5h-10zM193,144h10v5h-10zM193,151h10v5h-10zM193,158h10v5h-10zM193,165h10v5h-10zM193,172h10v5h-10zM193,179h10v5h-10zM193,186h10v5h-10zM193,193h10v5h-10zM193,200h10v5h-10z"/>
+  <!-- ESP32-WROOM-32 のシールド面と、基板端に出るアンテナの区画 -->
+  <rect class="fig-face" x="131" y="92" width="58" height="72" rx="2"/>
+  <rect class="fig-board fig-thin" x="137" y="168" width="46" height="18" rx="2"/>
+  <!-- USBシリアル変換チップ -->
+  <rect class="fig-part" x="152" y="70" width="16" height="10" rx="1"/>
+  <!-- Micro-USBを挟む2つのボタン -->
+  <rect class="fig-part" x="126" y="68" width="18" height="16" rx="3"/>
+  <circle class="fig-face" cx="135" cy="76" r="5"/>
+  <rect class="fig-part" x="176" y="68" width="18" height="16" rx="3"/>
+  <circle class="fig-face" cx="185" cy="76" r="5"/>
+  <!-- 挿す先: Micro-USBコネクタ（短辺から張り出す） -->
+  <rect class="fig-part fig-accent" x="146" y="50" width="28" height="16" rx="3"/>
+  <rect class="fig-board fig-accent fig-thin" x="152" y="54" width="16" height="6" rx="3"/>
+  <!-- ケーブルは上から差し込む。rotate(90 160 58) の中でfig-cableが横へ動く＝画面では下向き。 -->
+  <g transform="rotate(90 160 58)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="124" y="44" width="28" height="28" rx="4"/>
+      <rect class="fig-part fig-accent" x="106" y="50" width="20" height="16" rx="6"/>
+      <path d="M108,58 L60,58"/>
+    </g>
+  </g>
+</svg>

@@ -28,6 +28,18 @@ export const FLASH_GUIDES = {
     ],
     notes: ['書き込みの前後のリセットは自動で行われるので、ボタン操作は要らない。'],
   },
+  // DevKitC は USB シリアル変換チップ経由。そのチップが EN と GPIO0 を駆動するので、
+  // 書き込みのためのボタン操作は要らない（Espressif の boot-mode-selection の配線）。
+  esp32_devkitc_v4: {
+    steps: [
+      { text: 'USBケーブル（Standard-A to Micro-B）でボードをPCに接続する。', figure: 'micro-usb-connect-devkitc' },
+      { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+    ],
+    notes: [
+      '書き込みの前後のリセットは、USBシリアル変換チップがENとGPIO0を動かして自動で行われるので、ボタン操作は要らない。',
+      '自動リセットが効かない個体では、Bootを押したままENを押してから書き込む。',
+    ],
+  },
   wio_node: {
     steps: [
       { text: 'FT234X（GroveのUSBシリアル）をPORT0に挿し、USB側をPCに接続する。', figure: 'grove-serial-port0' },

@@ -9,6 +9,8 @@ import groveSerialPort0 from './grove-serial-port0.svg';
 import funcRst from './func-rst.svg';
 import portDialogUsbJtag from './port-dialog-usb-jtag.svg';
 import portDialogFt234x from './port-dialog-ft234x.svg';
+import portDialogUsbSerial from './port-dialog-usb-serial.svg';
+import microUsbConnectDevkitc from './micro-usb-connect-devkitc.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -22,4 +24,7 @@ export const FIGURES = {
   // ポート選択の図は、その一覧で選ぶ行の名前がボードで違うので、選ぶポート別に持つ。
   'port-dialog-usb-jtag': portDialogUsbJtag,
   'port-dialog-ft234x': portDialogFt234x,
+  // USBシリアル変換チップを載せた板。ダイアログに出る名前は板ごとに違うので、行は帯で描く。
+  'port-dialog-usb-serial': portDialogUsbSerial,
+  'micro-usb-connect-devkitc': microUsbConnectDevkitc,
 };

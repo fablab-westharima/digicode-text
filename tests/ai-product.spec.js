@@ -46,7 +46,9 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
       expect(typeof note.text).toBe('string');
       expect(note.text.length).toBeGreaterThan(0);
       expect(note.text, `${env}: GPIO numbers are decimal`).not.toMatch(/0x/i);
-      expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com)\//);
+      // 出所はボードの製造元・チップの製造元自身のページだけ。docs.espressif.com は
+      // ボードの user guide と ESP-IDF のリファレンス（データシートに無い事実の出所）。
+      expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com|docs\.espressif\.com)\//);
     }
     const ini = await read('compiler/' + path.basename(b.project) + '/platformio.ini');
     const section = ini.split(`[env:${env}]`)[1]?.split(/\n\[env:/)[0];
@@ -127,7 +129,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -183,8 +185,42 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).toContain('PORT0側にアナログ入力は無い');
   // The old "no GPIO numbers are published" note is gone.
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
-  // Every other board keeps the table without a caveat line.
-  for (const other of boards.filter(b => b.id !== 'wio_node')) expect(other.pinTableNote).toBe(null);
+  // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
+  // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+});
+
+test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const devkit = boards.find(b => b.id === 'esp32_devkitc_v4');
+  // The generic esp32 variant has no Dn macros and no variant.cpp table; the generator says so
+  // rather than naming a file it read nothing from.
+  expect(devkit.pins.variant).toBe('esp32');
+  expect(devkit.pins.sources.digitalLabelsFrom).toBe('none');
+  expect(devkit.pins.pins.every(p => /^A\d{1,2}$/.test(p.label))).toBe(true);
+  // LED_BUILTIN is not in this variant's header, so no row and no unlabelled function claims one.
+  expect(JSON.stringify(devkit.pins)).not.toContain('LED_BUILTIN');
+  const facts = boardFacts(devkit);
+  expect(facts.indexOf('GPIO番号を直接書く')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(facts).toContain('GPIO34からGPIO39は入力専用');
+  expect(facts).toContain('SPI flashの通信に基板内部で使われている');
+  // 板が届くまでは実機で確かめていない。表にその事実が載る。
+  expect(devkit.hardwareVerified).toBe(false);
+});
+
+test('実機確認待ちの印は、ボード表の hardwareVerified がそのまま出たもの', async ({ page, request }) => {
+  const boards = await (await request.get('/boards')).json();
+  await page.goto('/');
+  await expect(page.locator('#build')).toBeEnabled();
+  await page.click('#view-boards');
+  for (const board of boards) {
+    const badge = page.locator(`#board-list li[data-board-id="${board.id}"] .board-badge`);
+    await expect(badge, board.id).toHaveCount(board.hardwareVerified === false ? 1 : 0);
+    if (board.hardwareVerified === false) await expect(badge).toHaveText('実機確認待ち');
+  }
+  // 少なくとも 1 台は実機確認待ちで、少なくとも 1 台は確認済み（印が全行に付いていない）。
+  expect(boards.some(b => b.hardwareVerified === false)).toBe(true);
+  expect(boards.some(b => b.hardwareVerified === true)).toBe(true);
 });
 
 test('output check: external flashing command lines are replaced by the product sentence; prose-only misguidance passes', () => {

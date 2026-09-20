@@ -5,6 +5,7 @@
 // GET  /          -> web/index.html
 // GET  /libraries/incompat -> the compiler's library incompatibility table (compiler/library-incompat.mjs)
 // GET  /boards    -> [{ id, name, family, platform, framework, core, artifact, browserFlash, serial, flashHint,
+//                       hardwareVerified (false until someone has actually run this board; the list marks those),
 //                       flashGuide (the steps shown before flashing; compiler/flash-guides.mjs),
 //                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
 //                       that table, where the variant is generic), pinNotes (sourced board notes),
@@ -40,6 +41,13 @@ const SEEED_XIAO_ESP32C3 = 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_St
 const SEEED_WIO_NODE_SCHEMATIC = 'https://wiki.seeedstudio.com/Wio_Node/ の Resources → Hardware → Schematic File in PDF（Wio Node v1.0）';
 const RPI_PICO_DATASHEET = 'https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf';
 const ESP32C3_DATASHEET = 'https://documentation.espressif.com/esp32-c3_datasheet_en.pdf';
+const ESP32_DATASHEET = 'https://documentation.espressif.com/esp32_datasheet_en.pdf';
+// The board's own user guide: the only document that says which of the chip's pins this board
+// brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
+const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
+// The ADC2 / Wi-Fi overlap is not in the ESP32 datasheet; it is stated only by the driver's
+// own page, so that page is cited rather than the datasheet.
+const ESP_IDF_ADC = 'https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/adc/adc_oneshot.html';
 const ESP8266_DATASHEET = 'https://documentation.espressif.com/0a-esp8266ex_datasheet_en.pdf';
 const RP2040_FLASH = 'BOOTSELを押したままUSBに接続するとRPI-RP2ドライブが現れる（Macでは「NO NAME」と表示される場合がある）。Build成功後に「書き込み」ボタンを押してそのドライブを選ぶと書き込まれ、完了後にボードは自動で再起動する。';
 const ESP_FLASH = 'Build成功後に「書き込み」ボタンを押し、USB接続したボードのポートをブラウザのダイアログで選ぶ。';
@@ -49,9 +57,12 @@ const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前に
 // The only board definition. The UI select, project validation and the AI's board facts
 // are all generated from this table via GET /boards; nothing else lists boards.
 // pinNotes hold what no header states: one sentence each, with the URL it was read from.
+// hardwareVerified says whether this board has been run on real hardware here. It is a fact
+// about this repo, not about the board: `false` means the build and the flash set were measured
+// but nobody has held the board yet, and the Boards list marks those rows.
 const BOARDS = new Map([
   ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'XIAO RP2040', vendor: 'Seeed Studio', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.xiao_rp2040,
+    name: 'XIAO RP2040', vendor: 'Seeed Studio', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.xiao_rp2040,
     pinNotes: [
       { text: 'MCUの動作電圧は3.3Vで、汎用I/Oピンに3.3Vより高い電圧を入力するとチップが破損することがある', source: SEEED_XIAO_RP2040 },
       { text: 'USBとVIN/5Vピンから入れた5Vは基板上のDC-DCで3.3Vに落とされるため、5Vを受けられるのは電源ピンだけ', source: SEEED_XIAO_RP2040 },
@@ -62,7 +73,7 @@ const BOARDS = new Map([
       { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
     ] }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico,
+    name: 'Raspberry Pi Pico', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico,
     pinNotes: [
       { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
       { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_DATASHEET },
@@ -73,7 +84,7 @@ const BOARDS = new Map([
       { text: 'テストポイントTP4（GPIO23）は外部から使う想定がなく、TP5（GPIO25）はLEDの順方向電圧までしか振れないため使用は勧められていない', source: RPI_PICO_DATASHEET },
     ] }],
   ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32C3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c3,
+    name: 'XIAO ESP32C3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: true, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c3,
     pinNotes: [
       { text: 'GPIO2、GPIO8、GPIO9はストラッピングピンで、起動時のレベルによってブートモードが変わる', source: ESP32C3_DATASHEET },
       { text: 'ADC1はGPIO0からGPIO4（ADC1_CH0からADC1_CH4）、ADC2はGPIO5（ADC2_CH0）に割り当てられている', source: ESP32C3_DATASHEET },
@@ -83,8 +94,23 @@ const BOARDS = new Map([
       { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
     ] }],
+  ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
+    // The generic esp32 variant defines no Dn macros at all, so the table has no digital rows.
+    // That is the trap on this board, and the silkscreen's own D0..D3 mean something else again.
+    pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA19はArduinoのアナログ名で、同じ行のGPIO番号がその実体。基板に印刷されたD0からD3・CMD・CLKはSPI flash用の端子名であって、コードに書くラベルではない。',
+    pinNotes: [
+      { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
+      { text: 'GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない', source: ESP32_DATASHEET },
+      { text: 'ストラッピングピンはGPIO0、GPIO2、GPIO12（MTDI）、GPIO15（MTDO）、GPIO5の5本で、起動時のレベルによってブートモードなどが決まる', source: ESP32_DATASHEET },
+      { text: 'ヘッダのD0（GPIO7）、D1（GPIO8）、D2（GPIO9）、D3（GPIO10）、CMD（GPIO11）、CLK（GPIO6）はESP32とSPI flashの通信に基板内部で使われているので使わない', source: ESP32_DEVKITC_GUIDE },
+      { text: 'ヘッダに出ているADC1はGPIO32、GPIO33、GPIO34、GPIO35、GPIO36、GPIO39の6本', source: ESP32_DEVKITC_GUIDE },
+      { text: '給電はMicro USBポート、5VとGNDのヘッダピン、3V3とGNDのヘッダピンの3通りで、必ずどれか1つだけを使う', source: ESP32_DEVKITC_GUIDE },
+      { text: 'Bootボタンを押したままENボタンを押すと、シリアル経由で書き込むFirmware Downloadモードに入る', source: ESP32_DEVKITC_GUIDE },
+      { text: 'ADC2はWi-Fiも使うため、Wi-Fi動作中はドライバ側の保護を通してしか読めない', source: ESP_IDF_ADC },
+    ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
+    name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: true, flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
     // Read before the pin table, because the table's own labels are the trap on this board.
     pinTableNote: 'ピン表のD0からD10はNodeMCU汎用variantのマクロで、Wio Node基板の表記ではない。基板のPORT0（UART/I2C0/D0）とPORT1（Analog/I2C1/D1）にあるD0/D1はコネクタの名前であり、コードのD0/D1マクロ（GPIO16とGPIO5）とは別物。コードではGPIO番号を直接書くこと。',
     pinNotes: [
@@ -106,7 +132,7 @@ const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${en
 // incompatibleLibraries is the browser's only copy of the table: the Libraries view, the Build
 // output and the AI's board sentence all read it from the selected board's entry here.
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: b.vendor, family: b.family, platform: b.platform, framework: b.framework, core: b.core,
-  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, flashHint: b.flashHint, flashGuide: b.flashGuide,
+  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, hardwareVerified: b.hardwareVerified, flashHint: b.flashHint, flashGuide: b.flashGuide,
   pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
   incompatibleLibraries: incompatFor(b.platform).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');
