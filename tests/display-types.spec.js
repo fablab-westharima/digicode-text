@@ -88,7 +88,9 @@ const style = async (page, options) => (await probe(page, options)).view;
 
 // ---- 型の見本（styleguide.html と同じ書き方） ----------------------------------------------
 const HEADING = '<h3 class="heading">見出しの見本</h3>';
-const row = (attrs = '') => `<button type="button" class="list-row"${attrs}><strong>行の見本</strong></button>`;
+const row = (attrs = '', extra = '') => `<button type="button" class="list-row${extra}"${attrs}><strong>行の見本</strong></button>`;
+// 開かない行（開閉の印を出さない変種）。
+const staticRow = (attrs = '') => row(attrs, ' static');
 const BOX = '<dl class="detail-box"><dt>語</dt><dd>値</dd></dl>';
 const notice = (state) => `<p class="notice"${state === undefined ? '' : ` data-state="${state}"`}>知らせの見本</p>`;
 const button = (className = '') => `<button type="button"${className ? ` class="${className}"` : ''}>操作</button>`;
@@ -218,6 +220,13 @@ test('行：3 view の .list-row が型と一致し、互いにも一致する',
   // 追加済みの一覧の行も同じ型。
   await page.click('#library-added-toggle');
   expect(await diff(page, { target: '#library-added .library-item', ref: row(' aria-expanded="false" data-added="true"') }), '追加済み一覧の行').toEqual({});
+
+  // --- 設定「外観」のテーマ。押すとその場で決まる開かない行なので、.static の型と比べる。
+  await openSettings(page);
+  expect(await diff(page, { target: '#theme-select .theme-item[aria-current="false"]', ref: staticRow(' aria-current="false"') }), 'テーマ 通常').toEqual({});
+  expect(await diff(page, { target: '#theme-select .theme-item[aria-current="true"]', ref: staticRow(' aria-current="true"') }), 'テーマ 選択中').toEqual({});
+  // 開閉の印そのものが出ていないこと（型と一致していても、両方に印があっては意味が無い）。
+  expect(await style(page, { target: '#theme-select .theme-item[aria-current="true"]' })).toMatchObject({ '::after content': 'none' });
 
   // --- 3 view の「通常の行」が互いに一致する（それぞれの view が出ている間に測ったもの）
   expect(board, 'ボードの行 = プロジェクトの行').toEqual(project);

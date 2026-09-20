@@ -72,7 +72,8 @@ function renderThemes() {
     item.dataset.themeId = theme.id;
     const row = document.createElement('button');
     row.type = 'button';
-    row.className = 'list-row theme-item';
+    // テーマの行は押すとその場で変わるだけで開かないので、開閉の印を持たない .static を併記する。
+    row.className = 'list-row static theme-item';
     row.setAttribute('aria-current', String(theme.id === themes.current));
     const name = document.createElement('strong');
     name.textContent = theme.name;

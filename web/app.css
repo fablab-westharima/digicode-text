@@ -716,6 +716,10 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 /* 開閉の印。押すところは行そのもので、別のボタンは作らない。 */
 .list-row::after { content: '▸'; color: var(--fg-muted); }
 .list-row[aria-expanded="true"]::after { content: '▾'; }
+/* 開かない行。押すとその場で決まり、詳細が開かないので開閉の印を出さない。変えるのはこれだけで、
+   余白・高さ・hover・選択中・focus は .list-row のまま。印の幅は空けない：開く行と混ざらない
+   一覧（設定のテーマ）で使うので、空けると右端に説明のつかない空きが残るだけになる。 */
+.list-row.static::after { content: none; }
 /* 節の目次。押すとその節だけが右に出る。一覧の行（.list-row）とは別の型で、開閉の印も件数も
    付けない。選択中は aria-current="true" で示し、左の縦線は見出しと同じ --rule の太さ。 */
 .section-nav { display: flex; flex-direction: column; gap: 2px; }
