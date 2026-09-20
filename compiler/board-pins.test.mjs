@@ -44,7 +44,11 @@ test('each pin file names the platformio.ini env and the variant header it came 
     assert.match(data.sources.variantHeader, new RegExp(`^packages/${data.frameworkPackage}/variants/.*/pins_arduino\\.h$`));
     assert.ok(data.sources.variantHeader.includes(data.variant));
     await access(path.join(PIO_HOME, data.sources.variantHeader));
-    await access(path.join(PIO_HOME, data.sources.boardDefinition));
+    // A board the platform does not define is carried by this repo, and its path is written
+    // relative to the repo root; every other one lives in the PlatformIO install.
+    const repoRoot = new URL('..', import.meta.url);
+    await access(data.sources.boardDefinition.startsWith('compiler/')
+      ? new URL(data.sources.boardDefinition, repoRoot) : path.join(PIO_HOME, data.sources.boardDefinition));
   }
 });
 

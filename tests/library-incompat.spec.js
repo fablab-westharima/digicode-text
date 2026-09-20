@@ -16,6 +16,8 @@ const BOARD_ONLY = 'paulstoffregen/OneWire';
 const BLOCKED_BOARD = 'xiao_esp32c3', OK_BOARD = 'wio_node';
 // Same platform as BLOCKED_BOARD ('esp32'), so only a board row can tell them apart.
 const ONE_BOARD = 'xiao_esp32c5', SAME_PLATFORM = ['xiao_esp32c3', 'xiao_esp32s3', 'esp32_devkitc_v4'];
+// The row is about the C5 chip, so it names every C5 board the harness has been run on.
+const C5_BOARDS = ['xiao_esp32c5', 'esp32_c5_devkitc_1'];
 const projectKey = 'digicode-text.projects.v1';
 const uiKey = 'digicode-text.libs-ui.v1';
 const mqttRow = page => page.locator(`[data-library-id="${mqtt.id}"]`);
@@ -283,12 +285,12 @@ test('a row written for one board reaches that board only, in the view, the Buil
   const rowOf = id => entry(id).incompatibleLibraries.find(r => r.library === BOARD_ONLY);
 
   // /boards is the browser's only source, so the scoping is visible there first.
-  expect(rowOf(ONE_BOARD)).toBeTruthy();
+  for (const id of C5_BOARDS) expect(rowOf(id), id).toBeTruthy();
   expect(rowOf(ONE_BOARD).alternative).toBe('pstolarz/OneWireNg');
   for (const id of [...SAME_PLATFORM, OK_BOARD, 'pico_w', 'pico', 'xiao_rp2040'])
     expect(rowOf(id), id).toBeUndefined();
   // The platform row is still a platform row: every esp32 board keeps it.
-  for (const id of [ONE_BOARD, ...SAME_PLATFORM])
+  for (const id of [...C5_BOARDS, ...SAME_PLATFORM])
     expect(entry(id).incompatibleLibraries.some(r => r.library === UNUSABLE), id).toBe(true);
 
   // AI's board sentence: the pure function the browser hands to the model.
@@ -335,10 +337,10 @@ test('a row written for one board reaches that board only, in the view, the Buil
   await expect(page.locator('#help-dialog')).toBeVisible();
   const line = page.locator('#help-incompat tbody tr').filter({ hasText: BOARD_ONLY });
   await expect(line).toHaveCount(1);
-  await expect(line.locator('td').nth(1)).toHaveText(entry(ONE_BOARD).name);
+  await expect(line.locator('td').nth(1)).toHaveText(C5_BOARDS.map(id => entry(id).name).join('、'));
   await expect(line.locator('td').nth(2)).toContainText('pstolarz/OneWireNg');
   const mqttLine = page.locator('#help-incompat tbody tr').filter({ hasText: UNUSABLE });
-  for (const id of [ONE_BOARD, ...SAME_PLATFORM]) await expect(mqttLine.locator('td').nth(1)).toContainText(entry(id).name);
+  for (const id of [...C5_BOARDS, ...SAME_PLATFORM]) await expect(mqttLine.locator('td').nth(1)).toContainText(entry(id).name);
 });
 
 test('the unusable badge wears the failure colour and the view names the board it speaks for', async ({ page, request }) => {

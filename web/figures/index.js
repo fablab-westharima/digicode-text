@@ -14,6 +14,7 @@ import microUsbConnectDevkitc from './micro-usb-connect-devkitc.svg';
 import usbCConnectXiaoS3 from './usb-c-connect-xiao-s3.svg';
 import bootselHoldPicoW from './bootsel-hold-pico-w.svg';
 import usbCConnectXiaoC5 from './usb-c-connect-xiao-c5.svg';
+import usbCConnectC5Devkitc from './usb-c-connect-c5-devkitc.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -35,4 +36,6 @@ export const FIGURES = {
   // Pico W は無印 Pico と外形が同じでも、下辺のアンテナ区画と無線モジュールがある。
   'bootsel-hold-pico-w': bootselHoldPicoW,
   'usb-c-connect-xiao-c5': usbCConnectXiaoC5,
+  // ESP32-C5-DevKitC-1 は USB-C が 2 口あるので、どちらに挿すかまで図で言う。
+  'usb-c-connect-c5-devkitc': usbCConnectC5Devkitc,
 };

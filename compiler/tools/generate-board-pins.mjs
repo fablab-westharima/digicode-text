@@ -29,6 +29,7 @@ export const ENVS = [
   { env: 'esp32_devkitc_v4', project: 'pio-esp32' },
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
   { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
+  { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
   { env: 'xiao_esp32c3', project: 'pio-esp32c3' },
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },
@@ -199,7 +200,12 @@ export async function generate(spec) {
   const ini = await readFile(path.join(COMPILER_DIR, spec.project, 'platformio.ini'), 'utf8');
   const section = iniSection(ini, spec.env);
   const platform = await platformDir(section.platform);
-  const boardFile = path.join(platform, 'boards', `${section.board}.json`);
+  // PlatformIO looks for a board definition in the project's own boards/ directory before the
+  // platform's, so the same order is followed here: a board the platform does not define
+  // (compiler/pio-*/boards/*.json) must resolve to the file the build actually uses.
+  const localBoard = path.join(COMPILER_DIR, spec.project, 'boards', `${section.board}.json`);
+  const boardIsLocal = await exists(localBoard);
+  const boardFile = boardIsLocal ? localBoard : path.join(platform, 'boards', `${section.board}.json`);
   const boardDef = await readJson(boardFile);
   const core = section['board_build.core'] ?? boardDef.build.core;
   const platformMeta = await readJson(path.join(platform, 'platform.json'));
@@ -275,10 +281,12 @@ export async function generate(spec) {
     variant: boardDef.build.variant,
     frameworkPackage: pkg,
     frameworkVersion: pkgVersion,
-    // Paths inside the PlatformIO install, recorded so the generated file can be traced back.
+    // Where each input was read, recorded so the generated file can be traced back. Paths are
+    // inside the PlatformIO install, except a board definition this repo carries itself, which is
+    // written relative to the repo root the way platformioIni is.
     sources: {
       platformioIni: `compiler/${spec.project}/platformio.ini`,
-      boardDefinition: path.relative(PIO_HOME, boardFile),
+      boardDefinition: boardIsLocal ? `compiler/${spec.project}/boards/${section.board}.json` : path.relative(PIO_HOME, boardFile),
       variantHeader: path.relative(PIO_HOME, header),
       digitalLabelsFrom: digitalFrom,
     },

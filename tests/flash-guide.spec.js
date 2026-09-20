@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -216,6 +216,17 @@ test('XIAO ESP32C5の手順はこのボード専用の基板図で、S3やC3の�
     .toEqual(['usb-c-connect-xiao-c5', 'port-dialog-usb-serial']);
 });
 
+test('ESP32-C5-DevKitC-1の手順は2つのUSB-Cのうちどちらに挿すかを名指しする', async ({ page }) => {
+  await ready(page, 'esp32_c5_devkitc_1');
+  await page.click('#flash-guide-open');
+  await expect(page.locator('#flash-guide-title')).toContainText('ESP32-C5-DevKitC-1');
+  await expect(page.locator('#flash-guide-steps')).toContainText('USBと印字された方の口');
+  // もう一方の口は手順ではなく補足で触れる。
+  await expect(page.locator('#flash-guide-notes')).toContainText('UARTと印字された口');
+  expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+    .toEqual(['usb-c-connect-c5-devkitc', 'port-dialog-usb-serial']);
+});
+
 test('Pico Wの手順は無印Picoと同じ3手順で、基板の図だけPico Wのものになる', async ({ page }) => {
   await ready(page, 'pico_w');
   await page.click('#flash-guide-open');
@@ -252,7 +263,7 @@ test('ESP32-DevKitC V4の手順はMicro-USBとポート選択の2枚で、ボタ
 test('図に書く文字は、画面で実際に見える文字列だけ', async () => {
   const dir = new URL('../web/figures/', import.meta.url);
   const allowed = new Set([
-    'B', 'BOOTSEL', 'FUNC', 'RST', 'PORT0', 'PORT1', // ボードに印字されているボタン名・コネクタ名
+    'B', 'BOOTSEL', 'FUNC', 'RST', 'PORT0', 'PORT1', 'USB', 'UART', // ボードに印字されているボタン名・コネクタ名
     'RPI-RP2', 'NO NAME', 'USB JTAG/serial debug unit', 'FT234X', // PC側の画面に出る名前
   ]);
   const files = (await readdir(dir)).filter(f => f.endsWith('.svg'));

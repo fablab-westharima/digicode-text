@@ -21,7 +21,7 @@
 
 import http from 'node:http';
 import { spawn } from 'node:child_process';
-import { readFile, writeFile, mkdir, mkdtemp, copyFile, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, copyFile, readdir, rm } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -53,6 +53,13 @@ const ESP32S3_DATASHEET = 'https://documentation.espressif.com/esp32-s3_datashee
 const SEEED_XIAO_ESP32S3 = 'https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/';
 const ESP32C5_DATASHEET = 'https://documentation.espressif.com/esp32-c5_datasheet_en.pdf';
 const SEEED_XIAO_ESP32C5 = 'https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/';
+// The C5 DevKitC's own user guide: the only document that says which of the two USB-C ports is
+// wired to what, and which of the chip's pins this board brings out.
+const ESP32_C5_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32c5/esp32-c5-devkitc-1/user_guide.html';
+// Espressif sells the DevKitC-1 in several flash/PSRAM variants and the board itself is not
+// marked with which one it is. The shop page is what names the variant actually bought here,
+// and the build (8MB flash, quad PSRAM) is set from it, so it is cited rather than implied.
+const AKIZUKI_C5_DEVKITC = 'https://akizukidenshi.com/catalog/g/g131642/';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -144,6 +151,20 @@ const BOARDS = new Map([
       { text: '2.4GHzと5GHzのデュアルバンドWi-Fi 6に対応する', source: SEEED_XIAO_ESP32C5 },
       { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本で、ブートモードはGPIO26、GPIO27、GPIO28で決まる', source: ESP32C5_DATASHEET },
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
+    ] }],
+  ['esp32_c5_devkitc_1', { project: path.join(here, 'pio-esp32c5'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ESP32-C5-DevKitC-1', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_c5_devkitc_1,
+    // The generic esp32c5 variant defines no Dn macros, and its LED_BUILTIN is not a GPIO at all.
+    pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA5はArduinoのアナログ名で、同じ行のGPIO番号がその実体。基板のヘッダに印刷された数字はそのままGPIO番号で、例外はNC/15と印刷された穴だけ。このvariantのLED_BUILTINは基板のRGB LEDを指す擬似ピンでGPIO番号ではないため、ピンを直接動かすときはGPIO27と書く。',
+    pinNotes: [
+      { text: 'USB-Cは2口あり、USBと印字された口はESP32-C5のGPIO13とGPIO14に直結、UARTと印字された口はUSBシリアル変換チップを通ってU0TXD（GPIO11）とU0RXD（GPIO12）につながる', source: ESP32_C5_DEVKITC_GUIDE },
+      { text: 'BootボタンはGPIO28、ResetボタンはCHIP_PU、アドレサブルLED（WS2812B）はGPIO27に繋がっている', source: ESP32_C5_DEVKITC_GUIDE },
+      { text: 'GPIO13とGPIO14は既定でUSBのD−とD+として動くので、チップ直結のUSB口を使っている間は汎用I/Oにできない', source: ESP32C5_DATASHEET },
+      { text: 'ヘッダにNC/15と印刷された穴はGPIO15で、PSRAMを載せたこの品種ではSPICS1としてモジュール内部で使われているため外からは使えない', source: ESP32_C5_DEVKITC_GUIDE },
+      { text: 'ESP32-C5のADCはADC1だけで、チャンネルはGPIO1からGPIO6の6本。ADC2は無い', source: ESP32C5_DATASHEET },
+      { text: 'ストラッピングピンはGPIO2、GPIO3、GPIO7、GPIO25、GPIO26、GPIO27、GPIO28の7本で、ブートモードはGPIO26、GPIO27、GPIO28で決まる', source: ESP32C5_DATASHEET },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
+      { text: '通販コード131642で売られている品種はN8R8で、8MBのFlashと8MBのPSRAMを載せる', source: AKIZUKI_C5_DEVKITC },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,
@@ -253,6 +274,15 @@ async function compile(env, source, libraries) {
       if (board.family === 'esp') {
         for (const script of ['portable_paths.py', 'package_firmware.py'])
           await copyFile(path.join(ESP_SHARED, script), path.join(project, script));
+      }
+      // A template project may carry its own board definitions (compiler/pio-*/boards/*.json) for
+      // boards the platform does not define. PlatformIO looks for them under the *build* project's
+      // boards/ directory, and the build runs in the fresh temporary one, so they are copied too.
+      const boardDefs = await readdir(path.join(board.project, 'boards')).catch(() => []);
+      if (boardDefs.length) {
+        await mkdir(path.join(project, 'boards'));
+        for (const name of boardDefs.filter(n => n.endsWith('.json')))
+          await copyFile(path.join(board.project, 'boards', name), path.join(project, 'boards', name));
       }
       const { code, log } = await runPio(env, project);
       const durationMs = Date.now() - started;
