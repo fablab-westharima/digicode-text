@@ -6,7 +6,7 @@ const THEME_KEY = 'digicode-text.theme.v1';
 const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
   'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
   'agila-classic', 'agila-neon',
-  'material-default', 'material-darker', 'material-palenight'];
+  'material-default', 'material-darker', 'material-palenight', 'kronuz'];
 const LAST = THEMES[THEMES.length - 1];
 // 一覧の行の id（= data-theme の値）を並び順に。<select> の option value 列の代わり。
 const listed = (page) => page.locator('#theme-select li').evaluateAll(els => els.map(el => el.dataset.themeId));
@@ -33,7 +33,7 @@ test('Switching theme moves the CSS variables and the Monaco theme together, and
   expect(await listed(page)).toEqual(THEMES);
   // 系統の括りは、ボード一覧のメーカー区切りと同じ型で出る。
   expect(await page.locator('#theme-select h4.board-vendor').allTextContents())
-    .toEqual(['DuoTone', 'Agila', 'Material']);
+    .toEqual(['DuoTone', 'Agila', 'Material', 'Kronuz']);
 
   const seen = [];
   for (const theme of THEMES) {

@@ -1,6 +1,7 @@
 // DuoTone themes (simurai, MIT — see LICENSE-duotone.txt).
 // Agila Theme (Arvi Acuzar, MIT — see LICENSE-agila.txt).
 // Material Theme (Mattia Astorino, MIT — see LICENSE-material.txt).
+// Kronuz Theme (Germán Méndez Bravo, MIT — see LICENSE-kronuz.txt).
 //
 // Where the colours come from
 // ---------------------------
@@ -47,6 +48,7 @@ export const THEMES = [
   { id: 'material-default', family: 'Material', name: 'Material Default', repo: 'SublimeText/material-theme' },
   { id: 'material-darker', family: 'Material', name: 'Material Darker', repo: 'SublimeText/material-theme' },
   { id: 'material-palenight', family: 'Material', name: 'Material Palenight', repo: 'SublimeText/material-theme' },
+  { id: 'kronuz', family: 'Kronuz', name: 'Kronuz', repo: 'Kronuz/kronuz-theme-sublime' },
 ];
 const ids = new Set(THEMES.map(t => t.id));
 export const isTheme = (id) => ids.has(id);

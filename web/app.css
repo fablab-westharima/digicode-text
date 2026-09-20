@@ -532,6 +532,41 @@
   --danger: #F2777A;
   --danger-soft: #F2777A2E;
 }
+/* Kronuz — Kronuz/kronuz-theme-sublime Kronuz.sublime-color-scheme (MIT, Germán Méndez Bravo) */
+:root[data-theme="kronuz"] {
+  --uno-1: #DED8D8;
+  --uno-2: #CBC2C2;
+  --uno-3: #AEA2A2;
+  --uno-4: #898080;
+  --uno-5: #5F5959;
+  --duo-1: #CC7833;
+  --duo-2: #A47F60;
+  --duo-3: #6F6155;
+  --syntax-bg: #383838;
+  --syntax-fg: #C8C6C5;
+  --syntax-guide: #3D3D3D;
+  --syntax-accent: #C07020;
+  --syntax-selection: #364A88;
+  --bg-editor: #383838;
+  --bg-panel: #2E2E2E;
+  --bg-sidebar: #242424;
+  --bg-activity: #191919;
+  --bg-statusbar: #191919;
+  --bg-raised: #424242;
+  --bg-input: #191919;
+  --line-highlight: #404040;
+  --border: #5F5959;
+  --fg-strong: #DED8D8;
+  --fg: #CFC6C6;
+  --fg-muted: #A6A0A0;
+  --accent: #CC7833;
+  --accent-2: #A47F60;
+  --accent-3: #6F6155;
+  --accent-soft: #CC78332E;
+  --selection: #CC783326;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
 
 :root {
   color-scheme: dark;

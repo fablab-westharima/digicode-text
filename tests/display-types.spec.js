@@ -32,7 +32,7 @@ const COLOUR_DERIVED = ['::after color', '::before color', 'borderBottomColor', 
 const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
   'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
   'agila-classic', 'agila-neon',
-  'material-default', 'material-darker', 'material-palenight'];
+  'material-default', 'material-darker', 'material-palenight', 'kronuz'];
 
 /**
  * 実要素を測り、続けて参照要素（ref）を同じ親の末尾に足して測り、すぐ外す。
