@@ -281,17 +281,17 @@ test('AIに渡す画面の場所は、実在する要素だけを指している
 // 取説は設定と同じ型の <dialog>：左の目次で選んだ1節だけを右に出す。ここで守るのは節の並びと
 // 出し分け、そして「ボードの事実は手書きではなく GET /boards から出ている」こと。
 const HELP_SECTIONS = [
-  ['first', '最初の 1 台'], ['boards', 'ボードとピン'], ['libraries', 'ライブラリ'],
+  ['first', '最初の 1 台'], ['boards', 'ボードとピン'], ['giteki', '技適について'], ['libraries', 'ライブラリ'],
   ['export', '持ち出し'], ['ai', 'AI'], ['trouble', '困ったとき'], ['about', 'このソフトについて'],
 ];
 
-test('取説は7節を目次で出し分け、対応ボードはボード表から出て、接続手順を開ける', async ({ page, request }) => {
+test('取説は8節を目次で出し分け、対応ボードはボード表から出て、接続手順を開ける', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   await ready(page, 'pico');
   await page.click('#view-help');
   await expect(page.locator('#help-dialog')).toBeVisible();
 
-  // 目次はこの7節、この順、この文言。見出し（h3）も同じ文言。
+  // 目次はこの8節、この順、この文言。見出し（h3）も同じ文言。
   expect(await page.locator('#help-nav button').allTextContents()).toEqual(HELP_SECTIONS.map(([, label]) => label));
   expect(await page.locator('#help-nav button').evaluateAll(list => list.map(b => b.dataset.section)))
     .toEqual(HELP_SECTIONS.map(([section]) => section));

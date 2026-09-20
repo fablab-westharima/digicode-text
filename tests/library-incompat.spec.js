@@ -170,11 +170,11 @@ test('Build states the unusable dependency at the top of the build output and st
   expect(compiled).toHaveLength(2);
 });
 
-test('the board sentence sent to the AI names the unusable library, and says nothing on a board that builds it', async ({ page, context, request }) => {
+test('the board sentence sent to the AI names the unusable library, and says nothing on a board that builds it', async ({ page, context, request, baseURL }) => {
   const boards = await (await request.get('/boards')).json();
   const blocked = boards.find(b => b.id === BLOCKED_BOARD), ok = boards.find(b => b.id === OK_BOARD);
   const sent = [];
-  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === 'http://127.0.0.1:3100' ? route.continue() : route.abort());
+  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === new URL(baseURL).origin ? route.continue() : route.abort());
   await page.route('https://api.openai.com/**', route => {
     sent.push(route.request().postDataJSON());
     const text = JSON.stringify({ kind: 'answer', message: '模擬応答。品質評価には使用しません。', source: null });

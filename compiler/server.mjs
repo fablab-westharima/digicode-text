@@ -5,7 +5,9 @@
 // GET  /          -> web/index.html
 // GET  /libraries/incompat -> the compiler's library incompatibility table (compiler/library-incompat.mjs)
 // GET  /boards    -> [{ id, name, family, platform, framework, core, artifact, browserFlash, serial, flashHint,
-//                       hardwareVerified (false until someone has actually run this board; the list marks those),
+//                       wireless (this board has a radio), flashRoute / routeLabel / routeVerified /
+//                       routeVerifiedBy (the maintainers' own record of which flashing routes have been
+//                       run on real hardware; derived from FLASH_ROUTES below and not shown in the UI),
 //                       flashGuide (the steps shown before flashing; compiler/flash-guides.mjs),
 //                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
 //                       that table, where the variant is generic), pinNotes (sourced board notes),
@@ -61,15 +63,23 @@ const ESP_FLASH = 'Build成功後に「書き込み」ボタンを押し、USB�
 // Wio Node is flashed through the Grove USB-serial adapter, which carries no auto-reset line,
 // so the board is put into its flashing mode by hand before and after the same browser button.
 const WIO_NODE_FLASH = 'GroveのUSBシリアルで接続し、書き込み前にFUNCを押したままRSTを押して書き込みモードに入れる。Build成功後に「書き込み」ボタンを押してポートを選び、完了後にRSTを押す。';
+// What was run on real hardware here is a flashing route, not a board: two boards that are written
+// the same way are covered by the same measurement. This is the maintainers' own ledger of that —
+// it is not shown anywhere in the UI. verifiedBy holds the boards actually flashed on that route.
+const FLASH_ROUTES = {
+  'rp2040-uf2': { label: 'BOOTSELドライブへUF2を置く方式', verifiedBy: ['xiao_rp2040', 'pico'] },
+  'esp-usb-cdc': { label: 'チップのUSBシリアルへ直接書き込む方式', verifiedBy: ['xiao_esp32c3'] },
+  'esp-uart-bridge': { label: '基板のUSBシリアル変換チップ経由で書き込む方式', verifiedBy: [] },
+  'esp8266': { label: '外付けのUSBシリアルで手動で書き込みモードに入れる方式', verifiedBy: ['wio_node'] },
+};
 // The only board definition. The UI select, project validation and the AI's board facts
 // are all generated from this table via GET /boards; nothing else lists boards.
 // pinNotes hold what no header states: one sentence each, with the URL it was read from.
-// hardwareVerified says whether this board has been run on real hardware here. It is a fact
-// about this repo, not about the board: `false` means the build and the flash set were measured
-// but nobody has held the board yet, and the Boards list marks those rows.
+// wireless says the board carries a radio; the browser uses it to decide whether to show the
+// 技適 notice. flashRoute names the entry of FLASH_ROUTES this board is written through.
 const BOARDS = new Map([
   ['xiao_rp2040', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'XIAO RP2040', vendor: 'Seeed Studio', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.xiao_rp2040,
+    name: 'XIAO RP2040', vendor: 'Seeed Studio', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, wireless: false, flashRoute: 'rp2040-uf2', flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.xiao_rp2040,
     pinNotes: [
       { text: 'MCUの動作電圧は3.3Vで、汎用I/Oピンに3.3Vより高い電圧を入力するとチップが破損することがある', source: SEEED_XIAO_RP2040 },
       { text: 'USBとVIN/5Vピンから入れた5Vは基板上のDC-DCで3.3Vに落とされるため、5Vを受けられるのは電源ピンだけ', source: SEEED_XIAO_RP2040 },
@@ -80,7 +90,7 @@ const BOARDS = new Map([
       { text: 'BootボタンはRP2040_BOOTに接続されbootloaderモードへの移行に使う。GPIO番号はwikiに載っていない', source: SEEED_XIAO_RP2040 },
     ] }],
   ['pico', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: true, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico,
+    name: 'Raspberry Pi Pico', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, wireless: false, flashRoute: 'rp2040-uf2', flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico,
     pinNotes: [
       { text: 'GPIOは基板上の3.3Vレールから給電されるため3.3V固定', source: RPI_PICO_DATASHEET },
       { text: 'RP2040の30本のうち26本がヘッダに出ており、GPIO0からGPIO22はデジタル専用、GPIO26からGPIO28はデジタルにもADC入力にも使える', source: RPI_PICO_DATASHEET },
@@ -91,7 +101,7 @@ const BOARDS = new Map([
       { text: 'テストポイントTP4（GPIO23）は外部から使う想定がなく、TP5（GPIO25）はLEDの順方向電圧までしか振れないため使用は勧められていない', source: RPI_PICO_DATASHEET },
     ] }],
   ['xiao_esp32c3', { project: path.join(here, 'pio-esp32c3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32C3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: true, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c3,
+    name: 'XIAO ESP32C3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c3,
     pinNotes: [
       { text: 'GPIO2、GPIO8、GPIO9はストラッピングピンで、起動時のレベルによってブートモードが変わる', source: ESP32C3_DATASHEET },
       { text: 'ADC1はGPIO0からGPIO4（ADC1_CH0からADC1_CH4）、ADC2はGPIO5（ADC2_CH0）に割り当てられている', source: ESP32C3_DATASHEET },
@@ -102,7 +112,7 @@ const BOARDS = new Map([
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
     ] }],
   ['pico_w', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
-    name: 'Raspberry Pi Pico W', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, hardwareVerified: false, flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico_w,
+    name: 'Raspberry Pi Pico W', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, wireless: true, flashRoute: 'rp2040-uf2', flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico_w,
     // The four GPIO the radio takes over are exactly what a Pico sketch gets wrong on this board.
     pinTableNote: 'ピン表のD23、D24、D25、D29は無線チップCYW43439のためにボード内部で使われていて、ヘッダには出ていない。無印PicoでGPIO25だったユーザーLEDもこのボードには無く、LED_BUILTINはGPIO番号を持たない擬似ピン64になる（coreがCYW43側へ渡すため）。',
     pinNotes: [
@@ -116,7 +126,7 @@ const BOARDS = new Map([
       { text: 'BOOTSELを押したまま電源を入れるとUSBマスストレージとして現れ、uf2ファイルを置くとFlashに書かれて再起動する', source: RPI_PICO_W_DATASHEET },
     ] }],
   ['xiao_esp32c5', { project: path.join(here, 'pio-esp32c5'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32C5', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c5,
+    name: 'XIAO ESP32C5', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c5,
     // The A-macros are the trap here: only one of them is a side pad.
     pinTableNote: 'ピン表のA1からA4（GPIO2からGPIO5）は基板の側面パッドには出ていない。GPIO2、GPIO3、GPIO4は裏面のJTAGパッド（MTMS、MTDI、MTCK）で、GPIO5はSeeedのピンマップに載っていない。側面パッドで使えるアナログ入力はA0（D0、GPIO1）の1本だけ。LED_BUILTIN（GPIO27）も基板上のLEDで、パッドには出ていない。',
     pinNotes: [
@@ -130,7 +140,7 @@ const BOARDS = new Map([
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32C5_DATASHEET },
     ] }],
   ['xiao_esp32s3', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,
+    name: 'XIAO ESP32S3', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32s3,
     pinNotes: [
       { text: 'ピンマップのD0からD10は順にGPIO1、GPIO2、GPIO3、GPIO4、GPIO5、GPIO6、GPIO43、GPIO44、GPIO7、GPIO8、GPIO9', source: SEEED_XIAO_ESP32S3 },
       { text: 'アナログ入力が使えるのはD0からD5とD8からD10の9本で、UARTのD6（GPIO43）とD7（GPIO44）にADCは無い', source: SEEED_XIAO_ESP32S3 },
@@ -142,7 +152,7 @@ const BOARDS = new Map([
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
     ] }],
   ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: false, flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
+    name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
     // The generic esp32 variant defines no Dn macros at all, so the table has no digital rows.
     // That is the trap on this board, and the silkscreen's own D0..D3 mean something else again.
     pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA19はArduinoのアナログ名で、同じ行のGPIO番号がその実体。基板に印刷されたD0からD3・CMD・CLKはSPI flash用の端子名であって、コードに書くラベルではない。',
@@ -157,7 +167,7 @@ const BOARDS = new Map([
       { text: 'ADC2はWi-Fiも使うため、Wi-Fi動作中はドライバ側の保護を通してしか読めない', source: ESP_IDF_ADC },
     ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
-    name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, hardwareVerified: true, flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
+    name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp8266', flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
     // Read before the pin table, because the table's own labels are the trap on this board.
     pinTableNote: 'ピン表のD0からD10はNodeMCU汎用variantのマクロで、Wio Node基板の表記ではない。基板のPORT0（UART/I2C0/D0）とPORT1（Analog/I2C1/D1）にあるD0/D1はコネクタの名前であり、コードのD0/D1マクロ（GPIO16とGPIO5）とは別物。コードではGPIO番号を直接書くこと。',
     pinNotes: [
@@ -178,8 +188,13 @@ const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${en
 // Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
 // incompatibleLibraries is the browser's only copy of the table: the Libraries view, the Build
 // output and the AI's board sentence all read it from the selected board's entry here.
+// The route's record travels with every board that rides it, as the names of the boards actually
+// flashed on it. It is the maintainers' ledger: /boards carries it, the UI does not show it.
+const routeFacts = (b) => ({ flashRoute: b.flashRoute, routeLabel: FLASH_ROUTES[b.flashRoute].label,
+  routeVerified: FLASH_ROUTES[b.flashRoute].verifiedBy.length > 0,
+  routeVerifiedBy: FLASH_ROUTES[b.flashRoute].verifiedBy.map(id => BOARDS.get(id).name) });
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: b.vendor, family: b.family, platform: b.platform, framework: b.framework, core: b.core,
-  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, hardwareVerified: b.hardwareVerified, flashHint: b.flashHint, flashGuide: b.flashGuide,
+  artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, wireless: b.wireless, ...routeFacts(b), flashHint: b.flashHint, flashGuide: b.flashGuide,
   pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
   incompatibleLibraries: incompatFor(b.platform).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');

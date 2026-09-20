@@ -9,13 +9,13 @@ async function ready(page) {
 }
 const item = (page, id) => page.locator(`#board-list li[data-board-id="${id}"]`);
 const rowOf = (page, id) => item(page, id).locator('.board-item');
+const BOARDS_UI_KEY = 'digicode-text.boards-ui.v1';
 
-test('一覧は /boards の行で名前だけ（実機確認待ちの印は付く）、選択中の行はハイライト、初期は箱なし', async ({ page, request }) => {
+test('一覧は /boards の行で名前だけ、選択中の行はハイライト、初期は箱なし', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
   await ready(page);
-  // 行の文字は名前だけ。実機確認待ちの板だけ、名前のうしろに印が付く。
-  const label = b => b.name + (b.hardwareVerified === false ? '実機確認待ち' : '');
-  expect((await page.locator('#board-list .board-item').allTextContents()).sort()).toEqual(boards.map(label).sort());
+  // 行の文字は名前だけ。
+  expect((await page.locator('#board-list .board-item').allTextContents()).sort()).toEqual(boards.map(b => b.name).sort());
   await expect(page.locator('#board-list .board-item')).toHaveCount(boards.length);
   await expect(page.locator('#board-detail')).toHaveCount(0);
   await expect(page.locator('#board-facts')).toHaveCount(0);
@@ -79,6 +79,8 @@ test('このボードを選ぶでハイライトが移り、#env と status bar 
   await expect(page.locator('#status-build')).toHaveAttribute('data-state', 'ready');
   await rowOf(page, 'xiao_esp32c3').click();
   await page.click('#board-select');
+  // 無線のボードなので技適の注意が重なる。閉じてから続ける。
+  await page.click('#giteki-ok');
   await expect(page.locator('#env')).toHaveValue('xiao_esp32c3');
   await expect(page.locator('#status-board')).toHaveText('XIAO ESP32C3');
   await expect(page.locator('.board-item[aria-current="true"]')).toHaveText('XIAO ESP32C3');
@@ -119,16 +121,54 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
   const vendors = [...new Set(boards.map(b => b.vendor))].sort((a, b) => a.localeCompare(b));
   expect(await page.locator('#board-list > h4.board-vendor').allTextContents()).toEqual(vendors);
   expect(vendors).toEqual(['Espressif', 'Raspberry Pi', 'Seeed Studio']);
-  const label = b => b.name + (b.hardwareVerified === false ? '実機確認待ち' : '');
   // 見出しのすぐ下の ul に、その vendor のボードが名前順で入る。
   for (const vendor of vendors) {
     const names = await page.locator('#board-list > h4.board-vendor', { hasText: vendor }).locator('xpath=following-sibling::ul[1]').locator('.board-item').allTextContents();
-    expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(label));
+    expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(b => b.name));
   }
   expect(await page.locator('#board-list .board-item').allTextContents())
-    .toEqual(['ESP32-DevKitC V4実機確認待ち', 'Raspberry Pi Pico', 'Raspberry Pi Pico W実機確認待ち', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5実機確認待ち', 'XIAO ESP32S3実機確認待ち', 'XIAO RP2040']);
+    .toEqual(['ESP32-DevKitC V4', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32S3', 'XIAO RP2040']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
   // 小見出しは view の見出しより一段小さい。
   const size = sel => page.locator(sel).first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
   expect(await size('.board-vendor')).toBeLessThan(await size('.view-section-title'));
+});
+
+const vendorToggle = (page, vendor) => page.locator('#board-list > h4.board-vendor', { hasText: vendor }).locator('button');
+
+test('メーカーの節は見出しで畳めて、畳んだことは読み込み直しても残る', async ({ page }) => {
+  await ready(page);
+  await expect(vendorToggle(page, 'Espressif')).toHaveAttribute('aria-expanded', 'true');
+  await expect(rowOf(page, 'esp32_devkitc_v4')).toBeVisible();
+
+  await vendorToggle(page, 'Espressif').click();
+  await expect(vendorToggle(page, 'Espressif')).toHaveAttribute('aria-expanded', 'false');
+  await expect(rowOf(page, 'esp32_devkitc_v4')).toBeHidden();
+  // 畳むのは押した節だけ。
+  await expect(rowOf(page, 'pico')).toBeVisible();
+  expect(await page.evaluate(k => JSON.parse(localStorage.getItem(k)), BOARDS_UI_KEY)).toEqual({ collapsed: ['Espressif'] });
+
+  // 選択中のボードが居る節も同じように畳めて、起動時に勝手に開き直さない。
+  await vendorToggle(page, 'Seeed Studio').click();
+  await expect(rowOf(page, 'xiao_rp2040')).toBeHidden();
+  await page.reload();
+  await expect(page.locator('#build')).toBeEnabled();
+  await openBoards(page);
+  await expect(vendorToggle(page, 'Espressif')).toHaveAttribute('aria-expanded', 'false');
+  await expect(rowOf(page, 'esp32_devkitc_v4')).toBeHidden();
+  await expect(rowOf(page, 'xiao_rp2040')).toBeHidden();
+  await expect(rowOf(page, 'pico')).toBeVisible();
+
+  // もう一度押すと開く。
+  await vendorToggle(page, 'Espressif').click();
+  await expect(rowOf(page, 'esp32_devkitc_v4')).toBeVisible();
+  expect(await page.evaluate(k => JSON.parse(localStorage.getItem(k)), BOARDS_UI_KEY)).toEqual({ collapsed: ['Seeed Studio'] });
+
+  // 壊れた記録は既定（全部開いている）に戻す。
+  await page.evaluate(k => localStorage.setItem(k, 'not json'), BOARDS_UI_KEY);
+  await page.reload();
+  await expect(page.locator('#build')).toBeEnabled();
+  await openBoards(page);
+  await expect(vendorToggle(page, 'Seeed Studio')).toHaveAttribute('aria-expanded', 'true');
+  await expect(rowOf(page, 'xiao_rp2040')).toBeVisible();
 });

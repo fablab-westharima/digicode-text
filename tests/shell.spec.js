@@ -245,9 +245,8 @@ test('The Boards view shows exactly what /boards reports for the selected board'
   await openBoards(page);
   for (const board of boards) {
     await selectBoard(page, board.id);
-    // 行は名前だけ。実機で確かめていない板は、名前のうしろに印が付く。
-    await expect(page.locator(`#board-list li[data-board-id="${board.id}"] .board-item`))
-      .toHaveText(board.name + (board.hardwareVerified === false ? '実機確認待ち' : ''));
+    // 行は名前だけ。
+    await expect(page.locator(`#board-list li[data-board-id="${board.id}"] .board-item`)).toHaveText(board.name);
     await expect(page.locator('#board-detail')).toContainText(board.core);
     // The pin table and the notes are the lower stage of the box; it starts closed.
     await expect(page.locator('#board-facts')).toBeHidden();

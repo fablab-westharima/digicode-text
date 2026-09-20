@@ -19,9 +19,9 @@ async function saved(page) {
   return page.evaluate(() => { const data = JSON.parse(localStorage.getItem('digicode-text.projects.v1')); return data.projects.find(p => p.id === data.activeId); });
 }
 
-test('Monaco editing, indentation, undo/redo, resize, draft/board/empty restoration', async ({ page }) => {
+test('Monaco editing, indentation, undo/redo, resize, draft/board/empty restoration', async ({ page, baseURL }) => {
   const external = [], errors = [];
-  page.on('request', r => { if (!r.url().startsWith('http://127.0.0.1:3100/') && !r.url().startsWith('blob:')) external.push(r.url()); });
+  page.on('request', r => { if (!r.url().startsWith(baseURL + '/') && !r.url().startsWith('blob:')) external.push(r.url()); });
   page.on('pageerror', e => errors.push(String(e)));
   await ready(page);
   await expect(page.locator('.line-numbers').first()).toHaveText('1');

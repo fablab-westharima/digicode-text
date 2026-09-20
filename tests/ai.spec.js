@@ -25,8 +25,9 @@ async function send(page, intent = 'consult', prompt) {
   await page.fill('#ai-prompt', prompt || `${intent === 'generate' ? '変更して' : '説明して'} ${++nextPrompt}`); await page.click('#ai-send');
 }
 test.setTimeout(30000);
-test.beforeEach(async ({ context }) => {
-  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === 'http://127.0.0.1:3100' ? route.continue() : route.abort());
+test.beforeEach(async ({ context, baseURL }) => {
+  // ローカルの compiler サーバーだけを通す。origin は config の baseURL から取る（ポートを決め打たない）。
+  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === new URL(baseURL).origin ? route.continue() : route.abort());
   await context.addInitScript(() => { if (navigator.serial) { navigator.serial.getPorts = navigator.serial.requestPort = () => { throw new Error('serial forbidden'); }; } });
 });
 test('contracts and strict response parsing', () => {
@@ -113,10 +114,10 @@ test('contracts and strict response parsing', () => {
 });
 
 
-test('single send, question/generation contracts, Markdown safety, history clear', async ({ page }) => {
+test('single send, question/generation contracts, Markdown safety, history clear', async ({ page, baseURL }) => {
   const requests = [], local = [], external = [];
   const markdown = '# 説明\n- Wi-Fiの設定\n- `ArduinoJson` は直接依存の設定\n\n```cpp\n  vector<int> under_score;\n```\n<img src="https://bad.example/pixel" onerror="alert(1)">\n![image](https://bad.example/pixel)\n[bad](javascript:alert(1))\n[docs](https://example.com/docs)';
-  page.on('request', r => { if (r.url().startsWith('http://127.0.0.1:3100')) local.push(r.postData() || ''); else external.push(r.url()); });
+  page.on('request', r => { if (r.url().startsWith(baseURL)) local.push(r.postData() || ''); else external.push(r.url()); });
   await page.route('https://api.openai.com/**', async r => { requests.push(r.request()); await r.fulfill({ json: response(requests.length === 1 ? reply(markdown) : answer) }); });
   await ready(page); await settings(page); const original = await source(page);
   await expect(page.locator('#ai-operation')).toHaveCount(0); await expect(page.locator('#ai-apply-mode')).toBeVisible();

@@ -23,6 +23,9 @@ export async function selectBoard(page, env) {
   await openBoardBox(page, env);
   // The box of the board that is already the build target has no button to press.
   if (await page.locator('#board-select').count()) await page.click('#board-select');
+  // 無線のボードを日本語環境で選ぶと技適の注意が重なる。利用者と同じく OK で閉じる
+  // （チェックは付けないので、次の選択でもまた出る）。
+  if (await page.locator('#giteki-dialog').isVisible()) await page.click('#giteki-ok');
 }
 
 /** Open the file menu in the Explorer view and choose one of its items (`project-new`, …). */

@@ -26,6 +26,7 @@ const NOT_IN_SYSTEM = NOT_IN_GUIDANCE.filter(re => re.source !== 'zip');
 const KEY_NAMES = ['boardDetails', 'artifact', 'browserFlash', 'flashHint', 'contextData', 'PRODUCT_INFO', 'productReference'];
 // Stand-in /boards entry: the shape app.js hands to projectContext, with a two-row pin table.
 const c3 = { id: 'xiao_esp32c3', name: 'XIAO ESP32C3', family: 'esp', framework: 'Arduino', core: 'Arduino ESP32', artifact: 'flashset', browserFlash: true, serial: true, flashHint: 'Build成功後に「書き込み」ボタンを押す。',
+  wireless: true, flashRoute: 'esp-usb-cdc', routeLabel: '試験用の書き込み方式', routeVerified: true, routeVerifiedBy: ['XIAO ESP32C3'],
   pins: { variant: 'XIAO_ESP32C3', pins: [{ label: 'D0', pin: 2, gpio: 2, functions: [], adc: 'A0', note: null }, { label: 'D4', pin: 6, gpio: 6, functions: ['SDA'], adc: null, note: null }], unlabelledFunctions: [] },
   pinNotes: [{ text: '試験用の注意文', source: 'https://wiki.seeedstudio.com/XIAO_ESP32C3_Getting_Started/' }] };
 
@@ -205,8 +206,9 @@ test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 
   expect(facts.indexOf('GPIO番号を直接書く')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
   expect(facts).toContain('GPIO34からGPIO39は入力専用');
   expect(facts).toContain('SPI flashの通信に基板内部で使われている');
-  // 板が届くまでは実機で確かめていない。表にその事実が載る。
-  expect(devkit.hardwareVerified).toBe(false);
+  // 板が届くまでは、この書き込み方式を実機で通したボードが1台も無い（/boards が運ぶ管理用の事実）。
+  expect(devkit.flashRoute).toBe('esp-uart-bridge');
+  expect(devkit.routeVerified).toBe(false);
 });
 
 test('XIAO ESP32C5 の A マクロは側面パッドではないと先に言う', async ({ request }) => {
@@ -223,7 +225,9 @@ test('XIAO ESP32C5 の A マクロは側面パッドではないと先に言う'
   const facts = boardFacts(c5);
   expect(facts.indexOf('裏面のJTAGパッド')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
   expect(facts).toContain('側面パッドで使えるアナログ入力はA0（D0、GPIO1）の1本だけ');
-  expect(c5.hardwareVerified).toBe(false);
+  // 同じ書き込み方式の別の板で確認済み（/boards が運ぶ管理用の事実）。
+  expect(c5.flashRoute).toBe('esp-usb-cdc');
+  expect(c5.routeVerifiedBy).not.toContain(c5.name);
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {
@@ -246,7 +250,9 @@ test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4
   expect(facts).toContain('LED_BUILTIN、GPIO番号なし（ピン番号64）');
   // 読み方の断りが表より先に出る。
   expect(facts.indexOf('無線チップCYW43439のためにボード内部で使われていて')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
-  expect(w.hardwareVerified).toBe(false);
+  // 同じ書き込み方式の別の板で確認済み（/boards が運ぶ管理用の事実）。
+  expect(w.flashRoute).toBe('rp2040-uf2');
+  expect(w.routeVerifiedBy).not.toContain(w.name);
 });
 
 test('XIAO ESP32S3 のピン表は core の variant そのままで、D6/D7 に ADC が無く LED_BUILTIN はパッドに出ていない', async ({ request }) => {
@@ -262,7 +268,9 @@ test('XIAO ESP32S3 のピン表は core の variant そのままで、D6/D7 に 
   // User LED はチップのピンで、パッドには出ていないので「ラベル無し」の行に出る。
   expect(s3.pins.unlabelledFunctions).toEqual([{ name: 'LED_BUILTIN', pin: 21, gpio: 21, note: null }]);
   expect(boardFacts(s3)).toContain('User LEDはGPIO21');
-  expect(s3.hardwareVerified).toBe(false);
+  // 同じ書き込み方式の別の板で確認済み（/boards が運ぶ管理用の事実）。
+  expect(s3.flashRoute).toBe('esp-usb-cdc');
+  expect(s3.routeVerifiedBy).not.toContain(s3.name);
 });
 
 test('XIAO ESP32S3 の USB は Seeed の vendor id で出るので、ポート選択の絞り込みに入っている', async () => {
@@ -274,19 +282,27 @@ test('XIAO ESP32S3 の USB は Seeed の vendor id で出るので、ポート�
   for (const file of ['web/flash.js', 'web/serial.js']) expect(await read(file), file).toContain('0x2886');
 });
 
-test('実機確認待ちの印は、ボード表の hardwareVerified がそのまま出たもの', async ({ page, request }) => {
+// 経路ごとの実機確認は保守側の台帳で、/boards が運ぶだけ。画面にも AI に渡す文にも出さない。
+test('経路ごとの実機確認は /boards が返すサーバーの事実で、画面には出ない', async ({ page, request }) => {
   const boards = await (await request.get('/boards')).json();
+  // 実機で確かめたのはボードではなく経路。確認済みの経路と未確認の経路がどちらも表にある。
+  expect(boards.some(b => b.routeVerified === false)).toBe(true);
+  expect(boards.some(b => b.routeVerified === true)).toBe(true);
+  // 確認済みの経路に相乗りしているだけの板は、代表の板の名前を持っている。
+  const shared = boards.find(b => b.routeVerified && !b.routeVerifiedBy.includes(b.name));
+  expect(shared.routeVerifiedBy.length).toBeGreaterThan(0);
+  // 画面は経路の確認状態を一言も出さない（行も、詳細の箱も、AI に渡すボードの文も）。
   await page.goto('/');
   await expect(page.locator('#build')).toBeEnabled();
   await page.click('#view-boards');
   for (const board of boards) {
-    const badge = page.locator(`#board-list li[data-board-id="${board.id}"] .board-badge`);
-    await expect(badge, board.id).toHaveCount(board.hardwareVerified === false ? 1 : 0);
-    if (board.hardwareVerified === false) await expect(badge).toHaveText('実機確認待ち');
+    const row = page.locator(`#board-list li[data-board-id="${board.id}"] .board-item`);
+    await expect(row, board.id).toHaveText(board.name);
+    expect(boardFacts(board), board.id).not.toContain(board.routeLabel);
   }
-  // 少なくとも 1 台は実機確認待ちで、少なくとも 1 台は確認済み（印が全行に付いていない）。
-  expect(boards.some(b => b.hardwareVerified === false)).toBe(true);
-  expect(boards.some(b => b.hardwareVerified === true)).toBe(true);
+  for (const word of ['実機確認', '実機で確かめ', '書き込み方式']) {
+    expect(await page.locator('#board-list').textContent()).not.toContain(word);
+  }
 });
 
 test('output check: external flashing command lines are replaced by the product sentence; prose-only misguidance passes', () => {
@@ -311,13 +327,13 @@ test('output check: external flashing command lines are replaced by the product 
 });
 
 for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['openai','gpt-4.1-mini','chat'], ['claude','claude-sonnet-5','messages']]) {
-  test(`actual UI sends rules, product reference and the /boards entry through ${api}`, async ({ page, context, request }) => {
+  test(`actual UI sends rules, product reference and the /boards entry through ${api}`, async ({ page, context, request, baseURL }) => {
     const boards = await (await request.get('/boards')).json();
     const byId = Object.fromEntries(boards.map(b => [b.id, b]));
     expect(Object.keys(byId)).toEqual([...(await compilerBoards()).keys()]);
     await context.route(/^https?:\/\//, route => {
       const req = route.request();
-      return new URL(req.url()).origin === 'http://127.0.0.1:3100' && req.method() === 'GET' ? route.continue() : route.abort();
+      return new URL(req.url()).origin === new URL(baseURL).origin && req.method() === 'GET' ? route.continue() : route.abort();
     });
     await context.addInitScript(() => { if (navigator.serial) navigator.serial.getPorts = navigator.serial.requestPort = () => { throw new Error('serial forbidden'); }; });
     const requests = [];
@@ -377,10 +393,10 @@ for (const [provider, model, api] of [['openai','gpt-5-mini','responses'], ['ope
   });
 }
 
-test('actual UI withholds an external flashing command in the answer, keeps the code of a change, and resends only the product sentence', async ({ page, context, request }) => {
+test('actual UI withholds an external flashing command in the answer, keeps the code of a change, and resends only the product sentence', async ({ page, context, request, baseURL }) => {
   const boards = await (await request.get('/boards')).json();
   const board = boards.find(b => b.id === 'xiao_esp32c3');
-  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === 'http://127.0.0.1:3100' && route.request().method() === 'GET' ? route.continue() : route.abort());
+  await context.route(/^https?:\/\//, route => new URL(route.request().url()).origin === new URL(baseURL).origin && route.request().method() === 'GET' ? route.continue() : route.abort());
   await context.addInitScript(() => { if (navigator.serial) navigator.serial.getPorts = navigator.serial.requestPort = () => { throw new Error('serial forbidden'); }; });
   const bad = 'ESP32-C3系でよく使われる例です。\n\n```\nesptool.py --chip esp32c3 write_flash 0x1000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin\n```';
   const code = '#include <Arduino.h>\nvoid setup() { Serial.begin(115200); }\nvoid loop() {}\n';

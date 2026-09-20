@@ -888,12 +888,15 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
    テストと JS の目印としてだけ残す（宣言は持たない）。残っているのは、この view だけの事情
    （vendor の括り・箱の中の置き場・等幅の列）と、dialog と分け合う箇条書きの寸法だけ。 */
 .board-vendor { margin: 12px 0 4px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+/* 見出しそのものが節の開閉。ライブラリの「追加済み」（#library-added-toggle）と同じ作りで、
+   字の大きさ・字間・大文字化は見出しから受け継ぎ、開閉の印だけをここで描く。 */
+.board-vendor-toggle { width: 100%; height: auto; min-height: 0; justify-content: flex-start; padding: 0 6px; border-color: transparent; background: transparent; font-size: inherit; font-weight: inherit; color: inherit; }
+.board-vendor-toggle:hover { background: var(--bg-raised); }
+.board-vendor-toggle::after { content: '▸'; margin-left: auto; color: var(--fg-muted); }
+.board-vendor-toggle[aria-expanded="true"]::after { content: '▾'; }
 .board-group { list-style: none; padding: 0; margin: 0; }
 .board-group > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
 .detail-box .board-current { color: var(--accent-2); }
-/* 実機確認待ちの印。ライブラリの非互換バッジと同じ形で、色だけ危険ではなく控えめにする：
-   使えないという話ではなく、まだ板で確かめていないという話なので。 */
-.list-row > .board-badge { flex: none; padding: 0 5px; border: 1px solid var(--border); border-radius: 3px; font-size: var(--fs-tiny); color: var(--fg-muted); background: transparent; }
 #board-facts { grid-column: 1 / -1; min-width: 0; margin-top: 6px; }
 /* ラベルと GPIO 番号を等幅で読ませる。折り返さない・幅を詰めるは .table の .nowrap が持つ。 */
 .pin-table .pin-label, .pin-table .pin-gpio { font-family: var(--code-font); }
@@ -1099,7 +1102,8 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 .flash-guide-steps { margin: 10px 0 0; padding-left: 20px; line-height: 1.7; }
 .flash-guide-steps li { margin-bottom: 14px; }
 .flash-guide-steps p { margin: 6px 0 0; }
-.flash-guide-skip { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--fg-muted); font-size: 12px; }
+/* 「次回から表示しない」のチェック。接続手順と技適の注意が同じ形で持つ。 */
+.dialog-skip { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--fg-muted); font-size: 12px; }
 /* 図は線画だけ。色はここでしか与えず、SVGファイル自身は色を持たない。
    塗りの階調もテーマ変数の使い分けだけで作る（生の色値はここにも図にも書かない）。
    暗い順: --bg-sidebar < --bg-panel < --bg-editor（図の地）< --bg-raised < --border */

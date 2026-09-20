@@ -184,8 +184,18 @@
   <p id="flash-guide-lead" class="storage-hint"></p>
   <ol id="flash-guide-steps" class="flash-guide-steps"></ol>
   <ul id="flash-guide-notes" class="board-notes" hidden></ul>
-  <label class="flash-guide-skip"><input type="checkbox" id="flash-guide-skip">このボードでは次回から表示しない</label>
+  <label class="dialog-skip"><input type="checkbox" id="flash-guide-skip">このボードでは次回から表示しない</label>
   <div class="manage-actions"><button type="button" id="flash-guide-cancel">キャンセル</button><button type="button" id="flash-guide-ok" class="primary">OK</button></div>
+</dialog>
+<!-- 無線を使えるボードを選んだときの注意。止めるものではないので「キャンセル」は無く、OK で
+     閉じるだけ。出す条件と保存は web/giteki-notice.js、事実は取説の「技適について」にある。 -->
+<dialog id="giteki-dialog" aria-labelledby="giteki-title">
+  <div class="dialog-heading"><h2 id="giteki-title"></h2></div>
+  <div class="prose">
+    <p>このボードは無線（Wi-Fi / Bluetooth）を使えます。日本国内で電波を出すときは、基板に技適マークがあるかを確認してください。</p>
+  </div>
+  <label class="dialog-skip"><input type="checkbox" id="giteki-skip">このボードでは次回から表示しない</label>
+  <div class="manage-actions"><button type="button" id="giteki-help">技適について</button><button type="button" id="giteki-ok" class="primary">OK</button></div>
 </dialog>
 <!-- 設定。サイドバーの view ではなく、エディタの上に開く本物の <dialog>。左が節の目次で、選んだ
      1 節だけを右に出す。結果表示（ai-settings-status）と「保存して閉じる／保存せず使う」は節の外に
@@ -212,8 +222,10 @@
           <div class="actions"><button id="layout-reset">レイアウトを初期化</button></div>
         </div>
         <div class="form-group">
+          <!-- 案内の「次回から表示しない」の解除。接続手順と技適の注意で同じ 1 行の説明が当たるので、
+               1 つの項目にボタンを 2 つ置く（節を分けると 1100x850 で #settings-content が溢れる）。 -->
           <p class="form-hint">ボードごとの「次回から表示しない」をすべて消します。</p>
-          <div class="actions"><button id="flash-guide-reset">接続手順の非表示をすべて解除</button></div>
+          <div class="actions"><button id="flash-guide-reset">接続手順の非表示をすべて解除</button><button id="giteki-reset">技適の注意の非表示をすべて解除</button></div>
         </div>
       </section>
       <section id="settings-ai" data-section="ai" aria-labelledby="settings-ai-title" hidden>
@@ -276,6 +288,7 @@
     <nav class="section-nav" id="help-nav" aria-label="ヘルプの節">
       <button type="button" data-section="first" aria-controls="help-first" aria-current="true">最初の 1 台</button>
       <button type="button" data-section="boards" aria-controls="help-board-guide" aria-current="false">ボードとピン</button>
+      <button type="button" data-section="giteki" aria-controls="help-giteki" aria-current="false">技適について</button>
       <button type="button" data-section="libraries" aria-controls="help-libraries" aria-current="false">ライブラリ</button>
       <button type="button" data-section="export" aria-controls="help-export" aria-current="false">持ち出し</button>
       <button type="button" data-section="ai" aria-controls="help-ai" aria-current="false">AI</button>
@@ -304,6 +317,46 @@
       <section id="help-board-guide" data-section="boards" aria-labelledby="help-board-guide-title" hidden>
         <h3 class="heading" id="help-board-guide-title">ボードとピン</h3>
         <div id="help-board-list"></div>
+      </section>
+
+      <!-- 技適の節。ここに書いてよいのは総務省のページに書いてある事実と、手元の基板を見るという
+           断りだけで、法的な解釈は足さない。出所は末尾の .sources に並べ、本文は [n] で指す
+           （ボードの注意点と同じ作り）。日本のブラウザかどうかに関係なく、いつでもここにある。 -->
+      <section id="help-giteki" data-section="giteki" aria-labelledby="help-giteki-title" hidden>
+        <h3 class="heading" id="help-giteki-title">技適について</h3>
+        <div class="prose">
+          <p>「技適マークは、電波法令で定めている技術基準に適合している無線機であることを証明するマークで、個々の無線機に付けられています。」<span class="note-source">[1]</span></p>
+          <p>同じ製品でも古いロットには表示が無いことがあります。手元の基板、シールド缶、パッケージのどれかで確認してください。</p>
+        </div>
+        <hr class="rule">
+        <h4 class="heading">表示が無い場合</h4>
+        <div class="prose">
+          <p>「技適未取得機器を用いた実験等の特例制度」の届出をすると、実験等の目的での使用ができます。<span class="note-source">[2]</span></p>
+        </div>
+        <table class="table">
+          <thead><tr><th class="nowrap">項目</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap">手続き</td><td>届出制度で、事前の審査や許可はありません。届出が到達した時から効力を持ちます。</td></tr>
+            <tr><td class="nowrap">目的</td><td>科学または技術の発達のための実験、電波の利用の効率性に関する試験、電波の利用の需要に関する調査のいずれか。</td></tr>
+            <tr><td class="nowrap">期間</td><td>届出の日から 180 日以内（電波法第4条の2第3項、電波法施行規則第6条の3第2項）。</td></tr>
+            <tr><td class="nowrap">対象規格</td><td>告示で指定されています。Wi-Fi（IEEE802.11b/a/g/n/ac/ad/ah/ax/be）、Bluetooth Core Specification 2.1 以降、IEEE802.15.4 など。全部の列挙は令和元年総務省告示第263号にあります。<span class="note-source">[3]</span></td></tr>
+            <tr><td class="nowrap">適合の確認</td><td>機器が相当する技術基準に適合していることは、仕様書や外国の認証などで利用者自身が確認します。</td></tr>
+            <tr><td class="nowrap">回数</td><td>同じ目的・規格で届出できるのは 1 回限りです。</td></tr>
+            <tr><td class="nowrap">届出先</td><td>総務大臣。Web での届出は電波利用電子申請<span class="note-source">[4]</span>から行います。開設届出の案内もあります。<span class="note-source">[5]</span></td></tr>
+          </tbody>
+        </table>
+        <div class="note">
+          <p>最新の条件は総務省のページで確認してください。この節は 2026-09-20 に確認した内容です。</p>
+          <p>使うかどうかの判断は利用者が行います。この節は法的助言ではありません。</p>
+        </div>
+        <h4 class="heading">出所</h4>
+        <ol class="sources">
+          <li><a href="https://www.tele.soumu.go.jp/j/adm/monitoring/summary/qa/giteki_mark/" target="_blank" rel="noreferrer noopener">https://www.tele.soumu.go.jp/j/adm/monitoring/summary/qa/giteki_mark/</a></li>
+          <li><a href="https://www.tele.soumu.go.jp/j/sys/others/exp-sp/" target="_blank" rel="noreferrer noopener">https://www.tele.soumu.go.jp/j/sys/others/exp-sp/</a></li>
+          <li><a href="https://www.tele.soumu.go.jp/horei/law_honbun/71ab7244.html" target="_blank" rel="noreferrer noopener">https://www.tele.soumu.go.jp/horei/law_honbun/71ab7244.html</a></li>
+          <li><a href="https://www.denpa.soumu.go.jp/index.html" target="_blank" rel="noreferrer noopener">https://www.denpa.soumu.go.jp/index.html</a></li>
+          <li><a href="https://www.denpa.soumu.go.jp/guide/app_t/GUDS0055/index.html" target="_blank" rel="noreferrer noopener">https://www.denpa.soumu.go.jp/guide/app_t/GUDS0055/index.html</a></li>
+        </ol>
       </section>
 
       <section id="help-libraries" data-section="libraries" aria-labelledby="help-libraries-title" hidden>

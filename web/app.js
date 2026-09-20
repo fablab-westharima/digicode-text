@@ -6,6 +6,7 @@ import { monitorPort, disconnectForFlash } from './serial.js';
 import { setupPlotter } from './plotter.js';
 import { parseFlashSet, flashEsp, flashUf2, ESP_VENDOR_IDS } from './flash.js';
 import { setupFlashGuide } from './flash-guide.js';
+import { setupGitekiNotice } from './giteki-notice.js';
 import { setupHelp } from './help.js';
 import { setupLibraries } from './libraries.js';
 import { incompatibleDependencies } from './library-incompat.js';
@@ -127,8 +128,11 @@ const help = setupHelp(BOARDS, showFlashGuide, () => $('env').value);
 // ヘルプは sidebar の view ではなく <dialog>。設定（#view-settings）と同じ扱いで、
 // アクティビティバーの選択状態は変えない。
 $('view-help').onclick = () => help.open();
+// 無線を使えるボードを選んだときの技適の注意。取説の「技適について」を上に重ねて開ける。
+const giteki = setupGitekiNotice(section => help.open(section));
 // 設定から、ボードごとに保存した「次回から表示しない」をまとめて解除する。
 $('flash-guide-reset').onclick = () => flashGuide.resetSkipped();
+$('giteki-reset').onclick = () => giteki.resetSkipped();
 const store = await openProjects(HELLO, saveStatus);
 $('env').value = store.current.env;
 const editor = monaco.editor.create($('editor'), {
@@ -241,7 +245,9 @@ function changed() {
   ai?.changed();
 }
 editor.onDidChangeModelContent(changed);
-$('env').addEventListener('change', () => { showBoard(); changed(); libs?.boardChanged(); });
+// change が来るのは利用者がボードを選んだときだけ（起動時の復元とプロジェクトの切り替えは
+// #env に値を入れるだけで発火しない）。技適の注意はその1回にだけ出す。
+$('env').addEventListener('change', () => { showBoard(); changed(); libs?.boardChanged(); giteki.notice(BOARDS.get($('env').value)); });
 $('build').disabled = false;
 $('status').textContent = 'Buildできます';
 

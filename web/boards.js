@@ -51,6 +51,18 @@ function pinTable(pins) {
 // /boards の artifact は機械向けの値なので、箱に出すときだけ言い換える。
 const ARTIFACT_LABELS = { uf2: 'UF2', flashset: '書き込みセット' };
 
+export const BOARDS_UI_KEY = 'digicode-text.boards-ui.v1';
+// 畳んであるメーカーの節。永続化は layout.js と同じ形：既定から始め、保存されている値のうち形の
+// 合うものだけを採り、壊れた記録は既定（全部開いている）に戻す。
+function readCollapsed() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BOARDS_UI_KEY) || 'null');
+    if (saved && typeof saved === 'object' && Array.isArray(saved.collapsed))
+      return new Set(saved.collapsed.filter(vendor => typeof vendor === 'string'));
+  } catch { /* 壊れた記録は既定に置き換える。ボードの一覧そのものは何も失わない */ }
+  return new Set();
+}
+
 // The lower stage of the box: facts only, so nothing in here is a control.
 function renderBoardFacts(root, board) {
   // pinTableNote comes before the table because it says how to read it.
@@ -99,6 +111,32 @@ function renderBoardFacts(root, board) {
 // the box, which hands the id to `select` (app.js puts it on #env and fires its change).
 export function setupBoardList(boards, selectedId, select) {
   let openId = null, pinsOpen = false;
+  const collapsed = readCollapsed();
+  function persist() {
+    try { localStorage.setItem(BOARDS_UI_KEY, JSON.stringify({ collapsed: [...collapsed] })); }
+    catch { /* 畳んであるかどうかは便宜。保存できなくてもボードは選べる */ }
+  }
+  // メーカーの節の見出し。押すとその節だけ畳む。ライブラリの「追加済み」の見出しと同じ形で、
+  // 見出しの中の button が aria-expanded を持ち、開閉の印は CSS が描く。畳んだ節は選択中の
+  // ボードを含んでいても畳んだままで、次に開いたときも畳まれている。
+  function vendorHeading(vendor, list) {
+    const heading = element('h4', null, 'board-vendor');
+    const toggle = element('button', vendor, 'board-vendor-toggle');
+    toggle.type = 'button';
+    list.id = `board-group-${vendor.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    toggle.setAttribute('aria-controls', list.id);
+    const apply = () => {
+      toggle.setAttribute('aria-expanded', String(!collapsed.has(vendor)));
+      list.hidden = collapsed.has(vendor);
+    };
+    toggle.onclick = () => {
+      if (collapsed.has(vendor)) collapsed.delete(vendor); else collapsed.add(vendor);
+      apply(); persist();
+    };
+    apply();
+    heading.append(toggle);
+    return heading;
+  }
   // View を開き直したら箱は閉じている。
   function reset() { openId = null; pinsOpen = false; render(); }
   function render(focusId) {
@@ -111,7 +149,7 @@ export function setupBoardList(boards, selectedId, select) {
       if (board.vendor !== vendor) {
         vendor = board.vendor;
         list = element('ul', null, 'board-group');
-        root.append(element('h4', vendor, 'board-vendor'), list);
+        root.append(vendorHeading(vendor, list), list);
       }
       const item = element('li');
       item.dataset.boardId = board.id;
@@ -121,13 +159,6 @@ export function setupBoardList(boards, selectedId, select) {
       // 選択中の行はエクスプローラの選択中プロジェクトと同じハイライト。
       row.setAttribute('aria-current', String(selectedId() === board.id));
       row.append(element('strong', board.name));
-      // 実機で動かして確かめたかどうかは、この repo の事実。build と書き込みセットまでは
-      // 実測しているが板が手元に無いボードに印を付ける（説明はホバーへ）。
-      if (board.hardwareVerified === false) {
-        const badge = element('span', '実機確認待ち', 'board-badge');
-        badge.title = 'このボードはBuildと書き込みセットまで確かめてあり、実機での動作はまだ確かめていない';
-        row.append(badge);
-      }
       row.onclick = () => { openId = openId === board.id ? null : board.id; pinsOpen = false; render(board.id); };
       item.append(row);
       if (openId === board.id) item.append(detailBox(board));
