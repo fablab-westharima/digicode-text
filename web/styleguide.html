@@ -57,7 +57,8 @@
   <section class="sg-card">
     <h2 class="heading">1 見出し</h2>
     <div class="prose">
-      <p>節の始まりを示します。左の 4 px の縦線が「accent-3」で、文字は 16 px の太字です。</p>
+      <p>節の始まりを示します。左の 4 px の縦線が「accent-3」で、文字は 15 px の太字です。</p>
+      <p>一覧の行より 2 px だけ大きくします。括りと、その中に並ぶ行との差は、この 2 px と太さだけで示します。</p>
     </div>
     <h3 class="heading">1.1 下位の見出し</h3>
     <div class="prose">
@@ -79,6 +80,7 @@
     <h2 class="heading">2 一覧の行</h2>
     <div class="prose">
       <p>一覧では名前だけを出します。押すと選択され、右端の印が「▸」から「▾」に変わって詳細が開きます。</p>
+      <p>文字は「--fs-row」の 13 px、太さは通常です。エディタ本文と同じ大きさにして、名前を拾うときとコードを読むときとで字が跳ねないようにします。</p>
     </div>
     <div class="sg-list">
       <button type="button" class="list-row"><strong>blink</strong></button>
@@ -251,8 +253,9 @@
       <p>行間は「--lh」の 1.6 で、段落の間は「--sp-2」です。字を小さくするより、余白で読みやすくします。</p>
     </div>
     <ul class="sg-swatches">
-      <li>--fs-heading<br>16px</li>
+      <li>--fs-heading<br>15px</li>
       <li>--fs-body<br>14px</li>
+      <li>--fs-row<br>13px</li>
       <li>--fs-small<br>12px</li>
       <li>--fs-tiny<br>11px</li>
     </ul>

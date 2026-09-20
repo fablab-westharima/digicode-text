@@ -656,7 +656,13 @@
   --pad: 12px;
   /* 寸法の刻み。テーマに依らないのでここに置く。新しい規則はこの変数だけを使う
      （既存の px 直書きは今回は書き換えない）。 */
-  --fs-heading: 16px;
+  /* 一覧の行（.list-row）の字。エディタ本文と同じ大きさにして、サイドバーで名前を拾うときと
+     コードを読むときとで字の大きさが跳ねないようにする。エディタ側は Monaco の fontSize: 13
+     （web/app.js の monaco.editor.create）で、利用者が設定で変えられる値ではない（設定の
+     「外観」はテーマだけ）。連動させる仕掛けは持たず、ここを変えたら app.js も一緒に変える。 */
+  --fs-row: 13px;
+  /* 見出しは行の +2px。括りと、その中に並ぶ行との差はこの 2px と太さ（600）だけで示す。 */
+  --fs-heading: 15px;
   --fs-body: 14px;
   --fs-small: 12px;
   --fs-tiny: 11px;
@@ -705,8 +711,10 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
 /* 見出し。左の4px の縦線で階層を示す。 */
 .heading { margin: var(--sp-3) 0 var(--sp-2); padding-left: var(--sp-2); border-left: var(--rule) solid var(--accent-3); font-size: var(--fs-heading); font-weight: 600; line-height: var(--lh); color: var(--fg-strong); }
 /* 一覧の行。既存の .project-item / .library-item / .board-item と同じ見え方を class にしたもの。
-   button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。 */
-.list-row { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+   button の既定は中央寄せなので、名前が行の左端から始まるように打ち消す。字は --fs-row
+   （エディタ本文と同じ 13px）。button は font: inherit なので、ここで明示しないと body の
+   --fs-body を継いでしまう。 */
+.list-row { width: 100%; height: auto; min-height: var(--row); display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 6px; border-color: transparent; background: transparent; font-size: var(--fs-row); white-space: normal; text-align: left; overflow-wrap: anywhere; }
 /* 名前は通常の太さ。太字は見出し（.heading）のものにして、括りの見出しと、その中に並ぶ行とが
    同じ重さで競らないようにする。strong は ✓ の枠（下の ::before）を掛ける先として残す。 */
 .list-row > strong, .list-row > span { flex: 1; min-width: 0; font-weight: 400; text-align: left; }
@@ -889,7 +897,7 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
    .form-hint / .prose。.board-item .board-warning .board-variant .board-flash-hint .board-sources は
    テストと JS の目印としてだけ残す（宣言は持たない）。残っているのは、この view だけの事情
    （vendor の括りの開閉・箱の中の置き場・等幅の列）と、dialog と分け合う箇条書きの寸法だけ。 */
-/* メーカーの括りの見出しは共通規則の .heading（16px・左4px の縦線）。.board-vendor は JS と
+/* メーカーの括りの見出しは共通規則の .heading（15px・左4px の縦線）。.board-vendor は JS と
    テストの目印としてだけ残す（宣言は持たない）。 */
 /* 見出しそのものが節の開閉。ライブラリの「追加済み」（#library-added-toggle）と同じ作りで、
    字の見え方は見出しから受け継ぎ（button は font/color とも inherit）、開閉の印だけをここで描く。
