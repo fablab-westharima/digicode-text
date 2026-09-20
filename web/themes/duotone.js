@@ -1,5 +1,6 @@
 // DuoTone themes (simurai, MIT — see LICENSE-duotone.txt).
 // Agila Theme (Arvi Acuzar, MIT — see LICENSE-agila.txt).
+// Material Theme (Mattia Astorino, MIT — see LICENSE-material.txt).
 //
 // Where the colours come from
 // ---------------------------
@@ -12,6 +13,16 @@
 // declares only @syntax-hue and the base colours; its uno/duo scales are produced at runtime by
 // lib/duotone.coffee from the package.json configSchema defaults (uno #a59ccc, duo #ffe685) via
 // chroma-js, so those five/three values were reproduced with chroma-js 1.1.1 using the same code.
+//
+// The other families were read from their own colour-definition files, at these commits:
+//   Agila     github.com/arvi/Agila-Theme            4f35444  "Agila *.tmTheme"
+//   Material  github.com/SublimeText/material-theme  134916b  sources/settings/specific/*.json
+//     (equinusocio/material-theme no longer holds a theme; this repo is where the MIT-licensed
+//      Sublime palettes still live)
+//   Kronuz    github.com/Kronuz/kronuz-theme-sublime 26704ae  Kronuz.sublime-color-scheme
+//   ayu       github.com/dempfi/ayu                  41e0098  ayu-*.sublime-color-scheme
+// None of them declares DuoTone's uno/duo scales, so those are derived from the palette's own
+// foreground and highlight colour — the rule is written out at the top of web/app.css.
 //
 // The resolved hex values live in web/app.css, in the `:root` / `:root[data-theme=...]` blocks —
 // that file is the single place in the product that holds a literal colour. This module reads them
@@ -33,6 +44,9 @@ export const THEMES = [
   { id: 'agila-cobalt', family: 'Agila', name: 'Agila Cobalt', repo: 'arvi/Agila-Theme' },
   { id: 'agila-classic', family: 'Agila', name: 'Agila Classic', repo: 'arvi/Agila-Theme' },
   { id: 'agila-neon', family: 'Agila', name: 'Agila Neon', repo: 'arvi/Agila-Theme' },
+  { id: 'material-default', family: 'Material', name: 'Material Default', repo: 'SublimeText/material-theme' },
+  { id: 'material-darker', family: 'Material', name: 'Material Darker', repo: 'SublimeText/material-theme' },
+  { id: 'material-palenight', family: 'Material', name: 'Material Palenight', repo: 'SublimeText/material-theme' },
 ];
 const ids = new Set(THEMES.map(t => t.id));
 export const isTheme = (id) => ids.has(id);

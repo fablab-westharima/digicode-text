@@ -37,6 +37,9 @@
     <button type="button" class="compact" data-set-theme="agila-cobalt">Agila Cobalt</button>
     <button type="button" class="compact" data-set-theme="agila-classic">Agila Classic</button>
     <button type="button" class="compact" data-set-theme="agila-neon">Agila Neon</button>
+    <button type="button" class="compact" data-set-theme="material-default">Material Default</button>
+    <button type="button" class="compact" data-set-theme="material-darker">Material Darker</button>
+    <button type="button" class="compact" data-set-theme="material-palenight">Material Palenight</button>
   </div>
 </div>
 
@@ -302,7 +305,8 @@
   (function () {
     var names = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
       'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
-      'agila-classic', 'agila-neon'];
+      'agila-classic', 'agila-neon',
+      'material-default', 'material-darker', 'material-palenight'];
     function apply(name) {
       if (names.indexOf(name) === -1) name = names[0];
       document.documentElement.dataset.theme = name;

@@ -27,7 +27,8 @@
  *   @uno-2 = the palette's own foreground (lightness capped at 80; a colourless foreground
  *            borrows the background's hue, and the saturation comes from the foreground's
  *            chroma so a near-white stays near-neutral rather than turning vivid)
- *   @uno-1 = @uno-2 +8 lightness      @uno-3 = -12      @uno-4 = -26
+ *   @uno-1 = @uno-2 +8 lightness, or 4 above --fg when the 7:1 lift pushed --fg past that,
+ *            so --fg-strong is never dimmer than --fg      @uno-3 = -12      @uno-4 = -26
  *   @uno-5 = background +14 lightness (clamped to 29..40), so the border stays visible
  *   @duo-1 = one colour the palette declares as its highlight — `globals.accent` where the
  *            palette has one, otherwise the keyword/storage colour, which is the role @duo-1
@@ -423,6 +424,111 @@
   --accent-3: #684350;
   --accent-soft: #FF40832E;
   --selection: #FF408326;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Material Default — SublimeText/material-theme sources/settings/specific/Material-Theme.json (MIT, Mattia Astorino) */
+:root[data-theme="material-default"] {
+  --uno-1: #DDE4E4;
+  --uno-2: #C7D1D1;
+  --uno-3: #A6B5B5;
+  --uno-4: #848F8F;
+  --uno-5: #4F5656;
+  --duo-1: #C792EA;
+  --duo-2: #9C75B5;
+  --duo-3: #786385;
+  --syntax-bg: #263238;
+  --syntax-fg: #EEFFFF;
+  --syntax-guide: #2F3D44;
+  --syntax-accent: #FFCC00;
+  --syntax-selection: #31454A;
+  --bg-editor: #263238;
+  --bg-panel: #1E272C;
+  --bg-sidebar: #161C20;
+  --bg-activity: #0D1114;
+  --bg-statusbar: #0D1114;
+  --bg-raised: #2E3D44;
+  --bg-input: #0D1114;
+  --line-highlight: #2C3A41;
+  --border: #4F5656;
+  --fg-strong: #DDE4E4;
+  --fg: #C7D1D1;
+  --fg-muted: #8F9999;
+  --accent: #C792EA;
+  --accent-2: #9C75B5;
+  --accent-3: #786385;
+  --accent-soft: #C792EA2E;
+  --selection: #C792EA26;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Material Darker — SublimeText/material-theme sources/settings/specific/Material-Theme-Darker.json (MIT, Mattia Astorino) */
+:root[data-theme="material-darker"] {
+  --uno-1: #DDE4E4;
+  --uno-2: #C7D1D1;
+  --uno-3: #A6B5B5;
+  --uno-4: #848F8F;
+  --uno-5: #474D4D;
+  --duo-1: #C792EA;
+  --duo-2: #9C75B5;
+  --duo-3: #786385;
+  --syntax-bg: #212121;
+  --syntax-fg: #EEFFFF;
+  --syntax-guide: #2F2F2F;
+  --syntax-accent: #FFCC00;
+  --syntax-selection: #353535;
+  --bg-editor: #212121;
+  --bg-panel: #191919;
+  --bg-sidebar: #111111;
+  --bg-activity: #080808;
+  --bg-statusbar: #080808;
+  --bg-raised: #2B2B2B;
+  --bg-input: #080808;
+  --line-highlight: #292929;
+  --border: #474D4D;
+  --fg-strong: #DDE4E4;
+  --fg: #C7D1D1;
+  --fg-muted: #848F8F;
+  --accent: #C792EA;
+  --accent-2: #9C75B5;
+  --accent-3: #786385;
+  --accent-soft: #C792EA2E;
+  --selection: #C792EA26;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Material Palenight — SublimeText/material-theme sources/settings/specific/Material-Theme-Palenight.json (MIT, Mattia Astorino) */
+:root[data-theme="material-palenight"] {
+  --uno-1: #BFC4E0;
+  --uno-2: #979EC9;
+  --uno-3: #727BB1;
+  --uno-4: #5E637D;
+  --uno-5: #4C4F62;
+  --duo-1: #C792EA;
+  --duo-2: #9C75B5;
+  --duo-3: #786385;
+  --syntax-bg: #292D3E;
+  --syntax-fg: #959DCB;
+  --syntax-guide: #3C415C;
+  --syntax-accent: #FFCC00;
+  --syntax-selection: #3B415C;
+  --bg-editor: #292D3E;
+  --bg-panel: #212432;
+  --bg-sidebar: #191B25;
+  --bg-activity: #111219;
+  --bg-statusbar: #111219;
+  --bg-raised: #31364A;
+  --bg-input: #111219;
+  --line-highlight: #2F3447;
+  --border: #4C4F62;
+  --fg-strong: #BFC4E0;
+  --fg: #B3B9D8;
+  --fg-muted: #8F93AB;
+  --accent: #C792EA;
+  --accent-2: #9C75B5;
+  --accent-3: #786385;
+  --accent-soft: #C792EA2E;
+  --selection: #C792EA26;
   --danger: #F2777A;
   --danger-soft: #F2777A2E;
 }
