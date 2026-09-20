@@ -1,4 +1,5 @@
 // DuoTone themes (simurai, MIT — see LICENSE-duotone.txt).
+// Agila Theme (Arvi Acuzar, MIT — see LICENSE-agila.txt).
 //
 // Where the colours come from
 // ---------------------------
@@ -19,11 +20,19 @@
 export const THEME_KEY = 'digicode-text.theme.v1';
 export const DEFAULT_THEME = 'duotone-dark';
 
+// `family` is the heading the settings list groups under; the order here is the order shown.
 export const THEMES = [
-  { id: 'duotone-dark', name: 'DuoTone Dark（紫×金）', repo: 'simurai/duotone-dark-syntax' },
-  { id: 'duotone-sea', name: 'DuoTone Sea（青×緑）', repo: 'simurai/duotone-dark-sea-syntax' },
-  { id: 'duotone-space', name: 'DuoTone Space（青紫×橙）', repo: 'simurai/duotone-dark-space-syntax' },
-  { id: 'duotone-earth', name: 'DuoTone Earth（茶×橙）', repo: 'simurai/duotone-dark-earth-syntax' },
+  { id: 'duotone-dark', family: 'DuoTone', name: 'DuoTone Dark（紫×金）', repo: 'simurai/duotone-dark-syntax' },
+  { id: 'duotone-sea', family: 'DuoTone', name: 'DuoTone Sea（青×緑）', repo: 'simurai/duotone-dark-sea-syntax' },
+  { id: 'duotone-space', family: 'DuoTone', name: 'DuoTone Space（青紫×橙）', repo: 'simurai/duotone-dark-space-syntax' },
+  { id: 'duotone-earth', family: 'DuoTone', name: 'DuoTone Earth（茶×橙）', repo: 'simurai/duotone-dark-earth-syntax' },
+  { id: 'agila-oceanic', family: 'Agila', name: 'Agila Oceanic Next', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-origin', family: 'Agila', name: 'Agila Origin', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-dracula', family: 'Agila', name: 'Agila Dracula', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-monokai', family: 'Agila', name: 'Agila Monokai', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-cobalt', family: 'Agila', name: 'Agila Cobalt', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-classic', family: 'Agila', name: 'Agila Classic', repo: 'arvi/Agila-Theme' },
+  { id: 'agila-neon', family: 'Agila', name: 'Agila Neon', repo: 'arvi/Agila-Theme' },
 ];
 const ids = new Set(THEMES.map(t => t.id));
 export const isTheme = (id) => ids.has(id);

@@ -24,12 +24,14 @@ const PROPS = [
   'minHeight',
 ];
 const BUTTON_PROPS = [...PROPS, 'height'];
-// 色だけの部分集合（4 テーマを回すとき用）。
+// 色だけの部分集合（全テーマを回すとき用）。
 const COLOURS = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', '::before color', '::after color'];
 // 文字の色を変えると、枠の色（border-color の初期値は currentColor）と印の色（継承）も一緒に動く。
 // 「色だけが型と違う」と書きたいときに並ぶのは、この 7 つ。
 const COLOUR_DERIVED = ['::after color', '::before color', 'borderBottomColor', 'borderLeftColor', 'borderRightColor', 'borderTopColor', 'color'];
-const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth'];
+const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
+  'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
+  'agila-classic', 'agila-neon'];
 
 /**
  * 実要素を測り、続けて参照要素（ref）を同じ親の末尾に足して測り、すぐ外す。
@@ -468,7 +470,7 @@ test('表：ボード view のピン表と取説のピン表が .table と一致
 });
 
 // =============================================================================================
-test('テーマ：4 配色のどれでも、色に関わる型が view と一致する', async ({ page }) => {
+test('テーマ：どの配色でも、色に関わる型が view と一致する', async ({ page }) => {
   await ready(page);
   // 1 ページで見る所をひととおり開いてから、テーマだけを差し替えて同じ比べ方を繰り返す。
   await libraryMocks(page);

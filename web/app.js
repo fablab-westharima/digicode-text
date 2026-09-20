@@ -51,10 +51,40 @@ function saveStatus(message, error = false) {
 }
 
 // Appearance and layout controls live in the Settings dialog, next to the API settings.
-$('theme-select').replaceChildren(...THEMES.map(t => new Option(t.name, t.id)));
-$('theme-select').value = themes.current;
-$('theme-select').onchange = () => themes.apply($('theme-select').value, { save: true });
-$('layout-reset').onclick = () => { layout.reset(); ui.applyPanel(); $('theme-select').focus(); };
+// テーマの一覧はボード一覧と同じ作り：系統ごとに h4.board-vendor ＋ ul.board-group で括り、
+// 行は .list-row。選んでいる行は aria-current="true"（ボードの選択中と同じ見え方）。
+const themeRow = () => $('theme-select').querySelector('.theme-item[aria-current="true"]');
+function renderThemes() {
+  const root = $('theme-select');
+  root.replaceChildren();
+  let list, family;
+  for (const theme of THEMES) {
+    if (theme.family !== family) {
+      family = theme.family;
+      list = document.createElement('ul');
+      list.className = 'board-group';
+      const heading = document.createElement('h4');
+      heading.className = 'board-vendor';
+      heading.textContent = family;
+      root.append(heading, list);
+    }
+    const item = document.createElement('li');
+    item.dataset.themeId = theme.id;
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'list-row theme-item';
+    row.setAttribute('aria-current', String(theme.id === themes.current));
+    const name = document.createElement('strong');
+    name.textContent = theme.name;
+    row.append(name);
+    // 行を作り直すので、押した行（＝新しい選択中の行）へフォーカスを戻す。
+    row.onclick = () => { themes.apply(theme.id, { save: true }); renderThemes(); themeRow()?.focus(); };
+    item.append(row);
+    list.append(item);
+  }
+}
+renderThemes();
+$('layout-reset').onclick = () => { layout.reset(); ui.applyPanel(); themeRow()?.focus(); };
 
 // 設定 dialog の節の切り替え。目次で選んだ1節だけを右に出す。保存のロジック（ai-settings.js）
 // には触れない：ここは表示している節を決めるだけ。

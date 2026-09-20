@@ -30,6 +30,13 @@
     <button type="button" class="compact" data-set-theme="duotone-sea">Sea</button>
     <button type="button" class="compact" data-set-theme="duotone-space">Space</button>
     <button type="button" class="compact" data-set-theme="duotone-earth">Earth</button>
+    <button type="button" class="compact" data-set-theme="agila-oceanic">Agila Oceanic</button>
+    <button type="button" class="compact" data-set-theme="agila-origin">Agila Origin</button>
+    <button type="button" class="compact" data-set-theme="agila-dracula">Agila Dracula</button>
+    <button type="button" class="compact" data-set-theme="agila-monokai">Agila Monokai</button>
+    <button type="button" class="compact" data-set-theme="agila-cobalt">Agila Cobalt</button>
+    <button type="button" class="compact" data-set-theme="agila-classic">Agila Classic</button>
+    <button type="button" class="compact" data-set-theme="agila-neon">Agila Neon</button>
   </div>
 </div>
 
@@ -293,7 +300,9 @@
 <script>
   // テーマは <html data-theme> だけで切り替わる。?theme= で指定でき、既定は Dark。
   (function () {
-    var names = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth'];
+    var names = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
+      'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
+      'agila-classic', 'agila-neon'];
     function apply(name) {
       if (names.indexOf(name) === -1) name = names[0];
       document.documentElement.dataset.theme = name;

@@ -3,7 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { openSettings } from './shell.js';
 
 const THEME_KEY = 'digicode-text.theme.v1';
-const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth'];
+const THEMES = ['duotone-dark', 'duotone-sea', 'duotone-space', 'duotone-earth',
+  'agila-oceanic', 'agila-origin', 'agila-dracula', 'agila-monokai', 'agila-cobalt',
+  'agila-classic', 'agila-neon'];
+const LAST = THEMES[THEMES.length - 1];
+// 一覧の行の id（= data-theme の値）を並び順に。<select> の option value 列の代わり。
+const listed = (page) => page.locator('#theme-select li').evaluateAll(els => els.map(el => el.dataset.themeId));
+const pickTheme = (page, id) => page.click(`#theme-select li[data-theme-id="${id}"] .theme-item`);
 
 async function ready(page) {
   await page.goto('/');
@@ -22,13 +28,20 @@ const painted = (page) => page.evaluate(() => ({
 test('Switching theme moves the CSS variables and the Monaco theme together, and is remembered', async ({ page }) => {
   await ready(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
-  expect(await page.locator('#theme-select').evaluate(el => [...el.options].map(o => o.value))).toEqual(THEMES);
+  await openSettings(page);
+  expect(await listed(page)).toEqual(THEMES);
+  // 系統の括りは、ボード一覧のメーカー区切りと同じ型で出る。
+  expect(await page.locator('#theme-select h4.board-vendor').allTextContents())
+    .toEqual(['DuoTone', 'Agila']);
 
   const seen = [];
   for (const theme of THEMES) {
     await openSettings(page);
-    await page.selectOption('#theme-select', theme);
+    await pickTheme(page, theme);
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+    // 選んだ行だけが選択中になる。
+    expect(await page.locator('#theme-select .theme-item[aria-current="true"]')
+      .evaluateAll(els => els.map(el => el.closest('li').dataset.themeId))).toEqual([theme]);
     // The Monaco theme is switched with the attribute, not left on the previous one.
     await expect(page.locator('html')).toHaveAttribute('data-monaco-theme', theme);
     await expect(page.locator('.monaco-editor')).toHaveClass(/vs-dark/);
@@ -42,7 +55,7 @@ test('Switching theme moves the CSS variables and the Monaco theme together, and
     // The chrome moved too: the status bar uses this theme's --bg-statusbar.
     expect(await page.locator('.status-bar').evaluate(el => getComputedStyle(el).backgroundColor))
       .toBe(rgb(await cssVar(page, '--bg-statusbar')));
-    // Every theme is a distinct palette, not the same one under four names.
+    // Every theme is a distinct palette, not the same one under several names.
     expect(seen).not.toContainEqual(shown.background);
     seen.push(shown.background);
 
@@ -52,9 +65,11 @@ test('Switching theme moves the CSS variables and the Monaco theme together, and
   // The chosen theme survives a reload, in the CSS and in Monaco.
   await page.reload();
   await expect(page.locator('#build')).toBeEnabled();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-earth');
-  await expect(page.locator('html')).toHaveAttribute('data-monaco-theme', 'duotone-earth');
-  await expect(page.locator('#theme-select')).toHaveValue('duotone-earth');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', LAST);
+  await expect(page.locator('html')).toHaveAttribute('data-monaco-theme', LAST);
+  await openSettings(page);
+  await expect(page.locator(`#theme-select li[data-theme-id="${LAST}"] .theme-item`))
+    .toHaveAttribute('aria-current', 'true');
   expect((await painted(page)).background).toBe(rgb(await cssVar(page, '--bg-editor')));
 
   // An unknown stored value falls back to the default without being overwritten.
@@ -78,7 +93,7 @@ test('app.css writes colour literals only where the themes are defined', async (
   }
   expect(offenders).toEqual([]);
 
-  // And the four theme blocks really are there, each defining the full token set.
+  // And every theme block really is there, each defining the full token set.
   for (const theme of THEMES) {
     const block = css.match(new RegExp(`:root\\[data-theme="${theme}"\\]\\s*\\{([^}]*)\\}`))
       ?? (theme === 'duotone-dark' ? css.match(/:root,\s*\n:root\[data-theme="duotone-dark"\]\s*\{([^}]*)\}/) : null);
@@ -92,7 +107,7 @@ test('app.css writes colour literals only where the themes are defined', async (
   }
 });
 
-test('Body text reaches 7:1 and secondary text 4.5:1 on every surface, in all four themes', async ({ page }) => {
+test('Body text reaches 7:1 and secondary text 4.5:1 on every surface, in every theme', async ({ page }) => {
   await ready(page);
   const contrast = await page.evaluate(async (themes) => {
     const parse = (value) => value.trim().startsWith('#')

@@ -1,9 +1,10 @@
-/* DigiCode Text — VS Code style shell, DuoTone palettes.
+/* DigiCode Text — VS Code style shell, one block per palette.
  *
  * Colour literals appear in this file ONLY inside the `:root` / `:root[data-theme=...]` blocks
  * below; every rule after them is written with custom properties. The DuoTone values were taken
  * from simurai's themes (MIT) — see web/themes/LICENSE-duotone.txt and web/themes/duotone.js for
- * the raw.githubusercontent.com URLs each palette was read from.
+ * the raw.githubusercontent.com URLs each palette was read from. Every block names its source in
+ * the comment above it; the licences sit next to it in web/themes/.
  *
  * Derivation of the UI tokens from the theme's own palette:
  *   --bg-editor    = @syntax-bg
@@ -18,6 +19,26 @@
  *   --accent = @duo-1   --accent-2 = @duo-2   --accent-3 = @duo-3
  *   --accent-soft = @duo-1 at 18% alpha   --selection = @duo-1 at 15% alpha (Monaco selection)
  *   --danger / --danger-soft: one theme-independent colour, used for failures only.
+ *
+ * DuoTone declares @uno-1..5 and @duo-1..3 itself. The other four families do not: they are
+ * multi-hue themes with a single foreground and a single highlight colour, so those two scales
+ * are built from what each palette does declare, keeping the relationships the DuoTone blocks
+ * above already have:
+ *   @uno-2 = the palette's own foreground (lightness capped at 80; a colourless foreground
+ *            borrows the background's hue, and the saturation comes from the foreground's
+ *            chroma so a near-white stays near-neutral rather than turning vivid)
+ *   @uno-1 = @uno-2 +8 lightness      @uno-3 = -12      @uno-4 = -26
+ *   @uno-5 = background +14 lightness (clamped to 29..40), so the border stays visible
+ *   @duo-1 = one colour the palette declares as its highlight — `globals.accent` where the
+ *            palette has one, otherwise the keyword/storage colour, which is the role @duo-1
+ *            plays in the Monaco theme (web/themes/duotone.js)
+ *   @duo-2 = @duo-1, saturation x0.45 and lightness -16      @duo-3 = x0.22 and -29,
+ *            each then lifted until it clears --bg-editor by 3.5:1 / 2:1 (never past @duo-1):
+ *            these two grades draw the heading rule, the selected row's border and the ok
+ *            notice, so they must not sink into the background.
+ * The background steps above use -4/-8/-12 on the DuoTone blocks; on a palette darker than
+ * 16% lightness the step shrinks to a quarter of the background's own lightness, so a
+ * near-black palette keeps four distinguishable surfaces instead of clamping to one.
  */
 /* Dark（紫×金） — simurai/duotone-dark-syntax styles/colors.less (MIT, simurai) */
 :root,
@@ -157,6 +178,251 @@
   --accent-3: #726546;
   --accent-soft: #FECB522E;
   --selection: #FECB5226;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Oceanic Next — arvi/Agila-Theme "Agila Oceanic Next.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-oceanic"] {
+  --uno-1: #DDDFE4;
+  --uno-2: #C7CBD1;
+  --uno-3: #A6ABB5;
+  --uno-4: #84888F;
+  --uno-5: #47494D;
+  --duo-1: #C594C5;
+  --duo-2: #947394;
+  --duo-3: #695C69;
+  --syntax-bg: #1A1E24;
+  --syntax-fg: #CDD3DE;
+  --syntax-guide: #65737F;
+  --syntax-accent: #C0C5CE;
+  --syntax-selection: #343D46;
+  --bg-editor: #1A1E24;
+  --bg-panel: #13161B;
+  --bg-sidebar: #0D0F12;
+  --bg-activity: #070809;
+  --bg-statusbar: #070809;
+  --bg-raised: #232830;
+  --bg-input: #070809;
+  --line-highlight: #20252D;
+  --border: #47494D;
+  --fg-strong: #DDDFE4;
+  --fg: #C7CBD1;
+  --fg-muted: #84888F;
+  --accent: #C594C5;
+  --accent-2: #947394;
+  --accent-3: #695C69;
+  --accent-soft: #C594C52E;
+  --selection: #C594C526;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Origin — arvi/Agila-Theme "Agila Origin Oceanic Next.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-origin"] {
+  --uno-1: #DDDFE4;
+  --uno-2: #C7CBD1;
+  --uno-3: #A6ABB5;
+  --uno-4: #84888F;
+  --uno-5: #484A4E;
+  --duo-1: #C594C5;
+  --duo-2: #947394;
+  --duo-3: #695C69;
+  --syntax-bg: #1B2B34;
+  --syntax-fg: #CDD3DE;
+  --syntax-guide: #314E5F;
+  --syntax-accent: #C0C5CE;
+  --syntax-selection: #253A46;
+  --bg-editor: #1B2B34;
+  --bg-panel: #142027;
+  --bg-sidebar: #0E161A;
+  --bg-activity: #070B0D;
+  --bg-statusbar: #070B0D;
+  --bg-raised: #223641;
+  --bg-input: #070B0D;
+  --line-highlight: #20333E;
+  --border: #484A4E;
+  --fg-strong: #DDDFE4;
+  --fg: #C7CBD1;
+  --fg-muted: #8C9096;
+  --accent: #C594C5;
+  --accent-2: #947394;
+  --accent-3: #695C69;
+  --accent-soft: #C594C52E;
+  --selection: #C594C526;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Dracula — arvi/Agila-Theme "Agila Dracula.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-dracula"] {
+  --uno-1: #DEDEE3;
+  --uno-2: #C8C9D0;
+  --uno-3: #A8A9B3;
+  --uno-4: #85878E;
+  --uno-5: #505155;
+  --duo-1: #FF79C6;
+  --duo-2: #C4639A;
+  --duo-3: #8B5976;
+  --syntax-bg: #282A36;
+  --syntax-fg: #F8F8F2;
+  --syntax-guide: #3E4153;
+  --syntax-accent: #F8F8F0;
+  --syntax-selection: #44475A;
+  --bg-editor: #282A36;
+  --bg-panel: #1F212A;
+  --bg-sidebar: #17181F;
+  --bg-activity: #0E0F13;
+  --bg-statusbar: #0E0F13;
+  --bg-raised: #313342;
+  --bg-input: #0E0F13;
+  --line-highlight: #2F313F;
+  --border: #505155;
+  --fg-strong: #DEDEE3;
+  --fg: #C8C9D0;
+  --fg-muted: #909198;
+  --accent: #FF79C6;
+  --accent-2: #C4639A;
+  --accent-3: #8B5976;
+  --accent-soft: #FF79C62E;
+  --selection: #FF79C626;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Monokai — arvi/Agila-Theme "Agila Monokai Extended.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-monokai"] {
+  --uno-1: #E3DEDE;
+  --uno-2: #D0C8C8;
+  --uno-3: #B3A8A8;
+  --uno-4: #8E8585;
+  --uno-5: #4C4848;
+  --duo-1: #F92672;
+  --duo-2: #BB557A;
+  --duo-3: #6D4755;
+  --syntax-bg: #222222;
+  --syntax-fg: #F8F8F2;
+  --syntax-guide: #3C3C3C;
+  --syntax-accent: #F8F8F0;
+  --syntax-selection: #444444;
+  --bg-editor: #222222;
+  --bg-panel: #1A1A1A;
+  --bg-sidebar: #111111;
+  --bg-activity: #090909;
+  --bg-statusbar: #090909;
+  --bg-raised: #2C2C2C;
+  --bg-input: #090909;
+  --line-highlight: #2A2A2A;
+  --border: #4C4848;
+  --fg-strong: #E3DEDE;
+  --fg: #D0C8C8;
+  --fg-muted: #908888;
+  --accent: #F92672;
+  --accent-2: #BB557A;
+  --accent-3: #6D4755;
+  --accent-soft: #F926722E;
+  --selection: #F9267226;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Cobalt — arvi/Agila-Theme "Agila Cobalt.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-cobalt"] {
+  --uno-1: #DEE1E3;
+  --uno-2: #C8CDD0;
+  --uno-3: #A8AEB3;
+  --uno-4: #858A8E;
+  --uno-5: #525557;
+  --duo-1: #FF9D00;
+  --duo-2: #A88040;
+  --duo-3: #6D5E46;
+  --syntax-bg: #193549;
+  --syntax-fg: #FFFFFF;
+  --syntax-guide: #3B5364;
+  --syntax-accent: #FFC600;
+  --syntax-selection: #0050A4;
+  --bg-editor: #193549;
+  --bg-panel: #142A3A;
+  --bg-sidebar: #0F1F2B;
+  --bg-activity: #09141B;
+  --bg-statusbar: #09141B;
+  --bg-raised: #1E4058;
+  --bg-input: #09141B;
+  --line-highlight: #1D3D54;
+  --border: #525557;
+  --fg-strong: #DEE1E3;
+  --fg: #C8CDD0;
+  --fg-muted: #969B9E;
+  --accent: #FF9D00;
+  --accent-2: #A88040;
+  --accent-3: #6D5E46;
+  --accent-soft: #FF9D002E;
+  --selection: #FF9D0026;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Classic — arvi/Agila-Theme "Agila Classic Oceanic Next.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-classic"] {
+  --uno-1: #DDDFE4;
+  --uno-2: #C7CBD1;
+  --uno-3: #A6ABB5;
+  --uno-4: #84888F;
+  --uno-5: #47494D;
+  --duo-1: #C594C5;
+  --duo-2: #947394;
+  --duo-3: #695C69;
+  --syntax-bg: #241A19;
+  --syntax-fg: #CDD3DE;
+  --syntax-guide: #65737F;
+  --syntax-accent: #C0C5CE;
+  --syntax-selection: #483330;
+  --bg-editor: #241A19;
+  --bg-panel: #1B1313;
+  --bg-sidebar: #120D0C;
+  --bg-activity: #090606;
+  --bg-statusbar: #090606;
+  --bg-raised: #302321;
+  --bg-input: #090606;
+  --line-highlight: #2D211F;
+  --border: #47494D;
+  --fg-strong: #DDDFE4;
+  --fg: #C7CBD1;
+  --fg-muted: #84888F;
+  --accent: #C594C5;
+  --accent-2: #947394;
+  --accent-3: #695C69;
+  --accent-soft: #C594C52E;
+  --selection: #C594C526;
+  --danger: #F2777A;
+  --danger-soft: #F2777A2E;
+}
+/* Agila Neon — arvi/Agila-Theme "Agila Neon Monocyanide.tmTheme" (MIT, Arvi Acuzar) */
+:root[data-theme="agila-neon"] {
+  --uno-1: #DEE0E3;
+  --uno-2: #C8CCD0;
+  --uno-3: #A8ADB3;
+  --uno-4: #858A8E;
+  --uno-5: #484A4C;
+  --duo-1: #FF4083;
+  --duo-2: #AE4268;
+  --duo-3: #684350;
+  --syntax-bg: #080D12;
+  --syntax-fg: #F8F8F2;
+  --syntax-guide: #182735;
+  --syntax-accent: #F8F8F0;
+  --syntax-selection: #444444;
+  --bg-editor: #080D12;
+  --bg-panel: #060A0D;
+  --bg-sidebar: #040709;
+  --bg-activity: #020305;
+  --bg-statusbar: #020305;
+  --bg-raised: #0E1720;
+  --bg-input: #020305;
+  --line-highlight: #0D151D;
+  --border: #484A4C;
+  --fg-strong: #DEE0E3;
+  --fg: #C8CCD0;
+  --fg-muted: #858A8E;
+  --accent: #FF4083;
+  --accent-2: #AE4268;
+  --accent-3: #684350;
+  --accent-soft: #FF40832E;
+  --selection: #FF408326;
   --danger: #F2777A;
   --danger-soft: #F2777A2E;
 }
@@ -590,6 +856,10 @@ dialog h2 { font-size: 15px; margin: 0 0 12px; }
 .settings-content { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding-right: var(--sp-1); }
 .settings-content .heading:first-child { margin-top: 0; }
 .settings-content .form-group:last-child { margin-bottom: 0; }
+/* テーマの一覧は配色の数だけ伸びるので、節ではなく一覧の側がスクロールする。「外観」の節は
+   1100x850 でスクロール無しに収まる（shell.spec.js の受入条件）。ここも寸法だけで、行の
+   見え方は共通規則の .list-row、括りは .board-vendor / .board-group に任せる。 */
+#theme-select { max-height: 320px; overflow-y: auto; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--fg-muted) transparent; padding-right: var(--sp-1); }
 .settings-footer { display: grid; gap: var(--sp-2); border-top: 1px solid var(--border); padding-top: var(--sp-2); }
 .settings-footer .actions.primary-row { margin-top: 0; }
 #ai-settings-status { margin: 0; color: var(--accent); line-height: var(--lh); }
