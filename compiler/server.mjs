@@ -17,7 +17,8 @@
 // GET  /health    -> { ok: true }
 //
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
-// templates. Requests are serialised, each in a fresh temporary project directory.
+// templates. Each request builds in a fresh temporary project directory; several may run at
+// once, up to MAX_BUILDS.
 
 import http from 'node:http';
 import { spawn } from 'node:child_process';
@@ -275,11 +276,31 @@ const TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS ?? 600_000);
 
 const MAX_SOURCE = 256 * 1024;
 
-let queue = Promise.resolve();
-function serialised(fn) {
-  const run = queue.then(fn, fn);
-  queue = run.catch(() => {});
-  return run;
+// How many builds may run at once. Each build gets its own temporary project directory, so
+// nothing of the build itself is shared; what is shared is PlatformIO's own package store
+// (~/.platformio), and PlatformIO takes a file lock around every install / download there.
+// The cap exists because `pio run` already spreads one build over every core: stacking more
+// builds than that only makes them contend. Half the cores is the default, and also what a
+// MAX_CONCURRENT_BUILDS that is not a number falls back to (NaN would let no build start).
+const DEFAULT_MAX_BUILDS = Math.max(1, Math.floor(os.cpus().length / 2));
+const MAX_BUILDS = Math.max(1, Math.floor(Number(process.env.MAX_CONCURRENT_BUILDS)) || DEFAULT_MAX_BUILDS);
+
+// A plain counting semaphore. A finishing build hands its slot straight to the next waiter
+// instead of releasing it, so the count can never drift above MAX_BUILDS.
+let running = 0;
+const waiting = [];
+function acquireSlot() {
+  if (running < MAX_BUILDS) { running++; return Promise.resolve(); }
+  return new Promise(resolve => waiting.push(resolve));
+}
+function releaseSlot() {
+  const next = waiting.shift();
+  if (next) next();
+  else running--;
+}
+async function limited(fn) {
+  await acquireSlot();
+  try { return await fn(); } finally { releaseSlot(); }
 }
 
 function runPio(env, project) {
@@ -300,7 +321,7 @@ function publicLog(log, project = '') {
   return log.replace(/https?:\/\/[^\s)]+/g, '[URL]').slice(-20_000);
 }
 async function compile(env, source, libraries) {
-  return serialised(async () => {
+  return limited(async () => {
     const board = BOARDS.get(env);
     const started = Date.now();
     try { await verifyLibraries(libraries); }
@@ -424,5 +445,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`digicode-text compiler listening on http://127.0.0.1:${PORT}  (pio: ${PIO_BIN})`);
+  console.log(`digicode-text compiler listening on http://127.0.0.1:${PORT}  (pio: ${PIO_BIN}, 同時build: ${MAX_BUILDS})`);
 });

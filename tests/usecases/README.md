@@ -18,6 +18,8 @@ curl -s http://127.0.0.1:3100/health   # -> {"ok":true}
 ```
 node tests/usecases/run.mjs                              # 全件。新しい results dir を作る
 node tests/usecases/run.mjs --board pico                 # board で絞る
+node tests/usecases/run.mjs --board pico,pico_w          # 複数 board を 1 回で回す (カンマ区切り)
+node tests/usecases/run.mjs --jobs 3                     # 同時実行数 (既定は CPU コア数の半分)
 node tests/usecases/run.mjs --lib ArduinoJson            # ライブラリ名の部分一致で絞る
 node tests/usecases/run.mjs --limit 3                    # 先頭 N 件だけ
 node tests/usecases/run.mjs --results latest             # 中断した実行を再開 (結果があるものは飛ばす)
@@ -46,11 +48,21 @@ node tests/usecases/run.mjs --results latest --rerun     # 既存結果を無視
 
 ## 実行時間について
 
-runner の同時実行は 2 だが、これはクライアント側の上限にすぎない。
-compiler サーバーは `/compile` を内部 queue で直列化しているため、実際の build は常に 1 件ずつ順に走る。
-同時実行 2 で前倒しになるのは Registry 問い合わせと待ち行列への投入だけで、
-総所要時間はおおむね全ケースの build 時間の合計になる。1 件あたり数十秒〜数分。
-クライアント側 timeout は 15 分。
+同時実行数は `--jobs`、既定は CPU コア数の半分。compiler サーバー側も同時 build 数に上限を持つ
+(既定はサーバー機の CPU コア数の半分。`MAX_CONCURRENT_BUILDS` で変えられる) ので、`--jobs` を
+それより大きくしても待ち行列が伸びるだけで速くはならない。
+
+縮み方は限られる。`pio run` は 1 件の build を自前で全コアに広げるため (6 コアの実測で
+`-j 1` が 51.0s、`-j 6` が 16.7s)、逐次実行でもマシンはすでにほぼ埋まっている。
+並列で取り戻せるのは残りの直列部分だけで、6 コアでの実測は次のとおり。
+
+| | 所要 | 1 件あたり |
+| --- | ---: | ---: |
+| `--board xiao_esp32c3,xiao_esp32c5 --jobs 1` (123 件) | 37 分 07 秒 | 18.1s |
+| `--board xiao_esp32c3,xiao_esp32c5 --jobs 3` (123 件) | 24 分 21 秒 | 11.9s |
+
+ok/ng は両者で一致する。`--jobs 6` にしても `--jobs 3` から先は頭打ちで、逆に `pio run` 側の
+`-j` を絞ると遅くなる。1 件あたり数十秒〜数分。クライアント側 timeout は 15 分。
 
 ## 結果
 
@@ -60,8 +72,8 @@ compiler サーバーは `/compile` を内部 queue で直列化しているた�
 - `<board>/<case>.json` — 1 ケース 1 ファイル。`ok` `httpStatus` `stage` `durationMs` `errorHead` など。
   `classification` は空文字で出力する。人が後から種別を書き込むための欄。
 - `summary.md` — 全体 ok/ng/skip、board 別の ok/ng と平均所要、ライブラリ別 ng (同じエラーはまとめて件数)、ng 一覧。
-- `summary-<board>.md` — 同じ内容をその board のケースだけで出したもの。`--board X` 指定時は `summary-X.md` だけ、
-  指定なしの全件実行では `summary.md` と合わせて board ごとに出る。
+- `summary-<board>.md` — 同じ内容をその board のケースだけで出したもの。`--board` 指定時は指定した board の
+  `summary-<board>.md` だけ、指定なしの全件実行では `summary.md` と合わせて board ごとに出る。
 
 compile に到達しなかったケースは `problem.kind` に理由が入る。
 

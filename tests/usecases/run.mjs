@@ -5,7 +5,8 @@
  * tests/usecases/<board>/<NN>-<slug>.cpp を走査し、各ファイル先頭のヘッダ宣言に従って
  * 稼働中の compiler サーバー (既定 http://127.0.0.1:3100) の POST /compile へ投げ、
  * 結果を JSON と summary に残す。製品コード (compiler/ web/ shared/) は読むだけで変更しない。
- * summary は --board X 指定時が summary-X.md、指定なしが summary.md + board 別 summary-<board>.md。
+ * summary は --board 指定時が指定した board ごとの summary-<board>.md、指定なしが
+ * summary.md + board 別 summary-<board>.md。
  *
  * ヘッダ宣言 (ファイル先頭の // コメント行のみ。最初の非コメント行で打ち切り):
  *   // @board xiao_esp32c3          必須。1 ファイル 1 board。
@@ -18,14 +19,15 @@
  *   version-not-in-registry  … 宣言 version が Registry の versions に無い
  *   library-lookup-failed    … /libraries/details 自体が失敗した
  *
- * 同時実行は 2 (CONCURRENCY) だが、これはクライアント側の上限にすぎない。
- * compiler サーバーは compile を内部 queue で直列化しているため、実際の build は常に 1 件ずつ
- * 順に走る。同時実行 2 で短縮されるのは Registry 問い合わせと待ち行列への投入だけで、
- * 総所要時間はおおむね全ケースの build 時間の合計になる。
+ * 同時実行数は --jobs N、既定は CPU コア数の半分。compiler サーバー側も同時 build 数に上限を
+ * 持つ (既定はサーバー機の CPU コア数の半分、MAX_CONCURRENT_BUILDS で変えられる) ので、
+ * --jobs をそれより大きくしても待ち行列が伸びるだけで速くはならない。
  *
  * 使い方:
  *   node tests/usecases/run.mjs                        全件実行 (新しい results dir を作る)
  *   node tests/usecases/run.mjs --board pico           board で絞る
+ *   node tests/usecases/run.mjs --board pico,pico_w    複数 board を 1 回で回す (カンマ区切り)
+ *   node tests/usecases/run.mjs --jobs 3               同時実行数 (既定は CPU コア数の半分)
  *   node tests/usecases/run.mjs --lib ArduinoJson      ライブラリ名の部分一致で絞る
  *   node tests/usecases/run.mjs --limit 3              先頭 N 件だけ
  *   node tests/usecases/run.mjs --results latest       既存 dir を再開 (結果があるものは飛ばす)
@@ -34,6 +36,7 @@
  * 終了コード: ng が 1 件でもあれば 1、それ以外は 0。
  */
 import { readdir, readFile, writeFile, mkdir, symlink, rm, access } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,7 +45,7 @@ const REPO_ROOT = path.resolve(HERE, '..', '..');
 const RESULTS_ROOT = path.join(HERE, 'results');
 const SERVER = process.env.DIGICODE_COMPILER ?? 'http://127.0.0.1:3100';
 const BOARDS = ['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'esp32_devkitc_v4', 'wio_node'];
-const CONCURRENCY = 2;
+const DEFAULT_JOBS = Math.max(1, Math.floor(os.cpus().length / 2));
 const COMPILE_TIMEOUT_MS = 15 * 60 * 1000;
 const DETAILS_TIMEOUT_MS = 60 * 1000;
 const ERROR_HEAD_LINES = 20;
@@ -50,7 +53,7 @@ const ERROR_HEAD_LINES = 20;
 // ---------------------------------------------------------------- args
 
 function parseArgs(argv) {
-  const opts = { board: null, lib: null, limit: null, results: null, rerun: false, help: false };
+  const opts = { boards: null, lib: null, limit: null, jobs: DEFAULT_JOBS, results: null, rerun: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const need = () => {
@@ -58,11 +61,19 @@ function parseArgs(argv) {
       if (v === undefined) throw new Error(`${a} に値が必要です`);
       return v;
     };
-    if (a === '--board') opts.board = need();
-    else if (a === '--lib') opts.lib = need();
+    if (a === '--board') {
+      // カンマ区切りで複数 board。1 回の実行で board をまたいで回せるようにするため。
+      opts.boards = need().split(',').map(s => s.trim()).filter(Boolean);
+      if (!opts.boards.length) throw new Error('--board に board 名が必要です');
+      const unknown = opts.boards.filter(b => !BOARDS.includes(b));
+      if (unknown.length) throw new Error(`未知の board: ${unknown.join(', ')}`);
+    } else if (a === '--lib') opts.lib = need();
     else if (a === '--limit') {
       opts.limit = Number(need());
       if (!Number.isSafeInteger(opts.limit) || opts.limit < 1) throw new Error('--limit は 1 以上の整数です');
+    } else if (a === '--jobs') {
+      opts.jobs = Number(need());
+      if (!Number.isSafeInteger(opts.jobs) || opts.jobs < 1) throw new Error('--jobs は 1 以上の整数です');
     } else if (a === '--results') opts.results = need();
     else if (a === '--rerun') opts.rerun = true;
     else if (a === '--help' || a === '-h') opts.help = true;
@@ -143,7 +154,7 @@ async function collectCases(opts) {
     }
   }
   let selected = cases;
-  if (opts.board) selected = selected.filter(c => c.board === opts.board || c.dir === opts.board);
+  if (opts.boards) selected = selected.filter(c => opts.boards.includes(c.board) || opts.boards.includes(c.dir));
   if (opts.lib) {
     const needle = opts.lib.toLowerCase();
     selected = selected.filter(c => c.libs.some(l => `${l.owner}/${l.name}`.toLowerCase().includes(needle)));
@@ -315,7 +326,7 @@ function buildSummary(rows, skipped, resultsDir, opts) {
   L.push(`- 実行: ${new Date().toISOString()}`);
   L.push(`- サーバー: ${SERVER}`);
   L.push(`- results: ${path.relative(REPO_ROOT, resultsDir)}`);
-  const filters = [opts.board && `--board ${opts.board}`, opts.lib && `--lib ${opts.lib}`,
+  const filters = [opts.boards && `--board ${opts.boards.join(',')}`, opts.lib && `--lib ${opts.lib}`,
     opts.limit && `--limit ${opts.limit}`, opts.rerun && '--rerun'].filter(Boolean);
   L.push(`- 絞り込み: ${filters.length ? filters.join(' ') : 'なし'}`);
   L.push('');
@@ -470,7 +481,8 @@ async function main() {
   }
 
   let next = 0;
-  const workers = Array.from({ length: Math.min(CONCURRENCY, queue.length) }, async () => {
+  console.log(`同時実行: ${Math.min(opts.jobs, queue.length)} (--jobs ${opts.jobs})`);
+  const workers = Array.from({ length: Math.min(opts.jobs, queue.length) }, async () => {
     while (next < queue.length) {
       const { c, out } = queue[next++];
       console.log(`start ${c.casePath} (${c.board})`);
@@ -496,25 +508,22 @@ async function main() {
   rows.sort((a, b) => a.case.localeCompare(b.case));
 
   // summary の出し分け:
-  //   --board X あり … その board 分だけなので summary-X.md 1 本
-  //   --board なし   … 全体の summary.md に加え、board ごとの summary-<board>.md
+  //   --board あり … 指定した board ごとに summary-<board>.md (1 board なら従来どおり 1 本)
+  //   --board なし … 全体の summary.md に加え、board ごとの summary-<board>.md
   const summaryPaths = [];
   const writeSummary = async (name, theRows, theSkipped, theOpts) => {
     const p = path.join(resultsDir, name);
     await writeFile(p, buildSummary(theRows, theSkipped, resultsDir, theOpts), 'utf8');
     summaryPaths.push(p);
   };
-
-  if (opts.board) {
-    await writeSummary(`summary-${opts.board}.md`, rows, skipped, opts);
-  } else {
-    await writeSummary('summary.md', rows, skipped, opts);
-    for (const board of BOARDS) {
-      const boardRows = rows.filter(r => r.board === board);
-      const boardSkipped = skipped.filter(s => (s.board ?? s.dir) === board);
-      if (!boardRows.length && !boardSkipped.length) continue;
-      await writeSummary(`summary-${board}.md`, boardRows, boardSkipped, { ...opts, board });
-    }
+  // 全体の summary.md は board を絞っていないときだけ。board 別は結果が 1 件でもある board
+  // すべてに出す (BOARDS の順。並列実行でも中身が実行順に左右されないようにするため)。
+  if (!opts.boards) await writeSummary('summary.md', rows, skipped, opts);
+  for (const board of BOARDS) {
+    const boardRows = rows.filter(r => r.board === board);
+    const boardSkipped = skipped.filter(s => (s.board ?? s.dir) === board);
+    if (!boardRows.length && !boardSkipped.length) continue;
+    await writeSummary(`summary-${board}.md`, boardRows, boardSkipped, { ...opts, boards: [board] });
   }
 
   const ngCount = rows.filter(r => !r.ok).length;
