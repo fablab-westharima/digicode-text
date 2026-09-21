@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -271,6 +271,29 @@ test('M5StampS3Aの手順は押しながら挿す1手順で、押すボタンも
   const svg = await page.locator('.flash-figure').first().innerHTML();
   expect(svg).toContain('fig-cable');
   expect(svg).toContain('fig-press');
+});
+
+test('ATOMS3とATOMS3 Liteの手順は同じ3手順で、RESETの2秒長押しを図でも見せる', async ({ page }) => {
+  for (const id of ['m5stack_atoms3', 'm5stack_atoms3_lite']) {
+    await ready(page, id);
+    await page.click('#flash-guide-open');
+    await expect(page.locator('#flash-guide-steps')).toContainText('RESETボタンを2秒押したままにし、緑のランプが点いたら離す');
+    await expect(page.locator('#flash-guide-notes')).toContainText('RESETは左側面にある小さなボタンで、上面の大きなボタンとは別');
+    expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+      .toEqual(['usb-c-connect-atoms3', 'reset-hold-atoms3', 'port-dialog-usb-serial']);
+  }
+});
+
+test('取説のATOMS3の節は、販売終了と後継機の1行を手順とピン表の間に出す', async ({ page }) => {
+  await ready(page, 'pico');
+  await page.click('#view-help');
+  await page.click('#help-nav button[data-section="boards"]');
+  await page.click('#help-board-list .actions button[data-board-id="m5stack_atoms3"]');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('販売終了（EOL）');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('AtomS3R');
+  // Lite は販売終了ではないので、同じ場所にその1行は出ない。
+  await page.click('#help-board-list .actions button[data-board-id="m5stack_atoms3_lite"]');
+  await expect(page.locator('#help-board-list .note').first()).not.toContainText('AtomS3R');
 });
 
 test('Pico Wの手順は無印Picoと同じ3手順で、基板の図だけPico Wのものになる', async ({ page }) => {

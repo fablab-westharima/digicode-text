@@ -31,6 +31,8 @@ export const ENVS = [
   // CoreS3 と CoreS3-SE は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
   { env: 'm5stack_cores3', project: 'pio-esp32s3' },
   { env: 'm5stamp_s3a', project: 'pio-esp32s3' },
+  // ATOMS3 と ATOMS3 Lite は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
+  { env: 'm5stack_atoms3', project: 'pio-esp32s3' },
   { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
   { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
   { env: 'espr_developer_c5', project: 'pio-esp32c5' },

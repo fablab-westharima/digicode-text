@@ -13,6 +13,8 @@
 //                       flashGuide (the steps shown before flashing; compiler/flash-guides.mjs),
 //                       pins (generated from the PlatformIO variant header), pinTableNote (how to read
 //                       that table, where the variant is generic), pinNotes (sourced board notes),
+//                       statusNote (one sentence for a board the vendor has stopped selling; null
+//                       everywhere else, shown in the manual's own section for that board),
 //                       incompatibleLibraries (rows of the incompatibility table for this board) }]
 // GET  /health    -> { ok: true }
 //
@@ -88,6 +90,18 @@ const M5_STAMP_S3A = 'https://docs.m5stack.com/en/core/Stamp-S3A';
 // The board's own schematic, published by M5 and linked from that page: the only document that
 // says the USB-C goes straight to the chip and what the RGB LED's supply is gated by.
 const M5_STAMP_S3A_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1150/Sch_StampS3_v0.3.3.pdf';
+// M5's own product page for the AtomS3: the PinMap (LCD, the MPU6886's I2C and the HY2.0 port),
+// the specification table with the six GPIO the bottom brings out, and the download mode.
+const M5_ATOMS3 = 'https://docs.m5stack.com/en/core/AtomS3';
+// The AtomS3-Lite's own page. The two boards share the case and the bottom pins, but the Lite's
+// page is what states what it carries instead (RGB LED, no screen, no IMU), so its own sentences
+// are cited from it rather than inferred from the AtomS3 one.
+const M5_ATOMS3_LITE = 'https://docs.m5stack.com/en/core/AtomS3%20Lite';
+// The board's own schematic, published by M5: the only document that says which GPIO the button,
+// the IR LED and the WS2812 sit on, and that the reset long-press drives GPIO0 through a
+// comparator. M5 links the same file (byte for byte) from both product pages — the AtomS3-Lite
+// has no separate schematic — so the notes of both boards cite this one.
+const M5_ATOMS3_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/472/Sch_M5_AtomS3_v1.0.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -284,6 +298,41 @@ const BOARDS = new Map([
       { text: '載っているのはESP32-S3FN8で、Flashを8MB内蔵しPSRAMは持たない。アンテナは基板上の3Dアンテナなので外付けは要らない', source: M5_STAMP_S3A },
       { text: 'ストラッピングピンはブートモードがGPIO0とGPIO46、VDD_SPIの電圧がGPIO45、ROMメッセージ出力がGPIO46、JTAG信号源がGPIO3。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
     ] }],
+  // ATOMS3 と ATOMS3 Lite は一覧では別の 2 台。中身の差は 0.85 インチ LCD と IMU の有無、
+  // RGB LED の有無だけで build には効かないので、env（PlatformIO の [env:...]）は 1 つを共有し、
+  // 差は下の pinNotes に書く。env を書いた側が pio run と boards/<env>.pins.json の名前になる。
+  ['m5stack_atoms3', { project: path.join(here, 'pio-esp32s3'), env: 'm5stack_atoms3', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ATOMS3', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_atoms3,
+    // M5 sells this one as EOL and points at the AtomS3R in its place. It still builds and flashes
+    // the same, so it stays in the list; the sentence is shown in the manual, next to this board's
+    // own section, so nobody buys the wrong replacement.
+    statusNote: 'このボードはM5Stackの公式ストアで販売終了（EOL）になっていて、後継として同じ24mm角のAtomS3Rが案内されている。',
+    // M5's m5stack_atoms3 variant defines neither Dn nor An macros, so the pin table has no rows
+    // at all: what a sketch is written against is the G<n> silk, which is the GPIO number itself.
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と底面のシールにあるG0、G1のようなG付きの番号はそのままGPIO番号で、たとえばPORT.Aの黄のG2はGPIO2。底面のピンは、シールの文字が読める向きで見てUSB-Cのある辺を下にすると、左の列が上から3V3、G5、G6、G7、G8の5本、右の列が上からG39、G38、5V、GNDの4本。MISOはこのvariantが値を決めていないので機能ピンにも出ず、SPI.begin()にピンを渡して使う。',
+    pinNotes: [
+      { text: '外に出ているGPIOは底面の6本（G5、G6、G7、G8、G38、G39）と、手前側の面のHY2.0-4P（PORT.A）の2本だけ。PORT.Aは黒がGND、赤が5V、黄がGPIO2、白がGPIO1', source: M5_ATOMS3 },
+      { text: 'variantがSDAと呼ぶGPIO38とSCLと呼ぶGPIO39は6軸センサMPU6886のI2Cで、底面に出ているG38とG39も同じバス。外の機器をここに繋ぐと内蔵センサと同居することになる', source: M5_ATOMS3 },
+      { text: '0.85インチLCD（GC9107、128x128）はGPIO21がMOSI、GPIO17がSCK、GPIO15がCS、GPIO33がRS、GPIO34がRST、GPIO16がバックライト。variantがMOSI・SCK・SSと呼ぶ3本はこのLCDのもので、外には出ていない', source: M5_ATOMS3 },
+      { text: '上面の大きなボタンはGPIO41に繋がっていて、10kΩでプルアップされ押すとLowになる。画面の面がそのままボタンになっている', source: M5_ATOMS3_SCHEMATIC },
+      { text: '赤外線送信LEDはGPIO4に繋がっている', source: M5_ATOMS3_SCHEMATIC },
+      { text: 'GPIO0は基板のBOOT回路の出力に繋がっていて、RESETを約2秒押し続けるとLowに引かれ緑のLEDが点く。自由に使えるピンではない', source: M5_ATOMS3_SCHEMATIC },
+      { text: '載っているのはESP32-S3FN8で、Flashを8MB内蔵しPSRAMは持たない。USB-CはESP32-S3のGPIO19とGPIO20へ直結していて、USBシリアル変換チップは載っていない', source: M5_ATOMS3_SCHEMATIC },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
+    ] }],
+  ['m5stack_atoms3_lite', { project: path.join(here, 'pio-esp32s3'), env: 'm5stack_atoms3', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ATOMS3 Lite', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_atoms3_lite,
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と底面のシールにあるG0、G1のようなG付きの番号はそのままGPIO番号で、たとえばPORT.Aの黄のG2はGPIO2。底面のピンは、シールの文字が読める向きで見てUSB-Cのある辺を下にすると、左の列が上から3V3、G5、G6、G7、G8の5本、右の列が上からG39、G38、5V、GNDの4本。variantはATOMS3と同じものが使われるので、機能ピンの並びもATOMS3と同じになる。RGB LEDはvariantがLED_BUILTINとRGB_BUILTINの名前を持つが、GPIO番号そのものではない値で定義しているので上の機能ピンには出ない。',
+    pinNotes: [
+      { text: '0.85インチLCDも6軸センサMPU6886も載っていないので、ATOMS3向けのコードのうち画面とIMUを使う部分は動かない。代わりにRGB LEDのWS2812C-2020が載っている', source: M5_ATOMS3_LITE },
+      { text: '外に出ているGPIOは底面の6本（G5、G6、G7、G8、G38、G39）と、手前側の面のHY2.0-4P（PORT.A）の2本だけ。PORT.Aは黒がGND、赤が5V、黄がGPIO2、白がGPIO1', source: M5_ATOMS3_LITE },
+      { text: 'RGB LEDのWS2812C-2020はGPIO35に繋がっている', source: M5_ATOMS3_LITE },
+      { text: '上面の大きなボタンはGPIO41、赤外線送信LEDはGPIO4に繋がっている', source: M5_ATOMS3_LITE },
+      { text: 'variantがSDAと呼ぶGPIO38とSCLと呼ぶGPIO39には、この板ではI2Cの機器が何も繋がっておらず底面にそのまま出ている。MOSI・SCK・SSと呼ぶGPIO21・GPIO17・GPIO15はATOMS3のLCD用で、この板では外に出ていない', source: M5_ATOMS3_LITE },
+      { text: 'GPIO0は基板のBOOT回路の出力に繋がっていて、RESETを約2秒押し続けるとLowに引かれ緑のLEDが点く。自由に使えるピンではない', source: M5_ATOMS3_SCHEMATIC },
+      { text: '載っているのはESP32-S3FN8で、Flashを8MB内蔵しPSRAMは持たない。USB-CはESP32-S3のGPIO19とGPIO20へ直結していて、USBシリアル変換チップは載っていない', source: M5_ATOMS3_SCHEMATIC },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
+    ] }],
   ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
     // The generic esp32 variant defines no Dn macros at all, so the table has no digital rows.
@@ -332,6 +381,9 @@ const routeFacts = (b) => ({ flashRoute: b.flashRoute, routeLabel: FLASH_ROUTES[
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: b.vendor, family: b.family, platform: b.platform, framework: b.framework, core: b.core, coreNote: b.coreNote ?? null,
   artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, wireless: b.wireless, ...routeFacts(b), flashHint: b.flashHint, flashGuide: b.flashGuide,
   pins: boardPins(pioEnv(id, b)), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
+  // A board M5 has stopped selling still builds the same, so it stays in the list; this is the
+  // one sentence the manual shows for it (what happened, and what the vendor points at instead).
+  statusNote: b.statusNote ?? null,
   incompatibleLibraries: incompatFor({ id, platform: b.platform }).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');

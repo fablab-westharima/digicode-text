@@ -20,6 +20,8 @@ import usbCConnectStampC5 from './usb-c-connect-stamp-c5.svg';
 import usbCConnectCoreS3 from './usb-c-connect-cores3.svg';
 import resetHoldCoreS3 from './reset-hold-cores3.svg';
 import g0HoldStampS3A from './g0-hold-stamp-s3a.svg';
+import usbCConnectAtomS3 from './usb-c-connect-atoms3.svg';
+import resetHoldAtomS3 from './reset-hold-atoms3.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -53,4 +55,8 @@ export const FIGURES = {
   'reset-hold-cores3': resetHoldCoreS3,
   // M5StampS3A は押しながら挿すので、挿す口と押すボタンを 1 枚に入れる（BOOTSEL の図と同じ作り）。
   'g0-hold-stamp-s3a': g0HoldStampS3A,
+  // ATOMS3 と ATOMS3 Lite も外形も口もボタンの位置も同じなので、この 2 枚を 2 台で共有する。
+  // 挿す口は手前側の面、書き込みモードに入れる RESET は左側面で、図は別の手順ぶん 2 枚。
+  'usb-c-connect-atoms3': usbCConnectAtomS3,
+  'reset-hold-atoms3': resetHoldAtomS3,
 };

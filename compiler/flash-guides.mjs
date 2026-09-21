@@ -33,6 +33,21 @@ const CORES3_GUIDE = {
   ],
 };
 
+// M5Stack ATOMS3 系も挿しただけでは書き込みモードに入らず、RESET の 2 秒長押しが要る
+// （M5 の docs の Download Mode）。CoreS3 と同じ形の 3 手順だが、押す秒数（2 秒）も
+// RESET の位置（左側面）もこの板のもの。ケースに文字の印字は無いので、図にも文字は書かない。
+const ATOMS3_GUIDE = {
+  steps: [
+    { text: 'USB-Cケーブルで、本体の手前側の面にあるUSB-Cの口をPCに接続する。', figure: 'usb-c-connect-atoms3' },
+    { text: '本体の左側面にあるRESETボタンを2秒押したままにし、緑のランプが点いたら離す。', figure: 'reset-hold-atoms3' },
+    { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+  ],
+  notes: [
+    'RESETは左側面にある小さなボタンで、上面の大きなボタンとは別。1回押すだけなら再起動になる。',
+    '緑のランプはRESETを離すと消える。それで書き込みモードに入っている。',
+  ],
+};
+
 export const FLASH_GUIDES = {
   xiao_rp2040: rp2040Guide('ボードのBボタン（BOOTSEL）', 'bootsel-hold-xiao'),
   pico: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico'),
@@ -105,6 +120,10 @@ export const FLASH_GUIDES = {
       '書き込みの前後のリセットは、ESP32-S3の内蔵USBシリアルを通して行われる。',
     ],
   },
+  // ATOMS3 と ATOMS3 Lite は同じ手順。外形も USB-C の口も RESET の位置も同じで、違うのは
+  // 上面（LCD かボタンだけか）と高さ（12.9mm と 9.5mm）だけなので、図も 2 台で共有する。
+  m5stack_atoms3: ATOMS3_GUIDE,
+  m5stack_atoms3_lite: ATOMS3_GUIDE,
   // XIAO ESP32S3 は USB がチップに直結。ダイアログに出る名前はこの板でまだ確かめていないので、
   // C3 と違って行は帯の図で描き、何を選ぶかは手順文で言う。
   xiao_esp32s3: {
