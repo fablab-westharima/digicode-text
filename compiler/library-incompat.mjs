@@ -24,19 +24,20 @@ export const LIBRARY_INCOMPAT = [
     alternative: 'knolleary/PubSubClient',
     // A platform row covers every board on that platform, so a new esp32 board does not inherit
     // this row on trust: the same case was run on it before the row was allowed to apply.
-    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish, 2026-09-20 xiao_esp32s3/45-adafruit-mqtt-publish, 2026-09-20 pico_w/39-adafruit-mqtt-skip',
+    evidence: 'harness 2026-09-17 xiao_esp32c3/45-adafruit-mqtt-publish, 2026-09-20 esp32_devkitc_v4/45-adafruit-mqtt-publish, 2026-09-20 xiao_esp32s3/45-adafruit-mqtt-publish, 2026-09-20 pico_w/39-adafruit-mqtt-skip、45 と 46 が 2026-09-21 m5stack_cores3、m5stamp_s3a、m5stack_atoms3、m5stack_atom_lite、m5stack_stickc_plus2、m5stamp_p4 でも同じ WiFiClass に mode が無いというエラーで ng',
   },
   {
     library: 'paulstoffregen/OneWire',
-    // Board rows, not a platform row. The esp32 boards that are not C5 build this library: the
-    // same four cases are ok on xiao_esp32c3, xiao_esp32s3 and esp32_devkitc_v4. Every C5 board
-    // fails, because OneWire's util/OneWire_direct_gpio.h reads and writes GPIO.in / GPIO.out_w1tc
-    // as plain 32-bit registers, while the C5's soc/gpio_struct.h declares them as bit-field
-    // structs. It is the chip, so each C5 board is listed only after its own harness run.
-    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5'],
+    // Board rows, not a platform row. The esp32 boards that are neither C5 nor P4 build this
+    // library: the same four cases are ok on xiao_esp32c3, xiao_esp32s3, esp32_devkitc_v4 and on
+    // the five M5 boards added since. Every C5 board fails, and so does the P4, because OneWire's
+    // util/OneWire_direct_gpio.h reads and writes GPIO.in / GPIO.out_w1tc as plain 32-bit
+    // registers, while those chips' soc/gpio_struct.h declares them as bit-field structs. It is
+    // the chip, so each board is listed only after its own harness run.
+    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4'],
     reason: 'このライブラリがGPIOレジスタを直接読み書きする部分が、このボードのcoreのレジスタ定義と合わないためBuildが失敗します',
     alternative: 'pstolarz/OneWireNg',
-    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1、espr_developer_c5、m5stamp_c5 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20、esp32_c5_devkitc_1/62-onewireng-ds18b20、espr_developer_c5/62-onewireng-ds18b20、m5stamp_c5/62-onewireng-ds18b20 が ok',
+    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1、espr_developer_c5、m5stamp_c5、m5stamp_p4 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 と m5stack_cores3、m5stamp_s3a、m5stack_atoms3、m5stack_atom_lite、m5stack_stickc_plus2 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20、esp32_c5_devkitc_1/62-onewireng-ds18b20、espr_developer_c5/62-onewireng-ds18b20、m5stamp_c5/62-onewireng-ds18b20、m5stamp_p4/62-onewireng-ds18b20 が ok',
   },
 ];
 
