@@ -18,6 +18,21 @@ const rp2040Guide = (button, holdFigure) => ({
   notes: RP2040_NOTES,
 });
 
+// M5Stack CoreS3 系は挿しただけでは書き込みモードに入らず、RESET の 3 秒長押しが要る
+// （M5 の docs の Download Mode）。押す操作が手順にあるので、手順文と図の両方で長押しを見せる。
+// ケースに文字の印字は無い（ボタンの脇は電源とリセットの記号だけ）ので、図にも文字は書かない。
+const CORES3_GUIDE = {
+  steps: [
+    { text: 'USB-Cケーブルで、本体の左側面にあるUSB-Cの口をPCに接続する。', figure: 'usb-c-connect-cores3' },
+    { text: '本体の底面にあるRESETボタンを3秒押したままにし、緑のランプが点いたら離す。', figure: 'reset-hold-cores3' },
+    { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+  ],
+  notes: [
+    'RESETは底面のボタンで、電源を入れる左側面のボタンとは別。1回押すだけなら再起動になる。',
+    '緑のランプはRESETを離すと消える。それで書き込みモードに入っている。',
+  ],
+};
+
 export const FLASH_GUIDES = {
   xiao_rp2040: rp2040Guide('ボードのBボタン（BOOTSEL）', 'bootsel-hold-xiao'),
   pico: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico'),
@@ -73,6 +88,10 @@ export const FLASH_GUIDES = {
       'このボードには押せるボタンが無いので、挿すだけでよい。書き込みの前後のリセットは、ESP32-C5の内蔵USBシリアルを通して行われる。',
     ],
   },
+  // CoreS3 と CoreS3-SE は同じ手順。外形も口もボタンの位置も同じで、違うのはケースの色と
+  // 前面のカメラの有無だけなので、図も 2 台で共有する。
+  m5stack_cores3: CORES3_GUIDE,
+  m5stack_cores3_se: CORES3_GUIDE,
   // XIAO ESP32S3 は USB がチップに直結。ダイアログに出る名前はこの板でまだ確かめていないので、
   // C3 と違って行は帯の図で描き、何を選ぶかは手順文で言う。
   xiao_esp32s3: {

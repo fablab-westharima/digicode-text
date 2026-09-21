@@ -14,7 +14,14 @@ test('every board has a committed pin file and the server can read it', async ()
   for (const { env } of ENVS) {
     const data = JSON.parse(await readFile(outFile(env), 'utf8'));
     assert.equal(data.env, env);
-    assert.ok(data.pins.length > 0, `${env} has no pins`);
+    // A variant that defines neither Dn nor An macros (M5's m5stack_cores3) produces no rows at
+    // all. That is a real table, not a stale file: what the core does name are the function pins,
+    // and how to read the board without labels is the board's own pinTableNote. Every other
+    // variant must still yield rows, so the empty case is allowed only where it is explained.
+    if (data.pins.length === 0) {
+      assert.equal(data.sources.digitalLabelsFrom, 'none', `${env} has no pins and no reason`);
+      assert.ok(data.unlabelledFunctions.length > 0, `${env} has neither pins nor functions`);
+    } else assert.ok(data.pins.length > 0, `${env} has no pins`);
     assert.equal(path.dirname(outFile(env)), OUT_DIR);
     for (const pin of data.pins) {
       assert.match(pin.label, /^[AD]\d{1,2}$/);

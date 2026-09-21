@@ -1,0 +1,35 @@
+<!-- M5Stack CoreS3 / CoreS3-SE の RESET 長押し。外形は usb-c-connect-cores3.svg と同じ、
+     画面の側から見た図で、口とボタンはその辺のふちに重ねて描いている。
+     この手順で押すのは底面の RESET だけなので、そこだけを強調する。3 秒押したままにする操作
+     なので、Wio Node の FUNC と同じく二重の輪郭で「押し続ける」を表し、矢印は下から上へ、
+     ボタンを押し込む向きに動かす。左側面の USB-C はもう挿さっているので強調しない。
+     緑のランプは、docs が「点いたら離す」と言うだけで位置を書いていないため描かない
+     （点灯の合図は手順文の側で言う）。ケースに文字の印字は無いので、図にも文字は書かない。
+     出所は docs.m5stack.com の CoreS3 と CoreS3-SE の Download Mode と外観写真。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="100" y="50" width="132" height="132" rx="11"/>
+  <!-- 前面のガラス板と、その中の 2.0 インチ LCD -->
+  <rect class="fig-part" x="106" y="56" width="120" height="120" rx="7"/>
+  <rect class="fig-face" x="116" y="64" width="100" height="75" rx="2"/>
+  <!-- 左側面: 電源ボタン（上）、USB-C（中、挿さっている）、赤の PORT.A（下） -->
+  <rect class="fig-part" x="93" y="68" width="14" height="17" rx="4"/>
+  <rect class="fig-part" x="92" y="102" width="16" height="24" rx="3"/>
+  <rect class="fig-board fig-thin" x="96" y="110" width="8" height="8" rx="4"/>
+  <rect class="fig-part" x="93" y="140" width="14" height="24" rx="2"/>
+  <!-- 底面: microSD スロットとマイクの 2 穴 -->
+  <rect class="fig-part" x="124" y="176" width="30" height="12" rx="2"/>
+  <path class="fig-pad" d="M164,177h4v10h-4zM172,177h4v10h-4z"/>
+  <!-- 右側面: スピーカーの穴 -->
+  <path class="fig-pad" d="M226,84h5v5h-5zM234,84h5v5h-5zM226,96h5v5h-5zM234,96h5v5h-5zM226,108h5v5h-5zM234,108h5v5h-5zM226,120h5v5h-5zM234,120h5v5h-5zM226,132h5v5h-5zM234,132h5v5h-5z"/>
+  <!-- 押したままにするボタン: 底面の RESET。二重の輪郭で「押し続ける」を表す。 -->
+  <rect class="fig-hit" x="188" y="175" width="22" height="14" rx="4"/>
+  <rect class="fig-accent fig-thin" x="181" y="168" width="36" height="28" rx="8"/>
+  <!-- rotate(180 199 213) の中で fig-press が下へ動く＝画面では上向き＝押し込む向き。 -->
+  <g transform="rotate(180 199 213)">
+    <g class="fig-press fig-accent">
+      <path d="M199,204 V222"/>
+      <path d="M192,211 L199,219 L206,211"/>
+    </g>
+  </g>
+</svg>

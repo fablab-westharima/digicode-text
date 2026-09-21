@@ -75,6 +75,13 @@ const M5_STAMP_C5 = 'https://docs.m5stack.com/en/core/Stamp-C5';
 // The board's own schematic, published by M5 and linked from that page: the only document that
 // says where G4 comes out and what the test pads are wired to.
 const M5_STAMP_C5_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1258/S016_StampC5_V0.3_SCH_PDF_20260207_2026_02_07_11_34_57.pdf';
+// M5's own product page for the CoreS3: the PinMap tables (what every GPIO of the ESP32-S3 is
+// wired to inside the case), the three HY2.0 ports, the M5-Bus diagram and the download mode.
+const M5_CORES3 = 'https://docs.m5stack.com/en/core/CoreS3';
+// The CoreS3-SE's own page. The two boards share the PinMap, but the SE's page is what states
+// what it does not carry (camera, proximity sensor, IMU, magnetometer, battery), so its own
+// sentences are cited from it rather than inferred from the CoreS3 one.
+const M5_CORES3_SE = 'https://docs.m5stack.com/en/core/M5CoreS3%20SE';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -223,6 +230,37 @@ const BOARDS = new Map([
       { text: 'ストラッピングピンはブートモードがGPIO0とGPIO46、VDD_SPIの電圧がGPIO45、ROMメッセージ出力がGPIO46、JTAG信号源がGPIO3', source: ESP32S3_DATASHEET },
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
     ] }],
+  // CoreS3 と CoreS3-SE は一覧では別の 2 台。中身の差はカメラ・近接センサ・IMU・地磁気センサと
+  // 内蔵電池の有無だけで build には効かないので、env（PlatformIO の [env:...]）は 1 つを共有し、
+  // 差は下の pinNotes に書く。env を書いた側が pio run と boards/<env>.pins.json の名前になる。
+  ['m5stack_cores3', { project: path.join(here, 'pio-esp32s3'), env: 'm5stack_cores3', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'CoreS3', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_cores3,
+    // M5's m5stack_cores3 variant defines neither Dn nor An macros, so the pin table has no rows
+    // at all: what a sketch is written against is the G<n> silk, which is the GPIO number itself.
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料とコネクタの印字にあるG0、G1のようなG付きの番号はそのままGPIO番号で、たとえばPORT.Aの黄のG2はGPIO2。',
+    pinNotes: [
+      { text: 'variantがSDAと呼ぶGPIO12とSCLと呼ぶGPIO11は本体内部のI2Cで、AXP2101、BM8563、ES7210、AW88298、FT6336U、BMI270、LTR-553ALS-WAがこの2本に繋がっている。外のPORT.AのI2Cは別のGPIO2とGPIO1', source: M5_CORES3 },
+      { text: 'HY2.0-4Pは黒がGND、赤が5Vで、赤のPORT.Aは黄がGPIO2（SDA）、白がGPIO1（SCL）。黒のPORT.Bは黄がGPIO9、白がGPIO8。青のPORT.Cは黄がGPIO17（TX）、白がGPIO18（RX）', source: M5_CORES3 },
+      { text: 'LCDとmicroSDはSPIを共有していて、GPIO37がMOSI、GPIO36がSCK、GPIO35はLCDのDCとmicroSDのMISOを兼ねる。CSはLCDがGPIO3、microSDがGPIO4', source: M5_CORES3 },
+      { text: 'マイクのES7210とアンプのAW88298へのI2SはGPIO34、GPIO33、GPIO13、GPIO14、GPIO0の5本', source: M5_CORES3 },
+      { text: 'カメラのGC0308はデータ線にGPIO39、GPIO40、GPIO41、GPIO42、GPIO15、GPIO16、GPIO48、GPIO47、同期にGPIO45、GPIO46、GPIO38を使う。variantがSSと呼ぶGPIO15もこの中', source: M5_CORES3 },
+      { text: 'LCD・タッチ・アンプのリセットと割り込みはESP32-S3ではなくIOエキスパンダAW9523Bの端子にあり、画面のバックライトと電源経路と内蔵500mAh電池はAXP2101が握っている', source: M5_CORES3 },
+      { text: 'M5-Busの30ピンのうち、機能名がGPIOとADCだけで内蔵機器と共用していないのはGPIO5、GPIO6、GPIO7、GPIO10（ADC）の4本', source: M5_CORES3 },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
+    ] }],
+  ['m5stack_cores3_se', { project: path.join(here, 'pio-esp32s3'), env: 'm5stack_cores3', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'CoreS3-SE', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_cores3_se,
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料とコネクタの印字にあるG0、G1のようなG付きの番号はそのままGPIO番号で、たとえばPORT.Aの黄のG2はGPIO2。',
+    pinNotes: [
+      { text: 'カメラのGC0308、近接センサのLTR-553ALS-WA、IMUのBMI270、地磁気センサのBMM150は載っていないので、CoreS3向けのコードのうちそれらを使う部分は動かない。内蔵電池も無い', source: M5_CORES3_SE },
+      { text: 'variantがSDAと呼ぶGPIO12とSCLと呼ぶGPIO11は本体内部のI2Cで、AXP2101、BM8563、ES7210、AW88298、FT6336Uがこの2本に繋がっている。外のPORT.AのI2Cは別のGPIO2とGPIO1', source: M5_CORES3_SE },
+      { text: 'HY2.0-4Pは黒がGND、赤が5Vで、赤のPORT.Aは黄がGPIO2（SDA）、白がGPIO1（SCL）。黒のPORT.Bは黄がGPIO9、白がGPIO8。青のPORT.Cは黄がGPIO17（TX）、白がGPIO18（RX）', source: M5_CORES3_SE },
+      { text: 'LCDとmicroSDはSPIを共有していて、GPIO37がMOSI、GPIO36がSCK、GPIO35はLCDのDCとmicroSDのMISOを兼ねる。CSはLCDがGPIO3、microSDがGPIO4', source: M5_CORES3_SE },
+      { text: 'マイクのES7210とアンプのAW88298へのI2SはGPIO34、GPIO33、GPIO13、GPIO14、GPIO0の5本', source: M5_CORES3_SE },
+      { text: 'LCD・タッチ・アンプのリセットと割り込みはESP32-S3ではなくIOエキスパンダAW9523Bの端子にあり、画面のバックライトと電源経路はAXP2101が握っている', source: M5_CORES3_SE },
+      { text: 'M5-Busに出ているGPIOはGPIO0、GPIO1、GPIO2、GPIO5、GPIO6、GPIO7、GPIO8、GPIO9、GPIO10、GPIO11、GPIO12、GPIO13、GPIO14、GPIO17、GPIO18、GPIO35、GPIO36、GPIO37、GPIO43、GPIO44の20本', source: M5_CORES3_SE },
+      { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
+    ] }],
   ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,
     // The generic esp32 variant defines no Dn macros at all, so the table has no digital rows.
@@ -256,6 +294,9 @@ const BOARDS = new Map([
 // Pin labels are not written by hand: compiler/tools/generate-board-pins.mjs reads them out of the
 // PlatformIO variant header this machine builds with and writes compiler/boards/<env>.pins.json.
 // Only the committed JSON is read here, so a request never touches the PlatformIO install.
+// Most boards are their own PlatformIO env, so the board id is the env name; a board that shares
+// another's build settings names it in `env` (CoreS3-SE rides CoreS3's). pioEnv is that name.
+const pioEnv = (id, b) => b.env ?? id;
 const boardPins = env => JSON.parse(readFileSync(path.join(here, 'boards', `${env}.pins.json`), 'utf8'));
 // Public board facts (no paths). Same object shape the browser hands to the AI as boardDetails.
 // incompatibleLibraries is the browser's only copy of the table: the Libraries view, the Build
@@ -267,7 +308,7 @@ const routeFacts = (b) => ({ flashRoute: b.flashRoute, routeLabel: FLASH_ROUTES[
   routeVerifiedBy: FLASH_ROUTES[b.flashRoute].verifiedBy.map(id => BOARDS.get(id).name) });
 const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: b.vendor, family: b.family, platform: b.platform, framework: b.framework, core: b.core, coreNote: b.coreNote ?? null,
   artifact: b.artifact, browserFlash: b.browserFlash, serial: b.serial, wireless: b.wireless, ...routeFacts(b), flashHint: b.flashHint, flashGuide: b.flashGuide,
-  pins: boardPins(id), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
+  pins: boardPins(pioEnv(id, b)), pinTableNote: b.pinTableNote ?? null, pinNotes: b.pinNotes,
   incompatibleLibraries: incompatFor({ id, platform: b.platform }).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
@@ -323,6 +364,8 @@ function publicLog(log, project = '') {
 async function compile(env, source, libraries) {
   return limited(async () => {
     const board = BOARDS.get(env);
+    // The PlatformIO env to build; the same one for two boards that share their build settings.
+    const target = pioEnv(env, board);
     const started = Date.now();
     try { await verifyLibraries(libraries); }
     catch (error) { return { ok: false, log: error.message, stage: 'dependencies', durationMs: Date.now() - started }; }
@@ -349,11 +392,11 @@ async function compile(env, source, libraries) {
         for (const name of boardDefs.filter(n => n.endsWith('.json')))
           await copyFile(path.join(board.project, 'boards', name), path.join(project, 'boards', name));
       }
-      const { code, log } = await runPio(env, project);
+      const { code, log } = await runPio(target, project);
       const durationMs = Date.now() - started;
       if (code !== 0) return { ok: false, log: publicLog(log, project),
         stage: /(?:PackageException|UnknownPackageError|HTTPClientError|Could not install|Could not find the package)/i.test(log) ? 'dependencies' : 'compile', durationMs };
-      const artifact = await readFile(path.join(project, '.pio', 'build', env, board.family === 'esp' ? 'flashset.json' : `firmware.${board.extension}`));
+      const artifact = await readFile(path.join(project, '.pio', 'build', target, board.family === 'esp' ? 'flashset.json' : `firmware.${board.extension}`));
       return { ok: true, artifact, board, durationMs };
     } finally { await rm(project, { recursive: true, force: true }); }
   });

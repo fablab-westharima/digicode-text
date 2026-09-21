@@ -28,6 +28,8 @@ export const PIO_HOME = process.env.PLATFORMIO_CORE_DIR ?? path.join(os.homedir(
 export const ENVS = [
   { env: 'esp32_devkitc_v4', project: 'pio-esp32' },
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
+  // CoreS3 と CoreS3-SE は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
+  { env: 'm5stack_cores3', project: 'pio-esp32s3' },
   { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
   { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
   { env: 'espr_developer_c5', project: 'pio-esp32c5' },

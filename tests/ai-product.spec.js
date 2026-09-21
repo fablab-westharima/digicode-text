@@ -52,7 +52,9 @@ test('the compiler board table carries every fact the UI and AI need, and agrees
       expect(note.source).toMatch(/^https:\/\/(wiki\.seeedstudio\.com|datasheets\.raspberrypi\.com|documentation\.espressif\.com|docs\.espressif\.com|akizukidenshi\.com|www\.switch-science\.com|doc\.switch-science\.com|docs\.m5stack\.com|m5stack-doc\.oss-cn-shenzhen\.aliyuncs\.com)\//);
     }
     const ini = await read('compiler/' + path.basename(b.project) + '/platformio.ini');
-    const section = ini.split(`[env:${env}]`)[1]?.split(/\n\[env:/)[0];
+    // A board is normally its own PlatformIO env; one that shares another's build settings names
+    // that env instead (CoreS3-SE rides CoreS3's), and it is that section that must agree here.
+    const section = ini.split(`[env:${b.env ?? env}]`)[1]?.split(/\n\[env:/)[0];
     expect(section).toBeDefined();
     const setting = key => section.match(new RegExp('^' + key.replaceAll('.', '\\.') + '\\s*=\\s*(.+)$', 'm'))?.[1].trim();
     expect(b.framework.toLowerCase()).toBe(setting('framework'));
@@ -130,7 +132,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -138,8 +140,11 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) {
     // Served straight from the committed file; the server never reads the PlatformIO install.
-    expect(b.pins).toEqual(JSON.parse(await read(`compiler/boards/${b.id}.pins.json`)));
-    expect(b.pins.pins.length).toBeGreaterThan(0);
+    // The file is named after the PlatformIO env, which two boards may share (CoreS3-SE rides
+    // CoreS3's), so the entry's own pins.env is what says which file it came from.
+    expect(b.pins).toEqual(JSON.parse(await read(`compiler/boards/${b.pins.env}.pins.json`)));
+    // A variant with no Dn/An macros yields no rows; the function pins are then the whole table.
+    expect(b.pins.pins.length + b.pins.unlabelledFunctions.length).toBeGreaterThan(0);
     expect(b.pinNotes.length).toBeGreaterThan(0);
     const facts = boardFacts(b);
     const bare = boardFacts({ ...b, pins: undefined, pinNotes: [] });
@@ -162,7 +167,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'esp32_devkitc_v4']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'esp32_devkitc_v4']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -208,7 +213,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -301,6 +306,34 @@ test('M5StampC5 はパッドの並びと、ピンヘッダで取り出せない 
   expect(facts).toContain('2.54mmのピンヘッダでは取り出せない');
   expect(facts).toContain('基板にアンテナは載っておらず');
   expect(stamp.flashRoute).toBe('esp-usb-cdc');
+});
+
+test('CoreS3 と CoreS3-SE は別の 2 台として出て、同じ env・同じピン表を共有し、差は注意点に出る', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const core = boards.find(b => b.id === 'm5stack_cores3');
+  const se = boards.find(b => b.id === 'm5stack_cores3_se');
+  // 一覧では別の 2 台。build は同じ env なので、ピン表は 1 本を共有する。
+  expect(core.name).toBe('CoreS3'); expect(se.name).toBe('CoreS3-SE');
+  expect(se.pins).toEqual(core.pins);
+  expect(core.pins.env).toBe('m5stack_cores3');
+  expect(core.pins.board).toBe('m5stack-cores3');
+  // M5 の variant は Dn も An も定義しないので、行は 1 つも出ず、機能ピンだけが並ぶ。
+  expect(core.pins.variant).toBe('m5stack_cores3');
+  expect(core.pins.sources.digitalLabelsFrom).toBe('none');
+  expect(core.pins.pins).toEqual([]);
+  expect(core.pins.unlabelledFunctions.map(f => f.name)).toContain('SDA');
+  for (const b of [core, se]) {
+    const facts = boardFacts(b);
+    expect(facts).toContain('G付きの番号はそのままGPIO番号');
+    // variant の SDA/SCL は本体内部の I2C で、外の PORT.A とは別の 2 本。
+    expect(facts).toContain('SDA、GPIO12');
+    expect(facts).toContain('黄がGPIO2（SDA）、白がGPIO1（SCL）');
+    expect(b.flashRoute).toBe('esp-usb-cdc');
+  }
+  // 差は pinNotes に書く。CoreS3 にだけカメラがあり、SE にはそれも内蔵電池も無い。
+  expect(boardFacts(core)).toContain('カメラのGC0308はデータ線に');
+  expect(boardFacts(se)).toContain('内蔵電池も無い');
+  expect(boardFacts(se)).not.toContain('内蔵500mAh電池');
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {

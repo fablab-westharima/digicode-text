@@ -1,0 +1,36 @@
+<!-- M5Stack CoreS3 / CoreS3-SE を画面の側から見た図。54x54x15.5mm の四角い筐体で、前面は
+     ガラス板、その中に 2.0 インチ 320x240 の LCD が上寄りに入る。口とボタンは前面ではなく
+     側面にあるので、その辺のふちに重ねて描いている（左辺＝左側面、下辺＝底面、右辺＝右側面）。
+     M5 の docs の外観写真から読んだ並びは、左側面が電源ボタン・USB-C・赤の PORT.A（この順に
+     画面の上側から）、底面が microSD スロット・2 つのマイク穴・RESET、右側面がスピーカーの穴。
+     上面は CE/FCC のラベルだけなので描かない。PORT.B と PORT.C は本体ではなく土台側にある
+     ので、本体だけを描くこの図には出てこない。
+     CoreS3 と CoreS3-SE はケースの色と前面のカメラの有無だけが違い、挿す口も押すボタンも
+     同じ位置なので、図は 2 台で共有する。片方にしか無いカメラのレンズは、どちらの図としても
+     正しくなるように描いていない。ケースに文字の印字は無いので、図にも文字は書かない。
+     出所は docs.m5stack.com の CoreS3 と CoreS3-SE の外観写真。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="100" y="50" width="132" height="132" rx="11"/>
+  <!-- 前面のガラス板と、その中の 2.0 インチ LCD -->
+  <rect class="fig-part" x="106" y="56" width="120" height="120" rx="7"/>
+  <rect class="fig-face" x="116" y="64" width="100" height="75" rx="2"/>
+  <!-- 左側面: 電源ボタン（上）、USB-C（中）、赤の PORT.A（下） -->
+  <rect class="fig-part" x="93" y="68" width="14" height="17" rx="4"/>
+  <rect class="fig-part" x="93" y="140" width="14" height="24" rx="2"/>
+  <!-- 底面: microSD スロット、マイクの 2 穴、RESET -->
+  <rect class="fig-part" x="124" y="176" width="30" height="12" rx="2"/>
+  <path class="fig-pad" d="M164,177h4v10h-4zM172,177h4v10h-4z"/>
+  <rect class="fig-part" x="188" y="175" width="22" height="14" rx="4"/>
+  <!-- 右側面: スピーカーの穴 -->
+  <path class="fig-pad" d="M226,84h5v5h-5zM234,84h5v5h-5zM226,96h5v5h-5zM234,96h5v5h-5zM226,108h5v5h-5zM234,108h5v5h-5zM226,120h5v5h-5zM234,120h5v5h-5zM226,132h5v5h-5zM234,132h5v5h-5z"/>
+  <!-- 挿す先: 左側面の USB-C -->
+  <rect class="fig-part fig-accent fig-hit" x="92" y="102" width="16" height="24" rx="3"/>
+  <rect class="fig-board fig-accent fig-thin" x="96" y="110" width="8" height="8" rx="4"/>
+  <!-- USB-Cケーブルは左から差し込む。fig-cable は右へ動く＝画面でも右向き。 -->
+  <g class="fig-cable fig-accent">
+    <rect class="fig-part fig-accent" x="60" y="100" width="34" height="28" rx="5"/>
+    <rect class="fig-part fig-accent" x="32" y="107" width="28" height="14" rx="6"/>
+    <path d="M34,114 L2,114"/>
+  </g>
+</svg>

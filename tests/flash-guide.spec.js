@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -246,6 +246,17 @@ test('M5StampC5の手順は挿すだけで、押すボタンが無いことを�
   await expect(page.locator('#flash-guide-notes')).toContainText('押せるボタンが無いので、挿すだけでよい');
   expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
     .toEqual(['usb-c-connect-stamp-c5', 'port-dialog-usb-serial']);
+});
+
+test('CoreS3とCoreS3-SEの手順は同じ3手順で、RESETの3秒長押しを図でも見せる', async ({ page }) => {
+  for (const id of ['m5stack_cores3', 'm5stack_cores3_se']) {
+    await ready(page, id);
+    await page.click('#flash-guide-open');
+    await expect(page.locator('#flash-guide-steps')).toContainText('RESETボタンを3秒押したままにし、緑のランプが点いたら離す');
+    await expect(page.locator('#flash-guide-notes')).toContainText('RESETは底面のボタンで、電源を入れる左側面のボタンとは別');
+    expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+      .toEqual(['usb-c-connect-cores3', 'reset-hold-cores3', 'port-dialog-usb-serial']);
+  }
 });
 
 test('Pico Wの手順は無印Picoと同じ3手順で、基板の図だけPico Wのものになる', async ({ page }) => {
