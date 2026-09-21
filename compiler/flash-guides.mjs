@@ -67,6 +67,26 @@ const ATOM_GUIDE = {
   ],
 };
 
+// M5Stack StickC Plus2 も ATOM と同じで、USB-C は基板の USB シリアル変換チップ（CH9102）経由。
+// M5 の回路図でその CH9102F の DTR と RTS が 2 石のトランジスタを通して EN と GPIO0 に繋がって
+// いる（いわゆる自動ダウンロード回路）ので、挿すだけの 2 手順で、押すボタンは無い。
+// ただし自動リセットは実機で確かめていないので、入らないときの手当てを補足に置く。この板は
+// ATOM と違って GPIO0 が上端の 8 ピンヘッダに出ている（M5 の仕様表の External Pins と回路図の
+// P1 の 5 番）ので、GND の穴と繋いだまま挿せば手で書き込みモードに入れられる。
+// ケースに文字の印字は無い（GPIO の名前は背面のシールにしかない）ので、図にも文字は書かない。
+const STICKC_PLUS2_GUIDE = {
+  steps: [
+    { text: 'USB-Cケーブルで、本体の下端（画面の下側の端）にあるUSB-Cの口をPCに接続する。', figure: 'usb-c-connect-stickc-plus2' },
+    { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+  ],
+  notes: [
+    '書き込みの前後のリセットは、基板のUSBシリアル変換チップ（CH9102）がENとGPIO0を動かして自動で行われるので、ボタン操作は要らない。',
+    '書き込みモードに入らないときは、反対の端の8ピンヘッダで、背面のシールにG0と書かれた穴とGNDと書かれた穴をジャンパ線で繋いだままUSBを挿し、書き込みが始まってから外す。',
+    'ポートがダイアログに出ないときは、一度USBを抜き、左側面の電源ボタンを緑のランプが点くまで長押しして電源を切ってから、挿し直す。',
+    '左側面の電源ボタンは2秒以上押すと電源が入る。書き込みには使わない。',
+  ],
+};
+
 export const FLASH_GUIDES = {
   xiao_rp2040: rp2040Guide('ボードのBボタン（BOOTSEL）', 'bootsel-hold-xiao'),
   pico: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico'),
@@ -169,6 +189,7 @@ export const FLASH_GUIDES = {
   // 図も 2 台で共有する。
   m5stack_atom_lite: ATOM_GUIDE,
   m5stack_atom_matrix: ATOM_GUIDE,
+  m5stack_stickc_plus2: STICKC_PLUS2_GUIDE,
   wio_node: {
     steps: [
       { text: 'FT234X（GroveのUSBシリアル）をPORT0に挿し、USB側をPCに接続する。', figure: 'grove-serial-port0' },

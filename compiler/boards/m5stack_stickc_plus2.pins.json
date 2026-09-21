@@ -1,0 +1,67 @@
+{
+  "env": "m5stack_stickc_plus2",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
+  "board": "m5stack-stickc-plus2",
+  "mcu": "esp32",
+  "core": "esp32",
+  "variant": "m5stack_stickc_plus2",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.3.12",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32/platformio.ini",
+    "boardDefinition": "compiler/pio-esp32/boards/m5stack-stickc-plus2.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/m5stack_stickc_plus2/pins_arduino.h",
+    "digitalLabelsFrom": "none"
+  },
+  "pins": [],
+  "unlabelledFunctions": [
+    {
+      "name": "SDA",
+      "pin": 32,
+      "gpio": 32,
+      "note": null
+    },
+    {
+      "name": "SCL",
+      "pin": 33,
+      "gpio": 33,
+      "note": null
+    },
+    {
+      "name": "TX",
+      "pin": 1,
+      "gpio": 1,
+      "note": null
+    },
+    {
+      "name": "RX",
+      "pin": 3,
+      "gpio": 3,
+      "note": null
+    },
+    {
+      "name": "MOSI",
+      "pin": 15,
+      "gpio": 15,
+      "note": null
+    },
+    {
+      "name": "MISO",
+      "pin": 36,
+      "gpio": 36,
+      "note": null
+    },
+    {
+      "name": "SCK",
+      "pin": 13,
+      "gpio": 13,
+      "note": null
+    },
+    {
+      "name": "SS",
+      "pin": 5,
+      "gpio": 5,
+      "note": null
+    }
+  ]
+}

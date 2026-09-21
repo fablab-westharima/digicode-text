@@ -1,0 +1,34 @@
+<!-- M5Stack StickC Plus2 を画面の側から見た図。48.0x24.0x13.5mm の角の丸い直方体で、画面の
+     上側の端に 2.54mm の 8 ピンヘッダ、下側の端に USB-C がある。画面（1.14 インチ、
+     ST7789V2）は本体の上寄りで、そのすぐ下の前面に M5 のロゴが入った大きな BUTTON A。
+     側面のボタンは、この向きで右の辺の上寄りが BUTTON B、左の辺の下寄り（USB-C に近い方）が
+     電源の BUTTON C。ボタンと口は前面ではなく側面・端面にあるので、その辺のふちに重ねて描く。
+     白い HY2.0-4P（PORT）は USB-C と同じ下端にあるが、背面側に寄っていて画面の側からは
+     USB-C の陰になるので描かない。上端の 8 ピンヘッダの穴も、端面にあって画面の側からは
+     見えないので描かない（穴の名前は背面のシールにしかなく、この向きでは読めない）。
+     ケースに文字の印字は無いので、図にも文字は書かない。
+     出所は docs.m5stack.com の StickC-Plus2 の外観写真と部位図。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="127" y="22" width="66" height="132" rx="8"/>
+  <!-- 上寄りの 1.14 インチ LCD -->
+  <rect class="fig-face" x="137" y="32" width="46" height="68" rx="3"/>
+  <!-- 画面の下の前面にある大きな BUTTON A（M5 のロゴが入る面） -->
+  <rect class="fig-part" x="140" y="113" width="40" height="28" rx="5"/>
+  <!-- 右の辺の上寄り: BUTTON B -->
+  <rect class="fig-part" x="187" y="44" width="12" height="18" rx="3"/>
+  <!-- 左の辺の下寄り: 電源の BUTTON C -->
+  <rect class="fig-part" x="121" y="117" width="12" height="18" rx="3"/>
+  <!-- 挿す先: 下端の中央にある USB-C -->
+  <rect class="fig-part fig-accent fig-hit" x="141" y="144" width="38" height="24" rx="4"/>
+  <rect class="fig-board fig-accent fig-thin" x="148" y="151" width="24" height="9" rx="4.5"/>
+  <!-- USB-Cケーブルは下から差し込む。rotate(-90 160 196) の中で fig-cable が横へ動く＝
+       画面では上向き＝口へ押し込む向き。 -->
+  <g transform="rotate(-90 160 196)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="152" y="182" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="124" y="189" width="30" height="14" rx="6"/>
+      <path d="M130,196 L70,196"/>
+    </g>
+  </g>
+</svg>

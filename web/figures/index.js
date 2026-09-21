@@ -23,6 +23,7 @@ import g0HoldStampS3A from './g0-hold-stamp-s3a.svg';
 import usbCConnectAtomS3 from './usb-c-connect-atoms3.svg';
 import resetHoldAtomS3 from './reset-hold-atoms3.svg';
 import usbCConnectAtom from './usb-c-connect-atom.svg';
+import usbCConnectStickCPlus2 from './usb-c-connect-stickc-plus2.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -63,4 +64,7 @@ export const FIGURES = {
   // ATOM Lite と ATOM Matrix は USB シリアル変換チップ経由で自動で書き込みモードに入るので、
   // 押すボタンの図は無く、挿す口の 1 枚だけ。外形も口の位置も同じなので 2 台で共有する。
   'usb-c-connect-atom': usbCConnectAtom,
+  // StickC Plus2 も自動で書き込みモードに入るので、押すボタンの図は無く挿す口の 1 枚だけ。
+  // 縦長の本体で、USB-C は画面の下側の端にある。
+  'usb-c-connect-stickc-plus2': usbCConnectStickCPlus2,
 };

@@ -111,6 +111,15 @@ const M5_ATOM_LITE = 'https://docs.m5stack.com/en/core/ATOM%20Lite';
 // but the Matrix's page is what states what it carries instead (5x5 LED matrix, MPU6886) and what
 // its own PinMap calls the I2C, so its sentences are cited from it rather than from the Lite one.
 const M5_ATOM_MATRIX = 'https://docs.m5stack.com/en/core/ATOM%20Matrix';
+// M5's own product page for the StickC Plus2: the PinMap (the LCD, the buzzer, the IR/red LED, the
+// microphone, the IMU and RTC bus and the HY2.0 port), the specification table (ESP32-PICO-V3-02,
+// 8 MB flash, 2 MB PSRAM, the five GPIO the outside gets), the power on/off procedure that this
+// board needs because it has no PMIC, and the comparison tables that name HOLD, the battery
+// voltage divider and the USB-serial chip.
+const M5_STICKC_PLUS2 = 'https://docs.m5stack.com/en/core/M5StickC%20PLUS2';
+// The board's own schematic, published by M5 and linked from that page: the only document that
+// says what each hole of the 8-pin header carries, and that two of the chip's pins share one hole.
+const M5_STICKC_PLUS2_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/512/Sch_M5StickC_Plus2_v0.5.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -391,6 +400,29 @@ const BOARDS = new Map([
       { text: '載っているのはESP32-PICO-D4で、Flashは4MB、PSRAMは持たない。アンテナは基板上の3Dアンテナなので外付けは要らない', source: M5_ATOM_MATRIX },
       { text: 'USB-Cは基板のUSBシリアル変換チップに繋がっていて、そのチップがENとGPIO0を動かして自動で書き込みモードに入れる。ESP32のUARTはGPIO1がTX、GPIO3がRX。GPIO0は底面にもHY2.0にも出ていないので自由に使えるピンではない', source: M5_ATOM_MATRIX },
       { text: 'GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない（ボタンのGPIO39もこれに当たる）。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
+    ] }],
+  // StickC Plus2 は自作の board 定義で建てる。platform が持つ M5Stick 系の定義は m5stick-c
+  // （ESP32-PICO-D4、4MB flash・PSRAM 無し）だけで、この板の中身と合わないため。
+  // 値は core 自身の boards.txt の m5stack_stickc_plus2 に合わせた（compiler/pio-esp32/boards/）。
+  ['m5stack_stickc_plus2', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'StickC Plus2', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_stickc_plus2,
+    // M5 sells this one as EOL and points at the M5StickS3 in its place. It still builds and
+    // flashes the same, so it stays in the list; the sentence is shown in the manual, next to this
+    // board's own section, so nobody buys the wrong replacement.
+    statusNote: 'このボードはM5Stackの公式ストアで販売終了（EOL）になっていて、後継としてESP32-S3版のM5StickS3が案内されている。',
+    // M5's m5stack_stickc_plus2 variant defines neither Dn nor An macros, so the pin table has no
+    // rows at all: what a sketch is written against is the G<n> silk, which is the GPIO number
+    // itself. Its SPI names are the built-in LCD's bus, not anything the outside can reach.
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と背面のシールにあるG0、G26のようなG付きの番号はそのままGPIO番号。2.54mmの8ピンヘッダは画面の上側の端（USB-Cの反対の端）にあり、背面のシールの文字が読める向きで見て左からGND、5V、G26、G36/G25、G0、BAT、3V3、5Vの8穴。上の機能ピンのMOSI（GPIO15）・SCK（GPIO13）・SS（GPIO5）は本体に内蔵されたLCDの3本で外には出ておらず、MISO（GPIO36）はヘッダのG36の穴。外の機器にはSPI.begin()にピンを渡して使う。',
+    pinNotes: [
+      { text: '外に出ているGPIOは、画面の上側の端の8ピンヘッダの3本（G26、G36、G0）と、USB-Cと同じ端のHY2.0-4P（PORT）の2本だけ。PORTは黒がGND、赤が5V、黄がGPIO32、白がGPIO33', source: M5_STICKC_PLUS2 },
+      { text: 'ヘッダのG36/G25と印字された穴はGPIO36とGPIO25が基板の中で1本に繋がったもので、片方を出力にすると他方も同じ電位になる', source: M5_STICKC_PLUS2_SCHEMATIC },
+      { text: 'variantがSDAと呼ぶGPIO32とSCLと呼ぶGPIO33はHY2.0-4P（PORT）の2本で、内蔵の6軸センサMPU6886とRTC BM8563のI2C（SCLがGPIO22、SDAがGPIO21）ではない。Wireを既定のまま使うとPORT側に出る', source: M5_STICKC_PLUS2 },
+      { text: '1.14インチLCD（ST7789V2、135x240）はGPIO15がMOSI、GPIO13がCLK、GPIO14がDC、GPIO12がRST、GPIO5がCS、GPIO27がバックライト', source: M5_STICKC_PLUS2 },
+      { text: 'ボタンはAが画面の下の大きなボタンでGPIO37、Bが側面でGPIO39、Cが電源ボタンでGPIO35。赤外線送信LEDと赤のLEDは同じGPIO19、ブザーはGPIO2、マイクSPM1423はCLKがGPIO0、DATAがGPIO34', source: M5_STICKC_PLUS2 },
+      { text: 'この板は電源管理ICを持たず、GPIO4（HOLD）で自分の電源を保持する。BUTTON Cを2秒以上押すと電源が入るが、プログラムがGPIO4をHighにしないと切れる。USB給電が無いときBUTTON Cを6秒以上押すか、GPIO4をLowにすると切れる。電池電圧の検出はGPIO38', source: M5_STICKC_PLUS2 },
+      { text: '載っているのはESP32-PICO-V3-02で、Flash 8MBとPSRAM 2MBを内蔵する。USB-CはUSBシリアル変換チップCH9102経由で、ESP32のUARTはGPIO1がTX、GPIO3がRX。ヘッダのG0はマイクのCLKと共用', source: M5_STICKC_PLUS2 },
+      { text: 'GPIO0はストラッピングピンで、Lowのまま起動するとシリアルから書き込むモードになる。GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない（ボタンのGPIO37・GPIO39、マイクのGPIO34、電池電圧のGPIO38がこれに当たる）。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
     ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp8266', flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,

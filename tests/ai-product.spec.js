@@ -132,7 +132,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', m5stack_stickc_plus2: 'M5Stack', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -167,7 +167,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -213,7 +213,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -391,7 +391,7 @@ test('ATOMS3 と ATOMS3 Lite は別の 2 台として出て、同じ env・同�
   // 販売終了なのは無印の方だけ。その 1 行は取説に出る（web/help.js）ので /boards が運ぶ。
   expect(atom.statusNote).toContain('AtomS3R');
   expect(lite.statusNote).toBe(null);
-  for (const b of boards.filter(x => !['m5stack_atoms3', 'm5stack_atom_matrix'].includes(x.id))) expect(b.statusNote, b.id).toBe(null);
+  for (const b of boards.filter(x => !['m5stack_atoms3', 'm5stack_atom_matrix', 'm5stack_stickc_plus2'].includes(x.id))) expect(b.statusNote, b.id).toBe(null);
 });
 
 test('ATOM Lite と ATOM Matrix は別の 2 台として出て、同じ env・同じピン表を共有する', async ({ request }) => {
@@ -428,6 +428,34 @@ test('ATOM Lite と ATOM Matrix は別の 2 台として出て、同じ env・�
   // 販売終了なのは Matrix の方だけ。その 1 行は取説に出る（web/help.js）ので /boards が運ぶ。
   expect(matrix.statusNote).toContain('販売終了');
   expect(lite.statusNote).toBe(null);
+});
+
+test('StickC Plus2 は project 内の board 定義で建ち、variant の SPI が内蔵 LCD であることを断る', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const b = boards.find(x => x.id === 'm5stack_stickc_plus2');
+  expect(b.name).toBe('StickC Plus2');
+  // platform が持つ M5Stick 系は m5stick-c（4MB・PSRAM 無し）だけなので、定義は repo 側に置いた。
+  expect(b.pins.board).toBe('m5stack-stickc-plus2');
+  expect(b.pins.sources.boardDefinition).toBe('compiler/pio-esp32/boards/m5stack-stickc-plus2.json');
+  expect(b.pins.mcu).toBe('esp32');
+  expect(b.pins.variant).toBe('m5stack_stickc_plus2');
+  // variant は Dn も An も定義しないので、行は 1 つも出ず機能ピンだけが並ぶ。
+  expect(b.pins.sources.digitalLabelsFrom).toBe('none');
+  expect(b.pins.pins).toEqual([]);
+  expect(b.pins.unlabelledFunctions.map(f => f.name)).toEqual(['SDA', 'SCL', 'TX', 'RX', 'MOSI', 'MISO', 'SCK', 'SS']);
+  const facts = boardFacts(b);
+  expect(facts).toContain('G付きの番号はそのままGPIO番号');
+  expect(facts).toContain('左からGND、5V、G26、G36/G25、G0、BAT、3V3、5Vの8穴');
+  // variant の MOSI・SCK・SS は内蔵 LCD のバスで、外には出ていない。
+  expect(facts).toContain('本体に内蔵されたLCDの3本で外には出ておらず');
+  // 1 つの穴を 2 本が共有するのはこの板の罠。
+  expect(facts).toContain('GPIO36とGPIO25が基板の中で1本に繋がったもの');
+  // 電源管理 IC を持たないので、電源の入切が他のボードと違う。
+  expect(facts).toContain('GPIO4（HOLD）で自分の電源を保持する');
+  // USB はチップ直結ではなく、基板の USB シリアル変換チップ（CH9102）経由。
+  expect(b.flashRoute).toBe('esp-uart-bridge');
+  // 販売終了の 1 行は取説に出る（web/help.js）ので /boards が運ぶ。
+  expect(b.statusNote).toContain('M5StickS3');
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {

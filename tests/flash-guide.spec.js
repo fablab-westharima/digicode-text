@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -306,6 +306,25 @@ test('取説のATOM Matrixの節は、販売終了の1行を手順とピン表�
   // ATOM Lite は販売終了ではないので、同じ場所にその1行は出ない。
   await page.click('#help-board-list .actions button[data-board-id="m5stack_atom_lite"]');
   await expect(page.locator('#help-board-list .note').first()).not.toContainText('販売終了（EOL）');
+});
+
+test('StickC Plus2の手順は2手順で、書き込みモードに入らないときのG0の手当てを補足で言う', async ({ page }) => {
+  await ready(page, 'm5stack_stickc_plus2');
+  await page.click('#flash-guide-open');
+  await expect(page.locator('#flash-guide-steps')).toContainText('本体の下端（画面の下側の端）にあるUSB-Cの口をPCに接続する');
+  await expect(page.locator('#flash-guide-notes')).toContainText('CH9102');
+  // GPIO0 が上端のヘッダに出ているので、この板には手で入れる道がある。
+  await expect(page.locator('#flash-guide-notes')).toContainText('G0と書かれた穴とGNDと書かれた穴をジャンパ線で繋いだままUSBを挿し');
+  expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+    .toEqual(['usb-c-connect-stickc-plus2', 'port-dialog-usb-serial']);
+});
+
+test('取説のStickC Plus2の節は、販売終了と後継機の1行を手順とピン表の間に出す', async ({ page }) => {
+  await ready(page, 'pico');
+  await page.click('#view-help');
+  await page.click('#help-nav button[data-section="boards"]');
+  await page.click('#help-board-list .actions button[data-board-id="m5stack_stickc_plus2"]');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('M5StickS3');
 });
 
 test('取説のATOMS3の節は、販売終了と後継機の1行を手順とピン表の間に出す', async ({ page }) => {
