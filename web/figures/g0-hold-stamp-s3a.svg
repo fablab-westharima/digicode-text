@@ -1,0 +1,45 @@
+<!-- M5StampS3A を表（部品面）から見た平面図。26.0x18.0mm の縦長で、USB-C は下辺の中央から外へ
+     張り出す。上辺いっぱいに 3D アンテナのシールド缶、その下に ESP32-S3FN8、右にボタンが 1 つ、
+     その下に M2 のねじ穴。キャスタレーションは左の辺に 17 個（G1 から G15 と GND・5V）、右の辺は
+     上側がアンテナとねじ穴で埋まるぶん短く 11 個（3V3、G46、G43、G42、G44、G41、EN、G40、G0、
+     G39、GND）。裏面の LCD 用 FPC コネクタは、表から見えるはんだ付けの列だけを USB-C の上に描く。
+     この板は挿しただけでは書き込みモードに入らず、ボタンを押したまま電源を入れる必要があるので、
+     XIAO RP2040 の BOOTSEL と同じく、挿す口と押すボタンを 1 枚で見せる。
+     押すボタンは基板に 1 つだけ。名前（G0）の印字は裏面にしかないので、図には文字を書かず、
+     どのボタンかは手順文の側で言う。
+     出所は docs.m5stack.com の Stamp-S3A の PinMap と外観写真。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="118" y="30" width="84" height="121" rx="5"/>
+  <!-- 左の辺: キャスタレーション 17 個 -->
+  <path class="fig-pad" d="M113,33h10v4h-10zM113,40h10v4h-10zM113,47h10v4h-10zM113,54h10v4h-10zM113,61h10v4h-10zM113,68h10v4h-10zM113,75h10v4h-10zM113,82h10v4h-10zM113,89h10v4h-10zM113,96h10v4h-10zM113,103h10v4h-10zM113,110h10v4h-10zM113,117h10v4h-10zM113,124h10v4h-10zM113,131h10v4h-10zM113,138h10v4h-10zM113,145h10v4h-10z"/>
+  <!-- 右の辺: 同じピッチで 11 個。上側は空いている -->
+  <path class="fig-pad" d="M197,75h10v4h-10zM197,82h10v4h-10zM197,89h10v4h-10zM197,96h10v4h-10zM197,103h10v4h-10zM197,110h10v4h-10zM197,117h10v4h-10zM197,124h10v4h-10zM197,131h10v4h-10zM197,138h10v4h-10zM197,145h10v4h-10z"/>
+  <!-- 上辺の 3D アンテナのシールド缶（中央に切り欠き） -->
+  <rect class="fig-face" x="124" y="34" width="72" height="20" rx="2"/>
+  <rect class="fig-board" x="156" y="34" width="8" height="9"/>
+  <!-- ESP32-S3FN8 -->
+  <rect class="fig-part" x="127" y="64" width="38" height="38" rx="2"/>
+  <!-- M2 のねじ穴 -->
+  <circle class="fig-face" cx="182" cy="108" r="9"/>
+  <circle class="fig-board" cx="182" cy="108" r="4"/>
+  <!-- 裏面の LCD 用 FPC コネクタ（表から見えるのははんだ付けの列だけ） -->
+  <rect class="fig-part" x="138" y="130" width="44" height="9" rx="2"/>
+  <!-- 挿す先: 下辺の USB-C -->
+  <rect class="fig-part fig-accent" x="138" y="147" width="48" height="28" rx="5"/>
+  <rect class="fig-board fig-accent fig-thin" x="147" y="153" width="30" height="8" rx="4"/>
+  <!-- 押すボタン: 基板に 1 つだけ。押したまま挿すので、挿す口と同じ図で見せる。 -->
+  <g class="fig-press fig-accent">
+    <rect class="fig-hit" x="172" y="72" width="20" height="18" rx="3"/>
+    <path d="M182,57 V66"/>
+    <path d="M177,61 L182,68 L187,61"/>
+  </g>
+  <!-- USB-Cケーブルは下から差し込む。rotate(-90 160 203) の中で fig-cable が右へ動く＝画面では上向き。 -->
+  <g transform="rotate(-90 160 203)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="152" y="189" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="124" y="196" width="30" height="14" rx="6"/>
+      <path d="M130,203 L70,203"/>
+    </g>
+  </g>
+</svg>

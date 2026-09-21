@@ -92,6 +92,19 @@ export const FLASH_GUIDES = {
   // 前面のカメラの有無だけなので、図も 2 台で共有する。
   m5stack_cores3: CORES3_GUIDE,
   m5stack_cores3_se: CORES3_GUIDE,
+  // M5StampS3A も USB がチップに直結だが、この板は挿しただけでは書き込みモードに入らず、
+  // 唯一のボタン（G0）を押したまま電源を入れる必要がある（M5 の docs の Download Mode）。
+  // 押しながら挿す 1 つの操作なので、XIAO RP2040 の BOOTSEL と同じく手順も図も 1 枚にまとめる。
+  m5stamp_s3a: {
+    steps: [
+      { text: '基板に1つだけあるボタン（裏面にG0と印字）を押したまま、USB-CケーブルでボードをPCに接続し、挿してから離す。', figure: 'g0-hold-stamp-s3a' },
+      { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+    ],
+    notes: [
+      'ボタンはESP32-S3のとなりにある四角いボタンで、これ1つだけ。押さずに挿すと書き込みモードに入らない。',
+      '書き込みの前後のリセットは、ESP32-S3の内蔵USBシリアルを通して行われる。',
+    ],
+  },
   // XIAO ESP32S3 は USB がチップに直結。ダイアログに出る名前はこの板でまだ確かめていないので、
   // C3 と違って行は帯の図で描き、何を選ぶかは手順文で言う。
   xiao_esp32s3: {

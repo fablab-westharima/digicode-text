@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -257,6 +257,20 @@ test('CoreS3とCoreS3-SEの手順は同じ3手順で、RESETの3秒長押しを�
     expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
       .toEqual(['usb-c-connect-cores3', 'reset-hold-cores3', 'port-dialog-usb-serial']);
   }
+});
+
+test('M5StampS3Aの手順は押しながら挿す1手順で、押すボタンも挿す口も同じ図に出る', async ({ page }) => {
+  await ready(page, 'm5stamp_s3a');
+  await page.click('#flash-guide-open');
+  await expect(page.locator('#flash-guide-title')).toContainText('M5StampS3A');
+  await expect(page.locator('#flash-guide-steps')).toContainText('ボタン（裏面にG0と印字）を押したまま');
+  await expect(page.locator('#flash-guide-notes')).toContainText('押さずに挿すと書き込みモードに入らない');
+  expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+    .toEqual(['g0-hold-stamp-s3a', 'port-dialog-usb-serial']);
+  // 1 枚の図に、挿す口へ向かうケーブルと押し込むボタンの両方の動きが入っている。
+  const svg = await page.locator('.flash-figure').first().innerHTML();
+  expect(svg).toContain('fig-cable');
+  expect(svg).toContain('fig-press');
 });
 
 test('Pico Wの手順は無印Picoと同じ3手順で、基板の図だけPico Wのものになる', async ({ page }) => {

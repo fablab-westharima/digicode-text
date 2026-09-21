@@ -132,7 +132,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', esp32_devkitc_v4: 'Espressif', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -167,7 +167,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'esp32_devkitc_v4']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'esp32_devkitc_v4']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -213,7 +213,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -334,6 +334,28 @@ test('CoreS3 と CoreS3-SE は別の 2 台として出て、同じ env・同じ�
   expect(boardFacts(core)).toContain('カメラのGC0308はデータ線に');
   expect(boardFacts(se)).toContain('内蔵電池も無い');
   expect(boardFacts(se)).not.toContain('内蔵500mAh電池');
+});
+
+test('M5StampS3A はパッドの並びと、variant が決めていない SPI を先に言う', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const s3a = boards.find(b => b.id === 'm5stamp_s3a');
+  expect(s3a.name).toBe('M5StampS3A');
+  // 8MB / PSRAM 無しはこの platform の StampS3 の定義と同じ構成なので、自作 json は置いていない。
+  expect(s3a.pins.board).toBe('m5stack-stamps3');
+  expect(s3a.pins.sources.boardDefinition.startsWith('compiler/')).toBe(false);
+  // M5 の variant は Dn も An も定義しないので、行は 1 つも出ず、機能ピンだけが並ぶ。
+  expect(s3a.pins.variant).toBe('m5stack_stamp_s3');
+  expect(s3a.pins.sources.digitalLabelsFrom).toBe('none');
+  expect(s3a.pins.pins).toEqual([]);
+  // SS/MOSI/MISO/SCK はこの variant が -1 のままなので、ピンとして出さない。
+  expect(s3a.pins.unlabelledFunctions.map(f => f.name)).toEqual(['SDA', 'SCL', 'TX', 'RX']);
+  const facts = boardFacts(s3a);
+  expect(facts.indexOf('GPIO番号を直接書く')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(facts).toContain('左の列が上からG1、G2、G3、G4、G5、G6、G7、G8、G9、G10、GND、G11、5V');
+  expect(facts).toContain('SPI.begin()にピンを渡して使う');
+  // 旧 StampS3 との差は、RGB LED の電源が裏面 FPC のバックライトと共用になったこと。
+  expect(facts).toContain('GPIO38で電源を入れないと光らない');
+  expect(s3a.flashRoute).toBe('esp-usb-cdc');
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {

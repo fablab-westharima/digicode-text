@@ -82,6 +82,12 @@ const M5_CORES3 = 'https://docs.m5stack.com/en/core/CoreS3';
 // what it does not carry (camera, proximity sensor, IMU, magnetometer, battery), so its own
 // sentences are cited from it rather than inferred from the CoreS3 one.
 const M5_CORES3_SE = 'https://docs.m5stack.com/en/core/M5CoreS3%20SE';
+// M5's own product page for the StampS3A: the PinMap (the pad order, the LCD FPC pins, and which
+// GPIO the button, the RGB LED and USB sit on), the specification table and the download mode.
+const M5_STAMP_S3A = 'https://docs.m5stack.com/en/core/Stamp-S3A';
+// The board's own schematic, published by M5 and linked from that page: the only document that
+// says the USB-C goes straight to the chip and what the RGB LED's supply is gated by.
+const M5_STAMP_S3A_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1150/Sch_StampS3_v0.3.3.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -260,6 +266,23 @@ const BOARDS = new Map([
       { text: 'LCD・タッチ・アンプのリセットと割り込みはESP32-S3ではなくIOエキスパンダAW9523Bの端子にあり、画面のバックライトと電源経路はAXP2101が握っている', source: M5_CORES3_SE },
       { text: 'M5-Busに出ているGPIOはGPIO0、GPIO1、GPIO2、GPIO5、GPIO6、GPIO7、GPIO8、GPIO9、GPIO10、GPIO11、GPIO12、GPIO13、GPIO14、GPIO17、GPIO18、GPIO35、GPIO36、GPIO37、GPIO43、GPIO44の20本', source: M5_CORES3_SE },
       { text: '電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
+    ] }],
+  ['m5stamp_s3a', { project: path.join(here, 'pio-esp32s3'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'M5StampS3A', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stamp_s3a,
+    // M5's m5stack_stamp_s3 variant names G0..G46 but defines neither Dn nor An macros, so the pin
+    // table has no rows: what a sketch is written against is the G<n> silk, the GPIO number itself.
+    // The same variant leaves SS/MOSI/MISO/SCK at -1, which is not a pin, so they do not reach the
+    // function list either (compiler/tools/generate-board-pins.mjs); that absence is said here.
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と付属のピンステッカーにあるG0、G1のようなG付きの番号はそのままGPIO番号で、たとえばG13はGPIO13。パッドはUSB-Cのある辺を下にして、左の列が上からG1、G2、G3、G4、G5、G6、G7、G8、G9、G10、GND、G11、5V、G12、G13、G14、G15、右の列が上から3V3、G46、G43、G42、G44、G41、EN、G40、G0、G39、GND。SPIのSS、MOSI、MISO、SCKはこのvariantが値を決めていないので機能ピンにも出ず、SPI.begin()にピンを渡して使う。',
+    pinNotes: [
+      { text: '外に出ているGPIOは23本で、G0からG15、G39からG44、G46。GPIO16からGPIO18とGPIO33からGPIO38は裏面のLCD用FPCコネクタにだけ出ている。そのG46は起動前にHighに引くとチップが起動しない', source: M5_STAMP_S3A },
+      { text: 'アナログ入力はADC1がGPIO1からGPIO10、ADC2がGPIO11からGPIO15で、タッチセンサはGPIO1からGPIO14の14本', source: M5_STAMP_S3A },
+      { text: '押せるボタンは1つだけでGPIO0に繋がっている。このボタンを押したまま電源を入れ、電源が入ってから離すと書き込みモードに入る', source: M5_STAMP_S3A },
+      { text: 'RGB LEDのWS2812B-2020はGPIO21に繋がっているが、その電源は裏面FPCの画面バックライトと共用でGPIO38が握っているので、GPIO38で電源を入れないと光らない。旧StampS3は電源を入れれば光った', source: M5_STAMP_S3A },
+      { text: '裏面のLCD用FPCは12ピンで、順にGPIO37（CS）、3V3、GPIO36（SCK）、GPIO35（DAT）、GPIO34（RS）、GPIO33（RST）、GND、GPIO38（バックライトとRGB LEDの電源）、GPIO16、GPIO17、GPIO18、5V。8ピンのコネクタでは前半のLCD.PORTだけが出る', source: M5_STAMP_S3A },
+      { text: 'USB-CはESP32-S3のGPIO19（D-）とGPIO20（D+）へ直結していて、USBシリアル変換チップは載っていない', source: M5_STAMP_S3A_SCHEMATIC },
+      { text: '載っているのはESP32-S3FN8で、Flashを8MB内蔵しPSRAMは持たない。アンテナは基板上の3Dアンテナなので外付けは要らない', source: M5_STAMP_S3A },
+      { text: 'ストラッピングピンはブートモードがGPIO0とGPIO46、VDD_SPIの電圧がGPIO45、ROMメッセージ出力がGPIO46、JTAG信号源がGPIO3。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32S3_DATASHEET },
     ] }],
   ['esp32_devkitc_v4', { project: path.join(here, 'pio-esp32'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'ESP32-DevKitC V4', vendor: 'Espressif', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.esp32_devkitc_v4,

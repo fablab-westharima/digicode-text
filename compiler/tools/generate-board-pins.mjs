@@ -30,6 +30,7 @@ export const ENVS = [
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
   // CoreS3 と CoreS3-SE は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
   { env: 'm5stack_cores3', project: 'pio-esp32s3' },
+  { env: 'm5stamp_s3a', project: 'pio-esp32s3' },
   { env: 'xiao_esp32c5', project: 'pio-esp32c5' },
   { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
   { env: 'espr_developer_c5', project: 'pio-esp32c5' },
@@ -247,12 +248,16 @@ export async function generate(spec) {
     digitalFrom = digital.length ? 'variant.cpp' : 'none';
   }
 
-  // Every other named function, resolved to its GPIO number.
+  // Every other named function, resolved to its GPIO number. A negative value is not a pin at
+  // all: it is how the ESP32 core's own variants write "this variant does not assign it"
+  // (m5stack_stamp_s3 sets SS/MOSI/MISO/SCK to -1 under the comment "Modified elsewhere", and
+  // SPI.begin() is what picks them). Keeping it would put GPIO-1 in the table, so the function
+  // is left out and the board's own pinTableNote is where the absence is explained.
   const functions = [];
   for (const name of FUNCTIONS) {
     let r = resolveSymbol(symbols, name);
     if (!r) for (const alt of FALLBACK[name] ?? []) { r = r ?? resolveSymbol(symbols, alt); }
-    if (r) functions.push({ name, pin: r.gpio, via: r.via === name ? null : r.via, note: r.note || null });
+    if (r && r.gpio >= 0) functions.push({ name, pin: r.gpio, via: r.via === name ? null : r.via, note: r.note || null });
   }
 
   // The Arduino pin number written in a sketch is the GPIO number on all four cores, except

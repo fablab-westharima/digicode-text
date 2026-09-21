@@ -1,0 +1,43 @@
+{
+  "env": "m5stamp_s3a",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
+  "board": "m5stack-stamps3",
+  "mcu": "esp32s3",
+  "core": "esp32",
+  "variant": "m5stack_stamp_s3",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.3.12",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32s3/platformio.ini",
+    "boardDefinition": "platforms/espressif32/boards/m5stack-stamps3.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/m5stack_stamp_s3/pins_arduino.h",
+    "digitalLabelsFrom": "none"
+  },
+  "pins": [],
+  "unlabelledFunctions": [
+    {
+      "name": "SDA",
+      "pin": 13,
+      "gpio": 13,
+      "note": null
+    },
+    {
+      "name": "SCL",
+      "pin": 15,
+      "gpio": 15,
+      "note": null
+    },
+    {
+      "name": "TX",
+      "pin": 43,
+      "gpio": 43,
+      "note": null
+    },
+    {
+      "name": "RX",
+      "pin": 44,
+      "gpio": 44,
+      "note": null
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import usbCConnectEsprC5 from './usb-c-connect-espr-c5.svg';
 import usbCConnectStampC5 from './usb-c-connect-stamp-c5.svg';
 import usbCConnectCoreS3 from './usb-c-connect-cores3.svg';
 import resetHoldCoreS3 from './reset-hold-cores3.svg';
+import g0HoldStampS3A from './g0-hold-stamp-s3a.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -50,4 +51,6 @@ export const FIGURES = {
   // 挿す口は左側面、書き込みモードに入れる RESET は底面で、図は別の手順ぶん 2 枚。
   'usb-c-connect-cores3': usbCConnectCoreS3,
   'reset-hold-cores3': resetHoldCoreS3,
+  // M5StampS3A は押しながら挿すので、挿す口と押すボタンを 1 枚に入れる（BOOTSEL の図と同じ作り）。
+  'g0-hold-stamp-s3a': g0HoldStampS3A,
 };
