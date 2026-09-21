@@ -15,6 +15,8 @@
 //                       that table, where the variant is generic), pinNotes (sourced board notes),
 //                       statusNote (one sentence for a board the vendor has stopped selling; null
 //                       everywhere else, shown in the manual's own section for that board),
+//                       wirelessNote (one sentence for a board whose radio is not on the board
+//                       itself; null everywhere else, shown in the same place as statusNote),
 //                       incompatibleLibraries (rows of the incompatibility table for this board) }]
 // GET  /health    -> { ok: true }
 //
@@ -120,6 +122,18 @@ const M5_STICKC_PLUS2 = 'https://docs.m5stack.com/en/core/M5StickC%20PLUS2';
 // The board's own schematic, published by M5 and linked from that page: the only document that
 // says what each hole of the 8-pin header carries, and that two of the chip's pins share one hole.
 const M5_STICKC_PLUS2_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/512/Sch_M5StickC_Plus2_v0.5.pdf';
+// M5's own product page for the Stamp-P4: the specification table (ESP32-P4NRW32, 16 MB flash,
+// 32 MB PSRAM, which GPIO the stamp holes bring out, the two BTB connectors) and the Arduino
+// Wi-Fi example that names the SDIO pins the add-on module sits on.
+const M5_STAMP_P4 = 'https://docs.m5stack.com/en/core/Stamp-P4';
+// The board's own PinMap image, published by M5 and shown on that page: the only document that
+// names every stamp hole and both BTB connectors pad by pad.
+const M5_STAMP_P4_PINMAP = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1218/S013-stamp-p4-pinmap.jpg';
+// The board's own schematic, published by M5 and linked from that page: the only document that
+// says what the USB-C is wired to, which flash chip the module carries, and that there is no
+// button, no LED and no USB-serial chip on it.
+const M5_STAMP_P4_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1218/SCH_Stamp-P4_2026_03_16_17_23_06.pdf';
+const ESP32P4_DATASHEET = 'https://documentation.espressif.com/esp32-p4_datasheet_en.pdf';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -424,6 +438,33 @@ const BOARDS = new Map([
       { text: '載っているのはESP32-PICO-V3-02で、Flash 8MBとPSRAM 2MBを内蔵する。USB-CはUSBシリアル変換チップCH9102経由で、ESP32のUARTはGPIO1がTX、GPIO3がRX。ヘッダのG0はマイクのCLKと共用', source: M5_STICKC_PLUS2 },
       { text: 'GPIO0はストラッピングピンで、Lowのまま起動するとシリアルから書き込むモードになる。GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない（ボタンのGPIO37・GPIO39、マイクのGPIO34、電池電圧のGPIO38がこれに当たる）。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
     ] }],
+  // Stamp-P4 は自作の board 定義と、この project 内の variant で建てる。platform が持つ P4 の
+  // 定義は rev で 2 系統に分かれていて（esp32-p4 系が chip_variant esp32p4_es・360MHz、
+  // esp32-p4_r3 系が esp32p4・400MHz）、手元の個体の rev が分からないので rev < 3.00 向けを
+  // 既定にした。variant は SDIO の配線がこの板のものである必要があるため（compiler/pio-esp32p4/）。
+  ['m5stamp_p4', { project: path.join(here, 'pio-esp32p4'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'Stamp-P4', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: false, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stamp_p4,
+    // 無線を持たないボードだが、理由が「載っていない」ではなく「別売の子基板を載せたときだけ
+    // 使える」なので、その 1 行を取説のこのボードの節に出す。statusNote（販売終了）とは別の話
+    // なので別のフィールドで持つ。画面に出るのは取説だけで、AI へ渡すボードの文には入れない。
+    // 子基板の型番は M5 の AddOn 自身の商品ページ（docs.m5stack.com/en/products/sku/A172 の
+    // 仕様表）で確かめた。技適の表示がパッケージ側にあることと、この組み合わせが動くことは、
+    // まだ実機で確かめていない。
+    wirelessNote: 'このボード自体には無線が載っていない。2.4GHz Wi-Fi 6を使うには別売のStamp-AddOn C6 For P4（ESP32-C6-MINI-1-N4）をSDIOのコネクタに重ねて載せる。電波を出すのはそのAddOn側のモジュールなので、技適マークの表示もAddOnのパッケージ側にある。この組み合わせはまだ実機で確かめていない。',
+    // この project 内の variant は Dn を定義せず、A0 から A13 だけを定義している（チップの ADC の
+    // 割り当てそのもの）ので、ピン表に出るのはアナログ名の行だけ。その 14 本のうちどれがスタンプ穴に
+    // 出ていてどれが BTB コネクタにしか無いかは variant からは分からないので、ここで言う。
+    pinTableNote: 'このボードのvariantはD0からDnのマクロを定義していないので、コードにはGPIO番号を直接書く。上のピン表のA0からA13はArduinoのアナログ名で、同じ行のGPIO番号がその実体。A0からA9（GPIO16からGPIO23、GPIO49、GPIO50）とA11（GPIO52）はスタンプ穴に出ているが、A10（GPIO51）はSDIOのBTBに、A12とA13（GPIO53、GPIO54）はMIPI CSIのBTBにしか出ていない。M5の資料にあるG0、G24のようなG付きの番号はそのままGPIO番号で、たとえばSDIO_CLKのG43はGPIO43。SPIのSS、MOSI、MISO、SCKはこのvariantが値を決めていないので機能ピンにも出ず、SPI.begin()にピンを渡して使う。',
+    pinNotes: [
+      { text: '載っているのはESP32-P4NRW32で、16MBのFlashと32MBのOctal PSRAMを持つ。スタンプ穴に出ているGPIOは44本（G0からG39、G41、G49、G50、G52）', source: M5_STAMP_P4 },
+      { text: 'スタンプ穴にはそのほかMIPI DSIの2レーン、USB2 OTGのD+/D−、CHIP_ENが出ている。G40、G42からG48、G51はUSB-Cのとなりの20ピンBTB（SDIO）、G53とG54は反対の辺の16ピンBTB（MIPI CSI）にしか出ていない', source: M5_STAMP_P4_PINMAP },
+      { text: 'USB-CはESP32-P4のGPIO24（D−）とGPIO25（D+）へ直結していて、USBシリアル変換チップは載っていない。スタンプ穴のUSB1（G26、G27）とUSB2 HOSTのD+/D−は別の口', source: M5_STAMP_P4_SCHEMATIC },
+      { text: 'GPIO24とGPIO25は既定でUSB Serial/JTAGに繋がっているので、USBを使っている間この2本は汎用I/Oにできない。GPIO26とGPIO27はその制限の対象に挙げられていない', source: ESP32P4_DATASHEET },
+      { text: '押せるボタンもLEDも載っておらず、ENとG35（BOOT）はスタンプ穴。GNDに落とすとそれぞれリセットと書き込みモードになる', source: M5_STAMP_P4_SCHEMATIC },
+      { text: '本体に無線は無い。2.4GHz Wi-Fi 6を使うには20ピンBTBにStamp-AddOn C6 For P4を重ねて載せる。SDIOはCLKがGPIO43、CMDがGPIO44、D0からD3がGPIO45からGPIO48、RSTがGPIO42', source: M5_STAMP_P4 },
+      { text: 'M5のPinMapがSDAと呼ぶのはGPIO11、SCLと呼ぶのはGPIO9。ADC1はGPIO16からGPIO23の8本で、ADC2と印字があるのはG49、G50とBTBのG51', source: M5_STAMP_P4_PINMAP },
+      { text: 'ストラッピングピンはGPIO34、GPIO35、GPIO36、GPIO37、GPIO38の5本で、ブートモードはGPIO35からGPIO38で決まる。電源ピンの絶対最大定格は3.6Vなので、GPIOに5Vを直接加えると定格を超える', source: ESP32P4_DATASHEET },
+    ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp8266', flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,
     // Read before the pin table, because the table's own labels are the trap on this board.
@@ -460,6 +501,10 @@ const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: 
   // A board M5 has stopped selling still builds the same, so it stays in the list; this is the
   // one sentence the manual shows for it (what happened, and what the vendor points at instead).
   statusNote: b.statusNote ?? null,
+  // A board whose radio is not on the board itself (Stamp-P4 gets Wi-Fi only from an add-on
+  // module). Same shape as statusNote — one sentence, shown in the manual's own section for that
+  // board and nowhere else — because it is a different fact from "the vendor stopped selling it".
+  wirelessNote: b.wirelessNote ?? null,
   incompatibleLibraries: incompatFor({ id, platform: b.platform }).map(({ library, reason, alternative }) => ({ library, reason, alternative })) }));
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
@@ -542,6 +587,15 @@ async function compile(env, source, libraries) {
         await mkdir(path.join(project, 'boards'));
         for (const name of boardDefs.filter(n => n.endsWith('.json')))
           await copyFile(path.join(board.project, 'boards', name), path.join(project, 'boards', name));
+      }
+      // The same holds for a variant the core does not carry (compiler/pio-*/variants/<variant>/):
+      // the env names it with board_build.variants_dir, which the framework resolves against the
+      // *build* project's directory, so the whole variants/ tree is copied into the fresh one too.
+      const variants = await readdir(path.join(board.project, 'variants'), { withFileTypes: true }).catch(() => []);
+      for (const entry of variants.filter(e => e.isDirectory())) {
+        await mkdir(path.join(project, 'variants', entry.name), { recursive: true });
+        for (const file of await readdir(path.join(board.project, 'variants', entry.name)))
+          await copyFile(path.join(board.project, 'variants', entry.name, file), path.join(project, 'variants', entry.name, file));
       }
       const { code, log } = await runPio(target, project);
       const durationMs = Date.now() - started;

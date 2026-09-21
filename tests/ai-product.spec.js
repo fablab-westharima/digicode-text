@@ -132,7 +132,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', m5stack_stickc_plus2: 'M5Stack', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', m5stack_stickc_plus2: 'M5Stack', m5stamp_p4: 'M5Stack', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -167,7 +167,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'm5stamp_p4']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -213,7 +213,7 @@ test('Wio Node board facts give the connectors their real GPIO numbers and warn 
   expect(facts).not.toContain('GPIO番号はwikiに載っていない');
   // A caveat line exists only where the variant's own labels are the trap: the Wio Node's
   // generic NodeMCU labels, and the generic esp32 variant, which defines no Dn labels at all.
-  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2'].includes(b.id))) expect(other.pinTableNote).toBe(null);
+  for (const other of boards.filter(b => !['wio_node', 'esp32_devkitc_v4', 'pico_w', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'm5stamp_p4'].includes(b.id))) expect(other.pinTableNote).toBe(null);
 });
 
 test('ESP32-DevKitC V4 は Dn ラベルを持たない variant として出る: 表の読み方を先に言い、GPIO 番号を直接書かせる', async ({ request }) => {
@@ -456,6 +456,46 @@ test('StickC Plus2 は project 内の board 定義で建ち、variant の SPI �
   expect(b.flashRoute).toBe('esp-uart-bridge');
   // 販売終了の 1 行は取説に出る（web/help.js）ので /boards が運ぶ。
   expect(b.statusNote).toContain('M5StickS3');
+});
+
+test('Stamp-P4 は project 内の board 定義と project 内の variant で建ち、無線を持たない ESP ボードとして出る', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const b = boards.find(x => x.id === 'm5stamp_p4');
+  expect(b.name).toBe('Stamp-P4');
+  expect(b.pins.mcu).toBe('esp32p4');
+  // platform の P4 定義は rev で 2 系統に分かれていて、どちらも flash か variant が合わない。
+  // 定義も variant もこの repo 側に置いてあり、生成器はその 2 つを読んだと言う。
+  expect(b.pins.board).toBe('m5stack-stamp-p4');
+  expect(b.pins.sources.boardDefinition).toBe('compiler/pio-esp32p4/boards/m5stack-stamp-p4.json');
+  expect(b.pins.variant).toBe('m5stack_stamp_p4');
+  expect(b.pins.sources.variantHeader).toBe('compiler/pio-esp32p4/variants/m5stack_stamp_p4/pins_arduino.h');
+  // Dn は無く A0 から A13 だけがある variant なので、行はアナログ名だけ。
+  expect(b.pins.sources.digitalLabelsFrom).toBe('none');
+  expect(b.pins.pins.map(p => [p.label, p.gpio]))
+    .toEqual([['A0', 16], ['A1', 17], ['A2', 18], ['A3', 19], ['A4', 20], ['A5', 21], ['A6', 22], ['A7', 23],
+      ['A8', 49], ['A9', 50], ['A10', 51], ['A11', 52], ['A12', 53], ['A13', 54]]);
+  // SPI の 4 本は variant が -1 のままなので機能ピンにも出ない。I2C はこの板の GPIO11/GPIO9。
+  expect(b.pins.unlabelledFunctions.map(f => [f.name, f.gpio])).toEqual([['SDA', 11], ['SCL', 9], ['TX', 37], ['RX', 38]]);
+  const facts = boardFacts(b);
+  expect(facts.indexOf('GPIO番号を直接書く')).toBeLessThan(facts.indexOf('ピンはcoreのvariant'));
+  expect(facts).toContain('A10（GPIO51）はSDIOのBTBに');
+  expect(facts).toContain('SPI.begin()にピンを渡して使う');
+  expect(facts).toContain('ESP32-P4NRW32');
+  expect(facts).toContain('CLKがGPIO43、CMDがGPIO44、D0からD3がGPIO45からGPIO48、RSTがGPIO42');
+  // 本体に無線が無い初めての ESP ボード。技適の注意は無線のボードにだけ出るので false が要る。
+  expect(b.wireless).toBe(false);
+  expect(boards.filter(x => x.wireless === false).map(x => x.id)).toEqual(['xiao_rp2040', 'pico', 'm5stamp_p4']);
+  // 無線が本体に無い理由の 1 行は取説にだけ出る（web/help.js）ので /boards が運ぶ。
+  // 販売終了の話ではないので statusNote ではなく、別のフィールドで持つ。
+  expect(b.statusNote).toBe(null);
+  expect(b.wirelessNote).toContain('Stamp-AddOn C6 For P4');
+  expect(b.wirelessNote).toContain('技適マーク');
+  for (const other of boards.filter(x => x.id !== 'm5stamp_p4')) expect(other.wirelessNote, other.id).toBe(null);
+  // AI へ渡すボードの文には入れない（statusNote と同じ扱い）。
+  expect(facts).not.toContain('技適マーク');
+  // USB はチップ直結。板が届くまで、この方式を実機で通したのは C3 だけ。
+  expect(b.flashRoute).toBe('esp-usb-cdc');
+  expect(b.routeVerifiedBy).toEqual(['XIAO ESP32C3']);
 });
 
 test('Pico W は無印 Pico と別のボードとして出る: CYW43 が取る 4 本の断りと、GPIO を持たない LED_BUILTIN', async ({ request }) => {

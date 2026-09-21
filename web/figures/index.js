@@ -24,6 +24,7 @@ import usbCConnectAtomS3 from './usb-c-connect-atoms3.svg';
 import resetHoldAtomS3 from './reset-hold-atoms3.svg';
 import usbCConnectAtom from './usb-c-connect-atom.svg';
 import usbCConnectStickCPlus2 from './usb-c-connect-stickc-plus2.svg';
+import usbCConnectStampP4 from './usb-c-connect-stamp-p4.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -67,4 +68,6 @@ export const FIGURES = {
   // StickC Plus2 も自動で書き込みモードに入るので、押すボタンの図は無く挿す口の 1 枚だけ。
   // 縦長の本体で、USB-C は画面の下側の端にある。
   'usb-c-connect-stickc-plus2': usbCConnectStickCPlus2,
+  // Stamp-P4 は押せるボタンが 1 つも無いので、挿す口と面の上の部品だけを描く。
+  'usb-c-connect-stamp-p4': usbCConnectStampP4,
 };

@@ -48,13 +48,17 @@ test('each pin file names the platformio.ini env and the variant header it came 
     const ini = await readFile(new URL(`./${project}/platformio.ini`, import.meta.url), 'utf8');
     assert.ok(ini.includes(`[env:${env}]`));
     assert.ok(ini.includes(data.board), `${env}: board ${data.board} is not in its platformio.ini`);
-    assert.match(data.sources.variantHeader, new RegExp(`^packages/${data.frameworkPackage}/variants/.*/pins_arduino\\.h$`));
-    assert.ok(data.sources.variantHeader.includes(data.variant));
-    await access(path.join(PIO_HOME, data.sources.variantHeader));
-    // A board the platform does not define is carried by this repo, and its path is written
-    // relative to the repo root; every other one lives in the PlatformIO install.
+    // A board definition or a variant the core does not carry lives in this repo, and its path is
+    // then written relative to the repo root; every other one lives in the PlatformIO install.
     const repoRoot = new URL('..', import.meta.url);
-    await access(data.sources.boardDefinition.startsWith('compiler/')
+    const local = p => p.startsWith('compiler/');
+    assert.match(data.sources.variantHeader, local(data.sources.variantHeader)
+      ? new RegExp(`^compiler/${project}/[\\w-]+/.*/pins_arduino\\.h$`)
+      : new RegExp(`^packages/${data.frameworkPackage}/variants/.*/pins_arduino\\.h$`));
+    assert.ok(data.sources.variantHeader.includes(data.variant));
+    await access(local(data.sources.variantHeader)
+      ? new URL(data.sources.variantHeader, repoRoot) : path.join(PIO_HOME, data.sources.variantHeader));
+    await access(local(data.sources.boardDefinition)
       ? new URL(data.sources.boardDefinition, repoRoot) : path.join(PIO_HOME, data.sources.boardDefinition));
   }
 });

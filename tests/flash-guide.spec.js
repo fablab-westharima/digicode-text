@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'm5stamp_p4', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -317,6 +317,31 @@ test('StickC Plus2の手順は2手順で、書き込みモードに入らない�
   await expect(page.locator('#flash-guide-notes')).toContainText('G0と書かれた穴とGNDと書かれた穴をジャンパ線で繋いだままUSBを挿し');
   expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
     .toEqual(['usb-c-connect-stickc-plus2', 'port-dialog-usb-serial']);
+});
+
+test('Stamp-P4の手順は挿すだけで、押すボタンが無いことと入らないときのG35を補足で言う', async ({ page }) => {
+  await ready(page, 'm5stamp_p4');
+  await page.click('#flash-guide-open');
+  await expect(page.locator('#flash-guide-title')).toContainText('Stamp-P4');
+  expect(await page.locator('#flash-guide-steps li > p').allTextContents())
+    .toEqual(['USB-CケーブルでボードをPCに接続する。', 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。']);
+  await expect(page.locator('#flash-guide-notes')).toContainText('押せるボタンが無いので、挿すだけでよい');
+  // EN も BOOT も穴なので、手で入れる道は「落とす」であって「押す」ではない。
+  await expect(page.locator('#flash-guide-notes')).toContainText('G35（BOOT）と書かれた穴をGNDに落としたままUSBを挿し');
+  expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+    .toEqual(['usb-c-connect-stamp-p4', 'port-dialog-usb-serial']);
+});
+
+test('取説のStamp-P4の節は、無線がAddOn側であることの1行を手順とピン表の間に出す', async ({ page }) => {
+  await ready(page, 'pico');
+  await page.click('#view-help');
+  await page.click('#help-nav button[data-section="boards"]');
+  await page.click('#help-board-list .actions button[data-board-id="m5stamp_p4"]');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('Stamp-AddOn C6 For P4');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('技適マーク');
+  // 無線が本体に載っているボードには、同じ場所にその1行は出ない。
+  await page.click('#help-board-list .actions button[data-board-id="m5stamp_c5"]');
+  await expect(page.locator('#help-board-list .note').first()).not.toContainText('技適マーク');
 });
 
 test('取説のStickC Plus2の節は、販売終了と後継機の1行を手順とピン表の間に出す', async ({ page }) => {

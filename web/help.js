@@ -93,8 +93,9 @@ function boardBlock(board) {
   for (const step of board.flashGuide?.steps ?? []) steps.append(element('li', step.text));
   if (steps.childElementCount) parts.push(steps);
   // 書き込みの補足と、ピン表の読み方（pinTableNote）は1枚の NOTE にまとめて表の直前に置く。
-  // 販売終了のボード（statusNote）は、その NOTE の先頭に1行だけ置く。買い直す人が最初に読む。
-  const before = [...(board.statusNote ? [board.statusNote] : []),
+  // 販売終了のボード（statusNote）と、無線が本体に載っていないボード（wirelessNote）は、
+  // その NOTE の先頭に1行ずつ置く。買う前・つなぐ前に最初に読む話なので、手順の注意より前。
+  const before = [...(board.statusNote ? [board.statusNote] : []), ...(board.wirelessNote ? [board.wirelessNote] : []),
     ...(board.flashGuide?.notes ?? []), ...(board.pinTableNote ? [board.pinTableNote] : [])];
   if (before.length) parts.push(note(before));
   if (board.pins) {

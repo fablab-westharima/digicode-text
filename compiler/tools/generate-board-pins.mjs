@@ -40,6 +40,7 @@ export const ENVS = [
   { env: 'esp32_c5_devkitc_1', project: 'pio-esp32c5' },
   { env: 'espr_developer_c5', project: 'pio-esp32c5' },
   { env: 'm5stamp_c5', project: 'pio-esp32c5' },
+  { env: 'm5stamp_p4', project: 'pio-esp32p4' },
   { env: 'xiao_esp32c3', project: 'pio-esp32c3' },
   { env: 'wio_node', project: 'pio-esp8266' },
   { env: 'xiao_rp2040', project: 'pio-rp2040' },
@@ -222,7 +223,13 @@ export async function generate(spec) {
   const pkg = core === 'earlephilhower' ? 'framework-arduinopico' : await arduinoPackage(platformMeta);
   if (!pkg) throw new Error(`${spec.env}: no arduino framework package for platform ${section.platform}`);
   const pkgDir = await packageDir(pkg, platformMeta);
-  const variantDir = path.join(pkgDir, 'variants', boardDef.build.variant);
+  // Same rule as the board definition, for the variant: an env that points the framework at this
+  // project's own variants/ (board_build.variants_dir, which pioarduino's build script resolves
+  // against the build project's directory) must resolve to the header the build actually uses.
+  const variantsDir = section['board_build.variants_dir'] ?? boardDef.build.variants_dir;
+  const localVariant = variantsDir && path.join(COMPILER_DIR, spec.project, variantsDir, boardDef.build.variant);
+  const variantIsLocal = localVariant ? await exists(localVariant) : false;
+  const variantDir = variantIsLocal ? localVariant : path.join(pkgDir, 'variants', boardDef.build.variant);
   const header = path.join(variantDir, 'pins_arduino.h');
   if (!await exists(header)) throw new Error(`${spec.env}: ${header} is missing`);
   const symbols = await collectSymbols(header);
@@ -301,7 +308,7 @@ export async function generate(spec) {
     sources: {
       platformioIni: `compiler/${spec.project}/platformio.ini`,
       boardDefinition: boardIsLocal ? `compiler/${spec.project}/boards/${section.board}.json` : path.relative(PIO_HOME, boardFile),
-      variantHeader: path.relative(PIO_HOME, header),
+      variantHeader: variantIsLocal ? `compiler/${spec.project}/${variantsDir}/${boardDef.build.variant}/pins_arduino.h` : path.relative(PIO_HOME, header),
       digitalLabelsFrom: digitalFrom,
     },
     pins: [...rows.values()].sort((a, b) => a.pin - b.pin),

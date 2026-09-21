@@ -1,0 +1,39 @@
+<!-- M5Stack Stamp-P4 を部品の載っている面から見た平面図。29.8x22.0mm の横長の基板で、
+     USB-C は短い辺の中央から少し寄った位置に載って外へ張り出す（図はその辺を上にして
+     描いている）。2.54mm のキャスタレーションは左右の長い辺と、USB-C のある辺の両脇。
+     面の上には、USB-C のとなりに 20 ピンの BTB（SDIO。Stamp-AddOn C6 For P4 はここに
+     重なる）、中央に ESP32-P4NRW32 の大きな四角、その脇に flash の小さな四角、
+     反対の辺の中央に 16 ピンの BTB（MIPI CSI）、それと基板を留めるねじ穴が 1 つ。
+     押せるボタンも LED も載っていないので、押す所は描かない。
+     基板に読める文字の印字は無いので、図にも文字は書かない。
+     出所は M5 の PinMap 画像 S013-stamp-p4-pinmap.jpg と AddOn の取り付け図。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="104" y="100" width="112" height="86" rx="5"/>
+  <!-- 左右の長い辺のキャスタレーション -->
+  <path class="fig-pad" d="M99,106h10v7h-10zM99,117h10v7h-10zM99,128h10v7h-10zM99,139h10v7h-10zM99,150h10v7h-10zM99,161h10v7h-10zM99,172h10v7h-10z"/>
+  <path class="fig-pad" d="M211,106h10v7h-10zM211,117h10v7h-10zM211,128h10v7h-10zM211,139h10v7h-10zM211,150h10v7h-10zM211,161h10v7h-10zM211,172h10v7h-10z"/>
+  <!-- USB-C のある辺の両脇のキャスタレーション -->
+  <path class="fig-pad" d="M110,95h7v10h-7zM121,95h7v10h-7zM132,95h7v10h-7zM192,95h7v10h-7zM203,95h7v10h-7z"/>
+  <!-- USB-C のとなりの 20 ピン BTB（SDIO）。AddOn はここに重なる -->
+  <rect class="fig-part" x="184" y="106" width="26" height="14" rx="2"/>
+  <!-- 中央の ESP32-P4NRW32 と、その脇の flash -->
+  <rect class="fig-part" x="136" y="130" width="44" height="40" rx="3"/>
+  <rect class="fig-part" x="113" y="133" width="16" height="18" rx="2"/>
+  <!-- 基板を留めるねじ穴 -->
+  <circle class="fig-face" cx="122" cy="166" r="5"/>
+  <!-- 反対の辺の中央にある 16 ピン BTB（MIPI CSI） -->
+  <rect class="fig-part" x="142" y="174" width="36" height="10" rx="2"/>
+  <!-- 挿す先: 辺の中央から少し右に寄って張り出す USB-C -->
+  <rect class="fig-part fig-accent fig-hit" x="146" y="82" width="42" height="26" rx="5"/>
+  <rect class="fig-board fig-accent fig-thin" x="154" y="89" width="26" height="9" rx="4.5"/>
+  <!-- USB-Cケーブルは上から差し込む。rotate(90 167 56) の中で fig-cable が横へ動く＝
+       画面では下向き＝口へ押し込む向き。 -->
+  <g transform="rotate(90 167 56)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="159" y="42" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="131" y="49" width="30" height="14" rx="6"/>
+      <path d="M137,56 L77,56"/>
+    </g>
+  </g>
+</svg>
