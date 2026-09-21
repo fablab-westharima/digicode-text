@@ -22,6 +22,7 @@ import resetHoldCoreS3 from './reset-hold-cores3.svg';
 import g0HoldStampS3A from './g0-hold-stamp-s3a.svg';
 import usbCConnectAtomS3 from './usb-c-connect-atoms3.svg';
 import resetHoldAtomS3 from './reset-hold-atoms3.svg';
+import usbCConnectAtom from './usb-c-connect-atom.svg';
 
 export const FIGURES = {
   'usb-c-connect': usbCConnect,
@@ -59,4 +60,7 @@ export const FIGURES = {
   // 挿す口は手前側の面、書き込みモードに入れる RESET は左側面で、図は別の手順ぶん 2 枚。
   'usb-c-connect-atoms3': usbCConnectAtomS3,
   'reset-hold-atoms3': resetHoldAtomS3,
+  // ATOM Lite と ATOM Matrix は USB シリアル変換チップ経由で自動で書き込みモードに入るので、
+  // 押すボタンの図は無く、挿す口の 1 枚だけ。外形も口の位置も同じなので 2 台で共有する。
+  'usb-c-connect-atom': usbCConnectAtom,
 };

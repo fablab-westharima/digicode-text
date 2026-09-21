@@ -1,0 +1,33 @@
+<!-- M5Stack ATOM Lite / ATOM Matrix を上面の側から見た図。24x24mm の角の丸い立方体で、上面の
+     ほぼ全体が 1 つの大きなボタンになっている（溝が手前側だけ開いた形で、ATOM Lite はその中央に
+     RGB LED の窓、ATOM Matrix は 5x5 の LED マトリクスが入る）。口とボタンは上面ではなく側面に
+     あるので、その辺のふちに重ねて描いている（下辺＝手前側の面、左辺＝左側面）。
+     M5 の docs の外観写真と M5 自身の部位図から読んだ並びは、手前側の面が USB-C、左側面の
+     上寄りが小さな RESET ボタン。白い HY2.0-4P（PORT）は USB-C と同じ手前側の面にあるが、
+     USB-C の真下（底面寄り）に重なっていて上からはほぼ隠れるので描かない。
+     底面の 2.54mm ヘッダ 2 列も上から見えないので描かない。
+     2 台は上面（RGB LED 1 個か 5x5 のマトリクスか）と高さ（9.5mm と 13.8mm）だけが違い、
+     挿す口も RESET の位置も同じなので、図は 2 台で共有する。片方にしか無い窓は、どちらの図
+     としても正しくなるように描いていない。ケースに文字の印字は無い（GPIO の名前は底面の
+     シールにしかない）ので、図にも文字は書かない。
+     出所は docs.m5stack.com の ATOM Lite と ATOM Matrix の外観写真。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="100" y="28" width="120" height="120" rx="11"/>
+  <!-- 上面のほぼ全体を占める大きなボタン。溝は手前側（下辺）だけ開いている。 -->
+  <path class="fig-part" d="M112,132 V49 A9,9 0 0 1 121,40 H199 A9,9 0 0 1 208,49 V132"/>
+  <!-- 左側面の上寄り: 小さな RESET ボタン -->
+  <rect class="fig-part" x="93" y="52" width="14" height="20" rx="3"/>
+  <!-- 挿す先: 手前側の面の中央にある USB-C -->
+  <rect class="fig-part fig-accent fig-hit" x="141" y="138" width="38" height="24" rx="4"/>
+  <rect class="fig-board fig-accent fig-thin" x="148" y="145" width="24" height="9" rx="4.5"/>
+  <!-- USB-Cケーブルは手前から差し込む。rotate(-90 160 190) の中で fig-cable が横へ動く＝
+       画面では上向き＝口へ押し込む向き。 -->
+  <g transform="rotate(-90 160 190)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="152" y="176" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="124" y="183" width="30" height="14" rx="6"/>
+      <path d="M130,190 L70,190"/>
+    </g>
+  </g>
+</svg>

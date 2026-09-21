@@ -102,6 +102,15 @@ const M5_ATOMS3_LITE = 'https://docs.m5stack.com/en/core/AtomS3%20Lite';
 // comparator. M5 links the same file (byte for byte) from both product pages — the AtomS3-Lite
 // has no separate schematic — so the notes of both boards cite this one.
 const M5_ATOMS3_SCHEMATIC = 'https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/472/Sch_M5_AtomS3_v1.0.pdf';
+// M5's own product page for the ATOM Lite: the PinMap (which GPIO the RGB LED, the button and the
+// IR LED sit on, and what the bottom's two rows and the HY2.0 port carry), the specification table,
+// and the schematic image that shows the USB-serial chip driving EN and GPIO0. M5 publishes no
+// separate schematic PDF for this board — it is an image on this page — so the page is cited.
+const M5_ATOM_LITE = 'https://docs.m5stack.com/en/core/ATOM%20Lite';
+// The ATOM Matrix's own page. The two boards share the case, the bottom pins and the HY2.0 port,
+// but the Matrix's page is what states what it carries instead (5x5 LED matrix, MPU6886) and what
+// its own PinMap calls the I2C, so its sentences are cited from it rather than from the Lite one.
+const M5_ATOM_MATRIX = 'https://docs.m5stack.com/en/core/ATOM%20Matrix';
 // The board's own user guide: the only document that says which of the chip's pins this board
 // brings out, and the only one that names the SPI-flash pins grouped near the USB connector.
 const ESP32_DEVKITC_GUIDE = 'https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html';
@@ -347,6 +356,41 @@ const BOARDS = new Map([
       { text: '給電はMicro USBポート、5VとGNDのヘッダピン、3V3とGNDのヘッダピンの3通りで、必ずどれか1つだけを使う', source: ESP32_DEVKITC_GUIDE },
       { text: 'Bootボタンを押したままENボタンを押すと、シリアル経由で書き込むFirmware Downloadモードに入る', source: ESP32_DEVKITC_GUIDE },
       { text: 'ADC2はWi-Fiも使うため、Wi-Fi動作中はドライバ側の保護を通してしか読めない', source: ESP_IDF_ADC },
+    ] }],
+  // ATOM Lite と ATOM Matrix は一覧では別の 2 台。中身の差は 5x5 の LED マトリクスと IMU の
+  // 有無だけで build には効かないので、env（PlatformIO の [env:...]）は 1 つを共有し、差は下の
+  // pinNotes に書く。どちらの id も env と同じ名前ではないので、2 台とも env を明示する。
+  ['m5stack_atom_lite', { project: path.join(here, 'pio-esp32'), env: 'm5stack_atom', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ATOM Lite', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_atom_lite,
+    // M5's m5stack_atom variant defines neither Dn nor An macros, so the pin table has no rows at
+    // all: what a sketch is written against is the G<n> silk, which is the GPIO number itself.
+    // The variant's own SPI names disagree with M5's PinMap, so how to read them is said here.
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と底面のシールにあるG19、G21のようなG付きの番号はそのままGPIO番号で、たとえばHY2.0-4P（PORT）の黄のG26はGPIO26。底面のピンは、シールの文字が読める向きで見てUSB-Cのある辺を下にすると、左の列が上から3V3、G22、G19、G23、G33の5本、右の列が上からG21、G25、5V、GNDの4本。上の機能ピンのMOSI・MISO・SCKはvariantが付けた名前で、M5のPinMapの呼び方（G19がMOSI、G23がCLK、G33がMISO）とは一致しない。ESP32のSPIはどのピンにも割り当てられるので、SPI.begin()にピンを渡して使う。LED_BUILTINはこのvariantが定義していないので機能ピンには出ない。',
+    pinNotes: [
+      { text: '5x5のLEDマトリクスも6軸センサMPU6886も載っていないので、ATOM Matrix向けのコードのうちマトリクスとIMUを使う部分は動かない。RGB LEDは上面にSK6812が1つだけで、GPIO27に繋がっている', source: M5_ATOM_LITE },
+      { text: '外に出ているGPIOは底面の6本（G19、G21、G22、G23、G25、G33）と、手前側の面のHY2.0-4P（PORT）の2本だけ。PORTは黒がGND、赤が5V、黄がGPIO26、白がGPIO32', source: M5_ATOM_LITE },
+      { text: '上面の大きなボタンはGPIO39、赤外線送信LEDはGPIO12に繋がっている', source: M5_ATOM_LITE },
+      { text: 'variantがSDAと呼ぶGPIO26とSCLと呼ぶGPIO32はHY2.0-4P（PORT）の黄と白に出ている2本で、M5のPinMapがI2Cと書くのは底面のG21（SCL）とG25（SDA）の方。Wireを既定のまま使うとPORT側に出る', source: M5_ATOM_LITE },
+      { text: '載っているのはESP32-PICO-D4で、Flashは4MB、PSRAMは持たない。アンテナは基板上の3Dアンテナなので外付けは要らない', source: M5_ATOM_LITE },
+      { text: 'USB-Cは基板のUSBシリアル変換チップに繋がっていて、そのチップがENとGPIO0を動かして自動で書き込みモードに入れる。ESP32のUARTはGPIO1がTX、GPIO3がRX。GPIO0は底面にもHY2.0にも出ていないので自由に使えるピンではない', source: M5_ATOM_LITE },
+      { text: 'M5のPinMapは底面のG33とHY2.0のG32をADC、G25とG26をDACと書いている', source: M5_ATOM_LITE },
+      { text: 'GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない（ボタンのGPIO39もこれに当たる）。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
+    ] }],
+  ['m5stack_atom_matrix', { project: path.join(here, 'pio-esp32'), env: 'm5stack_atom', family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'ATOM Matrix', vendor: 'M5Stack', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-uart-bridge', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.m5stack_atom_matrix,
+    // M5 sells this one as EOL and names no replacement. It still builds and flashes the same, so
+    // it stays in the list; the sentence is shown in the manual, next to this board's own section.
+    statusNote: 'このボードはM5Stackの公式ストアで販売終了（EOL）になっていて、後継は案内されていない。同じ24mm角で今も売られているのはATOM Liteだが、5x5のLEDマトリクスと6軸センサMPU6886は載っていない。',
+    pinTableNote: 'このボードのvariantはD0からDnもA0からAnもマクロを定義していないので、上のピン表に行は無く、coreが名前を付けている機能ピンだけが並ぶ。コードにはGPIO番号を直接書く。M5の資料と底面のシールにあるG19、G21のようなG付きの番号はそのままGPIO番号で、たとえばHY2.0-4P（PORT）の黄のG26はGPIO26。底面のピンは、シールの文字が読める向きで見てUSB-Cのある辺を下にすると、左の列が上から3V3、G22、G19、G23、G33の5本、右の列が上からG21、G25、5V、GNDの4本。上の機能ピンのMOSI・MISO・SCKはvariantが付けた名前で、M5のPinMapの呼び方（G19がMOSI、G23がCLK、G33がMISO）とは一致しない。ESP32のSPIはどのピンにも割り当てられるので、SPI.begin()にピンを渡して使う。variantはATOM Liteと同じものが使われるので機能ピンの並びも同じで、5x5のLEDマトリクスとMPU6886のピンにはvariantが名前を付けていないため上には出ない。',
+    pinNotes: [
+      { text: '上面の5x5のRGB LEDマトリクス（WS2812C-2020が25個）はGPIO27に繋がっている。マトリクスの下に隠れている大きなボタンはGPIO39、赤外線送信LEDはGPIO12', source: M5_ATOM_MATRIX },
+      { text: '6軸センサMPU6886が載っていて、そのI2CはGPIO21がSCL、GPIO25がSDA。この2本は底面のピンにもそのまま出ているので、外の機器をここに繋ぐと内蔵センサと同居することになる', source: M5_ATOM_MATRIX },
+      { text: '外に出ているGPIOは底面の6本（G19、G21、G22、G23、G25、G33）と、手前側の面のHY2.0-4P（PORT）の2本だけ。PORTは黒がGND、赤が5V、黄がGPIO26、白がGPIO32', source: M5_ATOM_MATRIX },
+      { text: 'variantがSDAと呼ぶGPIO26とSCLと呼ぶGPIO32はHY2.0-4P（PORT）の2本で、MPU6886のバスではない。Wireを既定のまま使うと内蔵センサには繋がらない', source: M5_ATOM_MATRIX },
+      { text: 'LEDマトリクスは明るくしすぎるとLEDとアクリル板を傷める。FastLEDを使う場合の明るさは20が目安で、M5のライブラリでは0から100に割り当ててある', source: M5_ATOM_MATRIX },
+      { text: '載っているのはESP32-PICO-D4で、Flashは4MB、PSRAMは持たない。アンテナは基板上の3Dアンテナなので外付けは要らない', source: M5_ATOM_MATRIX },
+      { text: 'USB-Cは基板のUSBシリアル変換チップに繋がっていて、そのチップがENとGPIO0を動かして自動で書き込みモードに入れる。ESP32のUARTはGPIO1がTX、GPIO3がRX。GPIO0は底面にもHY2.0にも出ていないので自由に使えるピンではない', source: M5_ATOM_MATRIX },
+      { text: 'GPIO34からGPIO39は入力専用で、プルアップ・プルダウン抵抗を持たないため出力にはできない（ボタンのGPIO39もこれに当たる）。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、5Vを直接加えると定格を超える', source: ESP32_DATASHEET },
     ] }],
   ['wio_node', { project: path.join(here, 'pio-esp8266'), family: 'esp', platform: 'esp8266', extension: 'json', contentType: 'application/json; charset=utf-8',
     name: 'Wio Node', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP8266', artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp8266', flashHint: WIO_NODE_FLASH, flashGuide: FLASH_GUIDES.wio_node,

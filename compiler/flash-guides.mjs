@@ -48,6 +48,25 @@ const ATOMS3_GUIDE = {
   ],
 };
 
+// M5Stack ATOM Lite / ATOM Matrix は ATOMS3 と違って USB がチップ直結ではなく、基板の USB
+// シリアル変換チップ経由。そのチップが EN と GPIO0 を駆動するので（M5 の docs のブロック図が
+// その箱を「USB 2 UART & Auto Download」と書き、回路図でも 2 本が 100R 経由で出ている）、
+// DevKitC と同じく挿すだけの 2 手順で、押すボタンは無い。
+// GPIO0 は底面のピンにも HY2.0 にも出ていないので、書き込みモードに手で入れる方法は無い。
+// ケースに文字の印字は無いので、図にも文字は書かない。
+const ATOM_GUIDE = {
+  steps: [
+    { text: 'USB-Cケーブルで、本体の手前側の面にあるUSB-Cの口をPCに接続する。', figure: 'usb-c-connect-atom' },
+    { text: 'OKを押すと開くブラウザのポート選択ダイアログで、ボードを挿したときに増えたポートを選ぶ。', figure: 'port-dialog-usb-serial' },
+  ],
+  notes: [
+    '書き込みの前後のリセットは、基板のUSBシリアル変換チップがENとGPIO0を動かして自動で行われるので、ボタン操作は要らない。',
+    '書き込みモードに手で入れる方法はこのボードには無い。GPIO0が底面のピンにもHY2.0にも出ていないため。',
+    'ポートがダイアログに出ないときは、M5がこのボード用に案内しているUSBドライバ（FTDIのVCPドライバ）をPCに入れる。',
+    '左側面の小さなボタンはRESETで、押すと再起動する。書き込みには使わない。',
+  ],
+};
+
 export const FLASH_GUIDES = {
   xiao_rp2040: rp2040Guide('ボードのBボタン（BOOTSEL）', 'bootsel-hold-xiao'),
   pico: rp2040Guide('ボードのBOOTSELボタン', 'bootsel-hold-pico'),
@@ -145,6 +164,11 @@ export const FLASH_GUIDES = {
       '自動リセットが効かない個体では、Bootを押したままENを押してから書き込む。',
     ],
   },
+  // ATOM Lite と ATOM Matrix は同じ手順。外形も USB-C の口も RESET の位置も同じで、違うのは
+  // 上面（1 個の RGB LED か 5x5 のマトリクスか）と高さ（9.5mm と 13.8mm）だけなので、
+  // 図も 2 台で共有する。
+  m5stack_atom_lite: ATOM_GUIDE,
+  m5stack_atom_matrix: ATOM_GUIDE,
   wio_node: {
     steps: [
       { text: 'FT234X（GroveのUSBシリアル）をPORT0に挿し、USB側をPCに接続する。', figure: 'grove-serial-port0' },

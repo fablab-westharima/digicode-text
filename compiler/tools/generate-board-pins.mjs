@@ -27,6 +27,8 @@ export const PIO_HOME = process.env.PLATFORMIO_CORE_DIR ?? path.join(os.homedir(
 // Each env and the PlatformIO project template that defines it (compiler/server.mjs BOARDS).
 export const ENVS = [
   { env: 'esp32_devkitc_v4', project: 'pio-esp32' },
+  // ATOM Lite と ATOM Matrix は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
+  { env: 'm5stack_atom', project: 'pio-esp32' },
   { env: 'xiao_esp32s3', project: 'pio-esp32s3' },
   // CoreS3 と CoreS3-SE は同じ env を共有する（compiler/server.mjs の env）。ピン表もその 1 本。
   { env: 'm5stack_cores3', project: 'pio-esp32s3' },

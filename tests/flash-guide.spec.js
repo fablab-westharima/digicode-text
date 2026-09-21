@@ -35,7 +35,7 @@ async function built(page) {
 test('every board is served a flash guide, and every figure it names is a colourless line drawing on disk', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   const index = await readFile(new URL('../web/figures/index.js', import.meta.url), 'utf8');
-  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'wio_node']));
+  expect(boards.map(b => b.id)).toEqual(expect.arrayContaining(['xiao_rp2040', 'pico', 'pico_w', 'xiao_esp32c3', 'xiao_esp32s3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'esp32_devkitc_v4', 'wio_node']));
   for (const b of boards) {
     expect(b.flashGuide, b.id).toBeTruthy();
     expect(b.flashGuide.steps.length, b.id).toBeGreaterThan(0);
@@ -282,6 +282,30 @@ test('ATOMS3とATOMS3 Liteの手順は同じ3手順で、RESETの2秒長押し�
     expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
       .toEqual(['usb-c-connect-atoms3', 'reset-hold-atoms3', 'port-dialog-usb-serial']);
   }
+});
+
+test('ATOM LiteとATOM Matrixの手順は同じ2手順で、押すボタンが無いことを補足で言う', async ({ page }) => {
+  for (const id of ['m5stack_atom_lite', 'm5stack_atom_matrix']) {
+    await ready(page, id);
+    await page.click('#flash-guide-open');
+    await expect(page.locator('#flash-guide-steps')).toContainText('本体の手前側の面にあるUSB-Cの口をPCに接続する');
+    await expect(page.locator('#flash-guide-notes')).toContainText('基板のUSBシリアル変換チップがENとGPIO0を動かして自動で行われる');
+    // GPIO0 が外に出ていないので、手で書き込みモードに入れる手順はこの板には無い。
+    await expect(page.locator('#flash-guide-notes')).toContainText('書き込みモードに手で入れる方法はこのボードには無い');
+    expect(await page.locator('.flash-figure').evaluateAll(els => els.map(e => e.dataset.figure)))
+      .toEqual(['usb-c-connect-atom', 'port-dialog-usb-serial']);
+  }
+});
+
+test('取説のATOM Matrixの節は、販売終了の1行を手順とピン表の間に出す', async ({ page }) => {
+  await ready(page, 'pico');
+  await page.click('#view-help');
+  await page.click('#help-nav button[data-section="boards"]');
+  await page.click('#help-board-list .actions button[data-board-id="m5stack_atom_matrix"]');
+  await expect(page.locator('#help-board-list .note').first()).toContainText('販売終了（EOL）');
+  // ATOM Lite は販売終了ではないので、同じ場所にその1行は出ない。
+  await page.click('#help-board-list .actions button[data-board-id="m5stack_atom_lite"]');
+  await expect(page.locator('#help-board-list .note').first()).not.toContainText('販売終了（EOL）');
 });
 
 test('取説のATOMS3の節は、販売終了と後継機の1行を手順とピン表の間に出す', async ({ page }) => {
