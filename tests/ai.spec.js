@@ -199,8 +199,16 @@ test('failure recovery and save failure keep input/code', async ({ page }) => {
   let status = 500;
   await page.route('https://api.openai.com/**', r => r.fulfill({ status, json: response(answer) }));
   await ready(page); await settings(page); await send(page,'generate','変更して'); await expect(page.locator('#ai-status')).toContainText('HTTP 500'); await expect(page.locator('#ai-prompt')).toHaveValue('変更して');
+  // 失敗の1行は共通規則の error（赤い枠のカード）。うまくいった報せには状態を持たせない。
+  await expect(page.locator('#ai-status')).toHaveAttribute('data-state', 'error');
   status = 200; await page.evaluate(() => { window.originalSet = Storage.prototype.setItem; Storage.prototype.setItem = function(k,v) { if (k === 'digicode-text.projects.v1') throw new Error('quota'); return window.originalSet.call(this,k,v); }; });
   await send(page,'generate','再度変更して'); await expect(page.locator('#ai-status')).toContainText('適用済み・未保存'); await expect(page.locator('#editor .view-lines')).toContainText('delay(42)');
+  await expect(page.locator('#ai-status')).not.toHaveAttribute('data-state', /.*/);
+  // 送るものが無いなどの入力の差し戻しも error（送信そのものが止まったことを、型で示す）。
+  await page.fill('#ai-prompt', '   '); await page.click('#ai-send');
+  await expect(page.locator('#ai-status')).toHaveText('メッセージを入力してください');
+  await expect(page.locator('#ai-status')).toHaveAttribute('data-state', 'error');
+  await page.fill('#ai-prompt', '');
   await page.evaluate(() => { Storage.prototype.setItem = window.originalSet; }); await page.click('#save-retry'); expect(await source(page)).toBe(code);
 });
 

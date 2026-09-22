@@ -1047,11 +1047,12 @@ pre:empty { padding-top: 0; }
 .ai-send-wrap { position: relative; }
 .ai-send-tip { display: none; position: absolute; bottom: 44px; right: 0; padding: 3px 7px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 4px; white-space: nowrap; }
 .ai-send-wrap:hover .ai-send-tip, .ai-send-wrap:focus-within .ai-send-tip { display: block; }
-/* 直前の操作の結果を出す1行。見え方は .notice（空なら行ごと消える）。ai.js は data-state を
-   持たせず文だけを入れるので、.notice の3つの状態には入らない：枠は付けず、色だけを loading と
-   同じ accent にする。状態を JS から与えるとテストが読む文言の経路が増えるので、寄せるのは
-   CSS の側だけにした（#flash-status と同じ扱い）。 */
-#ai-status { margin: 0; color: var(--accent); font-size: var(--fs-small); }
+/* 直前の操作の結果を出す1行。見え方は .notice（空なら行ごと消える）。状態は ai.js が data-state で
+   与える：失敗は error（型どおりの赤い枠のカード）、応答待ちは loading。状態を持たない報せ
+   （適用済み・回答完了・中止など）は枠を付けず、色だけを loading と同じ accent にする。
+   帯に詰めるための margin と字の大きさだけが型との差で、それは状態によらず当てる。 */
+#ai-status { margin: 0; font-size: var(--fs-small); }
+#ai-status:not([data-state]) { color: var(--accent); }
 #ai-diff { height: 300px; margin-top: 8px; border: 1px solid var(--border); }
 /* 提案の状態を出す1行。上下の間は .notice の --sp-2。 */
 #ai-proposal-note { color: var(--fg-muted); font-size: var(--fs-small); }

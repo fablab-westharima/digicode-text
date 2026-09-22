@@ -11,9 +11,17 @@ export function setupAI(monaco, host) {
   let lastSend = { signature: '', time: -Infinity };
   let displayedKey = null;
   const conversations = new Map();
-  const say = text => { $('ai-status').textContent = text; };
+  // 直前の操作の結果を出す1行。見え方は共通規則の .notice で、状態はここが data-state で与える。
+  // 与えるのは失敗の 'error'（赤い枠のカード）と、応答待ちの 'loading' だけ。うまくいった知らせと
+  // 事実の報せは状態を持たせない（枠の付かない1行のまま）。文言は変えないので、文を読んでいる
+  // test はそのまま通る。
+  const say = (text, state = '') => {
+    const line = $('ai-status');
+    line.textContent = text;
+    if (state) line.dataset.state = state; else delete line.dataset.state;
+  };
   const settings = setupAISettings(() => { settingsRevision++; cancel('接続設定の変更により中止しました'); changed(); }, say);
-  try { if (JSON.parse(localStorage.getItem(modeKey) || 'null')?.mode === 'review') $('ai-mode').value = 'review'; } catch { say('適用モードを復元できませんでした'); }
+  try { if (JSON.parse(localStorage.getItem(modeKey) || 'null')?.mode === 'review') $('ai-mode').value = 'review'; } catch { say('適用モードを復元できませんでした', 'error'); }
   const key = () => `${host.snapshot().projectId}:${settings.provider}`;
   function thread() {
     if (!conversations.has(key())) {
@@ -83,7 +91,7 @@ export function setupAI(monaco, host) {
   function apply() {
     if (!candidate) return;
     const reason = staleReason(candidate.snapshot);
-    if (reason) { candidate.stale = reason; showCandidate(); say('古い提案のため適用しませんでした'); return; }
+    if (reason) { candidate.stale = reason; showCandidate(); say('古い提案のため適用しませんでした', 'error'); return; }
     host.apply(candidate.source); // Comparison and edit are synchronous; existing save/revision path owns edits.
     const note = `適用済み・${host.dirty() ? '未保存（再試行またはJSON退避をしてください）' : 'このブラウザに保存済み'}。Undo 1回で戻せます。Buildで確認してください`;
     discard(note, 'applied'); say(note);
@@ -105,7 +113,7 @@ export function setupAI(monaco, host) {
   // this module only asks for it to be shown or hidden.
   $('ai-open').onclick = () => { host.toggleAI(); if (!$('ai-pane').hidden) $('ai-prompt').focus(); };
   $('ai-close').onclick = () => { host.setAI(false); $('ai-open').focus(); };
-  $('ai-mode').onchange = () => { try { localStorage.setItem(modeKey, JSON.stringify({ mode: $('ai-mode').value })); } catch { say('適用モードを保存できませんでした'); } };
+  $('ai-mode').onchange = () => { try { localStorage.setItem(modeKey, JSON.stringify({ mode: $('ai-mode').value })); } catch { say('適用モードを保存できませんでした', 'error'); } };
   function context(s, failure) { return JSON.stringify(projectContext(s, failure, s.mode ?? $('ai-mode').value), null, 2); }
   $('ai-context').onclick = () => { const s = host.snapshot(); buildChanged(); $('ai-context-text').textContent = context(s, $('ai-attach').checked ? host.failure(s) : null); $('ai-context-dialog').showModal(); };
   $('ai-context-close').onclick = () => $('ai-context-dialog').close();
@@ -113,7 +121,7 @@ export function setupAI(monaco, host) {
   $('ai-latest').onclick = () => { $('ai-history').scrollTop = $('ai-history').scrollHeight; };
   $('ai-cancel').onclick = () => cancel(); $('ai-apply').onclick = apply;
   $('ai-discard').onclick = () => { discard(); say('提案を破棄しました'); };
-  $('ai-copy').onclick = async () => { try { await navigator.clipboard.writeText(candidate?.source || ''); say('提案コードをコピーしました'); } catch { say('コピーできませんでした。回答内のコードを選択してコピーできます'); } };
+  $('ai-copy').onclick = async () => { try { await navigator.clipboard.writeText(candidate?.source || ''); say('提案コードをコピーしました'); } catch { say('コピーできませんでした。回答内のコードを選択してコピーできます', 'error'); } };
   const input = $('ai-prompt');
   input.addEventListener('input', () => { inputRevision++; });
   input.addEventListener('compositionstart', () => { composing = true; imeEnter = true; });
@@ -129,21 +137,21 @@ export function setupAI(monaco, host) {
   async function send() {
     if (active || composing) return;
     const prompt = input.value.trim(), attach = $('ai-attach').checked;
-    if (!prompt) { say(attach ? 'エラーについて知りたいことを入力してください' : 'メッセージを入力してください'); return; }
+    if (!prompt) { say(attach ? 'エラーについて知りたいことを入力してください' : 'メッセージを入力してください', 'error'); return; }
     const signature = JSON.stringify([prompt, attach]);
     if (signature === lastSend.signature && performance.now() - lastSend.time < 400) return;
     const s = { ...host.snapshot(), provider: settings.provider, model: settings.config().model, api: settings.config().api, settingsRevision, mode: $('ai-mode').value, attach };
     const config = settings.config();
-    if (!config.key) { say('API設定で利用者自身のキーを入力してください'); return; }
-    if (prompt.length > LIMITS.prompt || bytes(s.source) > LIMITS.source) { say('入力上限を超えています（指示16,000文字・コード256 KiB）。切り詰めず送信を止めました'); return; }
+    if (!config.key) { say('API設定で利用者自身のキーを入力してください', 'error'); return; }
+    if (prompt.length > LIMITS.prompt || bytes(s.source) > LIMITS.source) { say('入力上限を超えています（指示16,000文字・コード256 KiB）。切り詰めず送信を止めました', 'error'); return; }
     const failure = attach ? host.failure(s) : null;
-    if (attach && !failure) { buildChanged(); say('古いBuildログは送信できません。現在の内容でBuildしてください'); return; }
+    if (attach && !failure) { buildChanged(); say('古いBuildログは送信できません。現在の内容でBuildしてください', 'error'); return; }
     const t = thread(), messages = [...apiHistory(t), { role: 'user', content: JSON.stringify({ userMessage: prompt, contextData: JSON.parse(context(s, failure)) }) }];
     discard('後続の要求を送信したため、この提案の適用を終了しました。コードは会話内に残っています');
     const e = entry(t, prompt, s), sentRevision = inputRevision;
     const req = { controller: new AbortController(), timer: null, timedOut: false, entry: e };
     active = req; lastSend = { signature, time: performance.now() }; busy(true);
-    say(`応答待ち… コード変更の場合は${s.mode === 'auto' ? '自動適用' : '確認して適用'}（最大3分）`);
+    say(`応答待ち… コード変更の場合は${s.mode === 'auto' ? '自動適用' : '確認して適用'}（最大3分）`, 'loading');
     req.timer = setTimeout(() => { req.timedOut = true; req.controller.abort(); }, LIMITS.timeout);
     try {
       const meta = {};
@@ -173,7 +181,7 @@ export function setupAI(monaco, host) {
       // a parse failure's raw reply, unless it echoes a saved key, in which case it is withheld.
       const body = typeof error?.body === 'string' ? error.body : '';
       const detail = !body ? '' : settings.containsKey(body) ? '\n本文に設定キーが含まれるため伏せました' : `\n先頭200文字: ${body.trim().slice(0, 200)}`;
-      if (active === req) { e.status.textContent = req.timedOut ? '3分でタイムアウトしました。提供側の停止・無課金は保証されません' : req.controller.signal.aborted ? '中止しました' : (error.message || 'AI要求に失敗しました') + detail; say(e.status.textContent); }
+      if (active === req) { e.status.textContent = req.timedOut ? '3分でタイムアウトしました。提供側の停止・無課金は保証されません' : req.controller.signal.aborted ? '中止しました' : (error.message || 'AI要求に失敗しました') + detail; say(e.status.textContent, 'error'); }
     } finally { clearTimeout(req.timer); config.key = ''; if (active === req) { active = null; busy(false); } }
   }
   $('ai-send').onclick = () => send();

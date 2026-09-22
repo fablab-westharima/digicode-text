@@ -15,13 +15,13 @@ export function setupAISettings(onChange, say) {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey(p)) || 'null');
       if (saved && typeof saved.key === 'string' && typeof saved.model === 'string' && APIS.includes(saved.api)) configs[p] = { key: saved.key, model: saved.model, api: saved.api };
-    } catch { say('一部のAPI設定を復元できませんでした'); }
+    } catch { say('一部のAPI設定を復元できませんでした', 'error'); }
   }
   function readDefault() {
     try {
       const saved = JSON.parse(localStorage.getItem(defaultKey) || 'null');
       if (saved && MODELS[saved.provider] && typeof saved.model === 'string' && saved.model.trim() && saved.model.length <= 200 && APIS.includes(saved.api)) return { provider: saved.provider, model: saved.model, api: saved.api };
-    } catch { say('既定のAPI設定を復元できませんでした'); }
+    } catch { say('既定のAPI設定を復元できませんでした', 'error'); }
     return null;
   }
   function writeDefault(p, c) {
@@ -96,7 +96,7 @@ export function setupAISettings(onChange, say) {
     if (e.key !== null && !Object.keys(MODELS).some(p => e.key === storageKey(p))) return;
     for (const p of Object.keys(MODELS)) { configs[p].key = ''; if (drafts) drafts[p].key = ''; }
     if (drafts) $('ai-key').value = '';
-    onChange(); render(); say('別タブで設定が変わりました。キーを再設定してください');
+    onChange(); render(); say('別タブで設定が変わりました。キーを再設定してください', 'error');
   });
   render();
   return { get provider() { return provider; }, config: () => ({ ...configs[provider] }), containsKey: text => Object.values(configs).some(c => c.key && text.includes(c.key)) };

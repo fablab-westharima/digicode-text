@@ -381,14 +381,23 @@ test('通知：全 view の .notice が状態ごとに型と一致する', async
     proposal.hidden = false;
     document.getElementById('ai-proposal-note').textContent = 'main.cpp全体の変更案。Buildは未実行です。';
   });
-  // #ai-status は data-state を持たない（ai.js は文だけを入れる）。型の 3 状態には入らず、
-  // 枠を付けず色だけを loading と同じ accent にする、という差を CSS 側が持っている。
-  // その差を、差として書く：違うのは色と、帯に詰めるための margin と font-size だけ
-  // （line-height は無単位の 1.6 なので font-size に連れて動く）。
+  // 状態を持たない #ai-status（適用済み・回答完了など）は型の 3 状態には入らない：枠を付けず、
+  // 色だけを loading と同じ accent にする、という差を CSS 側が持っている。その差を、差として書く：
+  // 違うのは色と、帯に詰めるための margin と font-size だけ（line-height は無単位の 1.6 なので
+  // font-size に連れて動く）。
   const aiStatus = await diff(page, { target: '#ai-status', ref: notice() });
   expect(Object.keys(aiStatus).sort(), '#ai-status の型との差').toEqual([...COLOUR_DERIVED, 'fontSize', 'lineHeight', 'marginBottom', 'marginTop'].sort());
   const loadingColour = (await probe(page, { target: '#ai-status', ref: notice('loading') })).type.color;
   expect((await style(page, { target: '#ai-status' })).color, '#ai-status の色は型の loading と同じ').toBe(loadingColour);
+  // 失敗のときは ai.js が data-state="error" を付ける。そこから先は型そのもの：色も枠も面も記号も
+  // .notice[data-state="error"] のままで、差は帯に詰めるための margin と font-size だけ。
+  // （⚠ の ::before は字なので、その幅も font-size に連れて動く。）
+  for (const [state, derived] of [['error', ['::before width']], ['loading', []]]) {
+    await page.evaluate(s => { document.getElementById('ai-status').dataset.state = s; }, state);
+    const stated = await diff(page, { target: '#ai-status', ref: notice(state) });
+    expect(Object.keys(stated).sort(), `#ai-status ${state} の型との差`).toEqual([...derived, 'fontSize', 'lineHeight', 'marginBottom', 'marginTop'].sort());
+  }
+  await page.evaluate(() => { delete document.getElementById('ai-status').dataset.state; });
   // #ai-proposal-note も状態を持たない 1 行。上下の間は型どおりで、色と字の大きさだけが差。
   const proposalNote = await diff(page, { target: '#ai-proposal-note', ref: notice() });
   expect(Object.keys(proposalNote).sort(), '#ai-proposal-note の型との差').toEqual([...COLOUR_DERIVED, 'fontSize', 'lineHeight'].sort());
