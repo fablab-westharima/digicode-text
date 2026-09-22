@@ -235,6 +235,15 @@ test('行：3 view の .list-row が型と一致し、互いにも一致する',
   // 開閉の印そのものが出ていないこと（型と一致していても、両方に印があっては意味が無い）。
   expect(await style(page, { target: '#theme-select .theme-item[aria-current="true"]' })).toMatchObject({ '::after content': 'none' });
 
+  // --- 設定と取説の目次。行き先を選ぶだけで詳細は開かないので、テーマと同じ .static の型と比べる。
+  expect(await diff(page, { target: '#settings-nav button[aria-current="false"]', ref: staticRow(' aria-current="false"') }), '設定の目次 通常').toEqual({});
+  expect(await diff(page, { target: '#settings-nav button[aria-current="true"]', ref: staticRow(' aria-current="true"') }), '設定の目次 選択中').toEqual({});
+  await page.click('#ai-settings-close');
+  await page.click('#view-help');
+  expect(await diff(page, { target: '#help-nav button[aria-current="false"]', ref: staticRow(' aria-current="false"') }), '取説の目次 通常').toEqual({});
+  expect(await diff(page, { target: '#help-nav button[aria-current="true"]', ref: staticRow(' aria-current="true"') }), '取説の目次 選択中').toEqual({});
+  await page.click('#help-close');
+
   // --- 3 view の「通常の行」が互いに一致する（それぞれの view が出ている間に測ったもの）
   expect(board, 'ボードの行 = プロジェクトの行').toEqual(project);
   expect(library, 'ライブラリの行 = プロジェクトの行').toEqual(project);

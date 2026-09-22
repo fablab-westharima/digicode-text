@@ -730,13 +730,10 @@ hr.rule { border: 0; border-top: 1px solid var(--border); margin: var(--sp-3) 0;
    余白・高さ・hover・選択中・focus は .list-row のまま。印の幅は空けない：開く行と混ざらない
    一覧（設定のテーマ）で使うので、空けると右端に説明のつかない空きが残るだけになる。 */
 .list-row.static::after { content: none; }
-/* 節の目次。押すとその節だけが右に出る。一覧の行（.list-row）とは別の型で、開閉の印も件数も
-   付けない。選択中は aria-current="true" で示し、左の縦線は見出しと同じ --rule の太さ。 */
+/* 節の目次。押すとその節だけが右に出る。行そのものは一覧と同じ型（.list-row.static）を使うので、
+   ここに残すのは並べ方だけ：縦に並べ、狭い幅では横に折り返す（下の @media）。選択中の見せ方も
+   一覧と同じ .list-row[aria-current="true"] に任せる。 */
 .section-nav { display: flex; flex-direction: column; gap: 2px; }
-.section-nav > button { width: 100%; height: auto; min-height: var(--row); justify-content: flex-start; padding: var(--sp-1) var(--sp-2); border-color: transparent; border-radius: var(--radius); background: transparent; color: var(--fg-muted); text-align: left; white-space: normal; overflow-wrap: anywhere; }
-.section-nav > button:hover:not(:disabled) { color: var(--fg); background: var(--bg-raised); }
-/* 縦線の分だけ左の余白を詰めるので、選択で文字の位置が動かない。 */
-.section-nav > button[aria-current="true"] { padding-left: calc(var(--sp-2) - var(--rule)); border-left: var(--rule) solid var(--accent); color: var(--fg-strong); background: var(--accent-soft); }
 /* 手順。1行1動作。番号だけを accent-2 の太字にする。 */
 .steps { margin: var(--sp-2) 0; padding-left: 1.7em; font-size: var(--fs-body); line-height: var(--lh); }
 .steps > li { margin-bottom: var(--sp-1); overflow-wrap: anywhere; }

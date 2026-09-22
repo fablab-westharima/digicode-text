@@ -301,14 +301,14 @@
       <p>節が 3 つ以上ある画面では、左に目次を置き、選んだ 1 節だけを右に出します。</p>
     </div>
     <nav class="section-nav" aria-label="節の目次の見本">
-      <button type="button" aria-current="true">外観</button>
-      <button type="button" aria-current="false">AI API設定</button>
-      <button type="button" aria-current="false">保存</button>
+      <button type="button" class="list-row static" aria-current="true"><strong>外観</strong></button>
+      <button type="button" class="list-row static" aria-current="false"><strong>AI API設定</strong></button>
+      <button type="button" class="list-row static" aria-current="false"><strong>保存</strong></button>
     </nav>
-    <h3 class="heading">11.1 一覧の行との違い</h3>
+    <h3 class="heading">11.1 一覧の行と同じ型を使う</h3>
     <div class="prose">
-      <p>目次は行き先を選ぶもので、一覧は中身を選ぶものです。開閉の印も件数も付けません。</p>
-      <p>選択中は「aria-current」で示し、左の縦線は見出しと同じ太さにします。</p>
+      <p>目次の1行は「2 一覧の行」の開かない行（.list-row.static）そのものです。開閉の印も件数も付きません。</p>
+      <p>選択中は「aria-current」で示し、見え方は一覧の選択中と同じにします。目次が自分で決めるのは並べ方だけで、縦に並べ、狭い幅では横に折り返します。</p>
     </div>
   </section>
 
