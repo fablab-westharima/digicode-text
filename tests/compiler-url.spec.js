@@ -83,6 +83,46 @@ test('URL は下書き：入力を離れると /health を確かめ、保存は 
   expect(asked).toEqual(['http://127.0.0.1:3100/boards']);
 });
 
+// 行き先を変えたら、読み込み直さずにボード表を取り直す。ボードの事実はすべて /boards から
+// 描いているので、取り直せば #env・ボード view・取説・ステータスバーが一度に入れ替わる。
+test('compile サーバーを保存すると、読み込み直さずにボード一覧を取り直す', async ({ page }) => {
+  const OTHER = 'http://127.0.0.1:3198';
+  // 別の compile サーバーのふり。表そのものは本物から 2 台だけ取って返す（手で書かない）。
+  const real = await (await page.request.get('http://127.0.0.1:3100/boards')).json();
+  const subset = real.slice(0, 2);
+  const cors = { 'access-control-allow-origin': '*' };
+  await page.route(OTHER + '/health', r => r.fulfill({ json: { ok: true }, headers: cors }));
+  const asked = [];
+  await page.route(OTHER + '/boards', r => { asked.push(r.request().url()); return r.fulfill({ json: subset, headers: cors }); });
+
+  await page.goto('/');
+  await expect(page.locator('#build')).toBeEnabled();
+  expect(await page.locator('#env option').count()).toBe(real.length);
+  // 読み込み直していないことを、このページだけの印で確かめる。
+  await page.evaluate(() => { window.__notReloaded = true; });
+
+  await openCompilerSection(page);
+  await page.fill('#compiler-url', OTHER);
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+
+  await expect.poll(() => page.locator('#env option').count()).toBe(subset.length);
+  expect(asked).toEqual([OTHER + '/boards']);
+  expect(await page.evaluate(() => window.__notReloaded)).toBe(true);
+  // ボード view・取説の対応ボード・ステータスバーも新しい表のもの。
+  await page.click('#view-boards');
+  await expect(page.locator('#board-list li')).toHaveCount(subset.length);
+  await expect(page.locator('#status-board')).toHaveText(subset[0].name);
+  await page.click('#view-help');
+  await expect(page.locator('#help-boards')).toHaveText(subset.map(b => b.name).join(' / '));
+  await page.keyboard.press('Escape');
+
+  // 設定を開き直すと、保存した URL と ok の知らせが出ている。
+  await openCompilerSection(page);
+  await expect(page.locator('#compiler-url')).toHaveValue(OTHER);
+  await page.screenshot({ path: 'test-results/compiler-url-reload.png' });
+});
+
 test('ボード一覧を取れなくても本体は開き、compile サーバーの節が error つきで開く', async ({ page }) => {
   // 3100 が止まっている状態と同じにする：/boards を落とす。
   await page.route('**/boards', route => route.abort('connectionrefused'));

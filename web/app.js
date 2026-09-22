@@ -165,7 +165,7 @@ async function showCompilerHealth(base) {
   const { ok, error } = await checkCompilerHealth(base);
   if (run !== healthRun) return; // 続けて別の URL を入れられたら、古い結果は出さない
   compilerNotice(ok
-    ? `${base || 'このページと同じサーバー'}に接続できました。ボード一覧はページを読み込み直したときに取り直します`
+    ? `${base || 'このページと同じサーバー'}に接続できました。下の「保存して閉じる」でボード一覧を取り直します`
     : `compile サーバーに届きません：${error}`, ok ? 'ok' : 'error');
 }
 $('compiler-url').onchange = () => {
@@ -178,10 +178,14 @@ $('compiler-url').onchange = () => {
 settingsSections.compiler = {
   draft() { $('compiler-url').value = getCompilerBase(); compilerNotice(''); healthRun++; },
   commit(save) {
+    const before = getCompilerBase();
     let base;
     try { base = save ? setCompilerBase($('compiler-url').value) : useCompilerBase($('compiler-url').value); }
     catch (error) { compilerNotice(error.message, 'error'); return false; }
     $('compiler-url').value = base;
+    // 行き先が変わったらボード表を取り直す。ボードの事実はすべて /boards から描いているので、
+    // ここで取り直せばページを読み込み直さなくても全部が新しい compile サーバーのものになる。
+    if (base !== before) reloadBoards();
     return true;
   },
 };
@@ -190,17 +194,57 @@ settingsSections.compiler = {
 // and the AI's boardDetails are generated from it.
 // 取れなかったときも本体は開く：別オリジンの compile サーバーを指すのは設定の中なので、
 // 届かないからといって設定に辿り着けなくなると直しようがない。
+// 設定で compile サーバーを変えたときにも取り直すので、Map は作り直さず中身だけ入れ替える：
+// この Map の参照は libraries / boards / help がそのまま持っている。
 const BOARDS = new Map();
 let boardsError = null;
-try {
-  const boardsRes = await fetch(compilerUrl('/boards'));
-  if (!boardsRes.ok) throw new Error(`ボード一覧を取得できません（${boardsRes.status}）`);
-  for (const board of await boardsRes.json()) BOARDS.set(board.id, board);
-} catch (error) { boardsError = String(error?.message ?? error); }
-setBoards(BOARDS.keys());
-$('env').replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
-// ヘルプの対応ボードもボード表から書く。ボード一覧を手で書く場所はどこにも作らない。
-$('help-boards').textContent = [...BOARDS.values()].map(b => b.name).join(' / ');
+async function loadBoards() {
+  boardsError = null;
+  try {
+    const boardsRes = await fetch(compilerUrl('/boards'));
+    if (!boardsRes.ok) throw new Error(`ボード一覧を取得できません（${boardsRes.status}）`);
+    const list = await boardsRes.json();
+    BOARDS.clear();
+    for (const board of list) BOARDS.set(board.id, board);
+  } catch (error) { boardsError = String(error?.message ?? error); BOARDS.clear(); }
+  setBoards(BOARDS.keys());
+}
+// ボード表から作る選択肢。取り直したときは、同じボードが表に残っていればその選択を保つ。
+function renderBoardChoices() {
+  const chosen = $('env').value;
+  $('env').replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
+  if (BOARDS.has(chosen)) $('env').value = chosen;
+  // ヘルプの対応ボードもボード表から書く。ボード一覧を手で書く場所はどこにも作らない。
+  $('help-boards').textContent = [...BOARDS.values()].map(b => b.name).join(' / ');
+}
+await loadBoards();
+renderBoardChoices();
+// 設定で compile サーバーの行き先が変わったときの取り直し。ページを読み込み直したときと同じ
+// ところまで揃える：ボード表そのもの、#env の選択肢、ボード view、取説、ライブラリの可否。
+// 届かなければ起動時と同じ扱いで、直せる場所（設定の「compile サーバー」）を開いたままにする。
+async function reloadBoards() {
+  const wasDown = Boolean(boardsError);
+  compilerNotice('ボード一覧を取り直しています…', 'loading');
+  const run = ++healthRun; // 途中で別の URL に決め直されたら、この結果はもう出さない
+  const chosen = $('env').value;
+  await loadBoards();
+  renderBoardChoices();
+  // 選んでいたボードが新しい表に無ければ #env は別のボードに移る。記録もそこに合わせる。
+  if ($('env').value !== chosen) changed();
+  showBoard();
+  help.refresh();
+  libs?.boardChanged();
+  if (boardsError) {
+    $('status').textContent = 'compile サーバーに届きません。設定で URL を確認してください';
+    ui.setBuildState('error');
+    nextSettingsSection = 'compiler';
+    $('ai-settings-open').click(); // 開くと draft() が走るので、知らせはそのあとに置く
+    compilerNotice(`compile サーバーに届きません：${boardsError}`, 'error');
+    return;
+  }
+  if (wasDown) { $('status').textContent = 'Buildできます'; ui.setBuildState('ready'); }
+  if (run === healthRun) compilerNotice(`ボード一覧を取り直しました（${BOARDS.size}台）`, 'ok');
+}
 // 書き込み前の接続手順。手順文と図の指定は各ボードの /boards の項目にある。
 const flashGuide = setupFlashGuide();
 // ボード一覧が取れなかったときは開く手順そのものが無いので、押しても何も起きない。

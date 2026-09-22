@@ -146,8 +146,14 @@ function incompatTable(boards) {
  * 返り値の open() だけが dialog を開ける口で、閉じるのは dialog 自身（「閉じる」と Esc）。
  */
 export function setupHelp(boards, showFlashGuide, selectedId) {
-  const list = [...boards.values()];
-  $('help-incompat').replaceChildren(incompatTable(list));
+  // ボード表は設定で compile サーバーを変えると取り直される（app.js）。この view はそのつど
+  // refresh() で写し直す：手で書いたボードの事実はここに 1 行も無いので、写し直せば全部が揃う。
+  let list = [];
+  function refresh() {
+    list = [...boards.values()];
+    $('help-incompat').replaceChildren(incompatTable(list));
+    renderBoards(selectedId());
+  }
 
   // ボードの節は1台ずつ出す。4台を縦に並べると 5300px を超え、自分の板まで辿れない。
   // 切替は共通規則の .actions のボタン列で、選択中は aria-pressed で示す。
@@ -168,7 +174,7 @@ export function setupHelp(boards, showFlashGuide, selectedId) {
     }
     $('help-board-list').replaceChildren(row, ...boardBlock(boards.get(shownBoard)));
   }
-  renderBoards(selectedId());
+  refresh();
 
   const parts = [...document.querySelectorAll('#help-dialog [data-section]')];
   function show(name) {
@@ -186,6 +192,7 @@ export function setupHelp(boards, showFlashGuide, selectedId) {
   $('help-flash-guide').onclick = showFlashGuide;
 
   return {
+    refresh,
     open(section = 'first') {
       // 開くたび、ボードの節はいま選ばれているボードから始める。
       renderBoards(selectedId());
