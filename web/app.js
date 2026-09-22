@@ -17,6 +17,7 @@ import { setupThemes, THEMES } from './themes/duotone.js';
 import { setupBoardList } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
 import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
+import { compilerUrl } from './compiler-url.js';
 
 self.MonacoEnvironment = {
   getWorker() { return new Worker('/assets/editor.worker.js', { type: 'module' }); },
@@ -111,7 +112,7 @@ $('view-settings').onclick = () => { nextSettingsSection = 'appearance'; $('ai-s
 
 // The compiler's board table is the only board list: select options, project validation
 // and the AI's boardDetails are generated from it.
-const boardsRes = await fetch('/boards');
+const boardsRes = await fetch(compilerUrl('/boards'));
 if (!boardsRes.ok) throw new Error('ボード一覧を取得できません');
 const BOARDS = new Map((await boardsRes.json()).map(b => [b.id, b]));
 setBoards(BOARDS.keys());
@@ -277,7 +278,7 @@ $('build').onclick = async () => {
   $('log').textContent = '';
   const t0 = performance.now();
   try {
-    const res = await fetch('/compile', {
+    const res = await fetch(compilerUrl('/compile'), {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ source: snapshot.source, env: snapshot.env, libraries: snapshot.libraries, projectId: snapshot.projectId, projectRevision: snapshot.projectRevision }),
     });

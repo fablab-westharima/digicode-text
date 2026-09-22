@@ -2,6 +2,7 @@ import { nearbyNames } from './library-suggestions.js';
 import { descriptionText } from './library-description.js';
 import { incompatibleRow } from './library-incompat.js';
 import { validateLibraries } from '../shared/libraries.js';
+import { compilerUrl } from './compiler-url.js';
 const $ = id => document.getElementById(id);
 // Which libraries the selected board cannot build is the compiler's statement, carried on the
 // board's /boards entry. Whether the user wants to see them at all is a per-browser convenience.
@@ -127,7 +128,7 @@ export function setupLibraries(store, change, boards) {
     area.replaceChildren(element('p', 'バージョン取得中…', 'form-hint'));
     for (const node of box.querySelectorAll('.registry-fact')) node.remove(); // 取り直しの間は前回の値を残さない
     try {
-      const response = await fetch('/libraries/details?' + new URLSearchParams({ owner: p.owner, name: p.name }), { signal: controller?.signal });
+      const response = await fetch(compilerUrl('/libraries/details?' + new URLSearchParams({ owner: p.owner, name: p.name })), { signal: controller?.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'バージョンを取得できませんでした');
       if (current !== generation || !dialog.open) return;
@@ -231,7 +232,7 @@ export function setupLibraries(store, change, boards) {
     pending = { query, page };
     message('検索中…', 'loading'); results.setAttribute('aria-busy', 'true');
     try {
-      const response = await fetch('/libraries/search?' + new URLSearchParams({ q: query, page }), { signal: controller.signal });
+      const response = await fetch(compilerUrl('/libraries/search?' + new URLSearchParams({ q: query, page })), { signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '検索に失敗しました');
       if (current !== generation || !dialog.open) return;
