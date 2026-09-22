@@ -23,6 +23,16 @@
 // No dependencies. Runs `pio run` in the project-local PlatformIO project
 // templates. Each request builds in a fresh temporary project directory; several may run at
 // once, up to MAX_BUILDS.
+//
+// Environment variables:
+//   BIND_HOST              listen address (default '127.0.0.1'; the Docker image sets 0.0.0.0)
+//   PORT                   listen port (default 3100)
+//   PIO_BIN                the `pio` executable (default ~/.local/bin/pio)
+//   COMPILE_TIMEOUT_MS     how long one `pio run` may take before it is killed (default 90000)
+//   MAX_CONCURRENT_BUILDS  how many builds may run at once (default: half the cores, min 1)
+//   ALLOWED_ORIGINS        comma-separated CORS origins (default: empty = no CORS headers)
+//   PIO_CORE_DIR_ESP8266   PLATFORMIO_CORE_DIR used for esp8266 builds only (default: unset =
+//                          the same core dir as every other platform)
 
 import http from 'node:http';
 import { spawn } from 'node:child_process';
@@ -509,7 +519,20 @@ const PUBLIC_BOARDS = [...BOARDS].map(([id, b]) => ({ id, name: b.name, vendor: 
 const WEB_DIR = path.join(here, '..', 'web');
 const PIO_BIN = process.env.PIO_BIN ?? path.join(process.env.HOME ?? '', '.local', 'bin', 'pio');
 const PORT = Number(process.env.PORT ?? 3100);
-const TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS ?? 600_000);
+// Loopback by default (a development server on the machine that runs the browser). The Docker
+// image sets 0.0.0.0, because a published container port never reaches a loopback listener.
+const BIND_HOST = process.env.BIND_HOST ?? '127.0.0.1';
+// Long enough for a cold ESP32-C5 build (40 s measured), short enough that the server, not the
+// reverse proxy in front of it, is what gives up first (Cloudflare's edge cuts at 100 s).
+const TIMEOUT_MS = Number(process.env.COMPILE_TIMEOUT_MS ?? 90_000);
+// Origins allowed to call this server from a browser. Empty (the default) means no CORS headers
+// at all, which is what a same-origin install wants; '*' is never sent.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '').split(',').map(s => s.trim()).filter(Boolean);
+// The esp8266 platform and pioarduino's espressif32 both install a package named tool-esptoolpy,
+// at incompatible versions, into whatever PlatformIO core dir they are given; the loser then tries
+// to fetch its own copy on every build (and fails outright with no network). Pointing esp8266
+// builds at their own core dir keeps the two apart. Unset = one shared core dir, as before.
+const PIO_CORE_DIR_ESP8266 = process.env.PIO_CORE_DIR_ESP8266 ?? '';
 
 const MAX_SOURCE = 256 * 1024;
 
@@ -540,9 +563,14 @@ async function limited(fn) {
   try { return await fn(); } finally { releaseSlot(); }
 }
 
-function runPio(env, project) {
+// platform is the BOARDS entry's `platform` (not its `family`): esp32 and esp8266 are two
+// platforms of the same family, and it is the platform that decides the core dir.
+function runPio(env, project, platform) {
   return new Promise((resolve) => {
-    const child = spawn(PIO_BIN, ['run', '-e', env], { cwd: project });
+    const childEnv = platform === 'esp8266' && PIO_CORE_DIR_ESP8266
+      ? { ...process.env, PLATFORMIO_CORE_DIR: PIO_CORE_DIR_ESP8266 }
+      : process.env;
+    const child = spawn(PIO_BIN, ['run', '-e', env], { cwd: project, env: childEnv });
     let log = '';
     const onData = (d) => { log += d.toString(); if (log.length > 1_000_000) log = log.slice(-500_000); };
     child.stdout.on('data', onData);
@@ -562,58 +590,94 @@ async function compile(env, source, libraries) {
     const board = BOARDS.get(env);
     // The PlatformIO env to build; the same one for two boards that share their build settings.
     const target = pioEnv(env, board);
-    const started = Date.now();
-    try { await verifyLibraries(libraries); }
-    catch (error) { return { ok: false, log: error.message, stage: 'dependencies', durationMs: Date.now() - started }; }
-    // A fresh source/config/libdeps/build tree for every request, including zero dependencies.
-    // Only PlatformIO's package download cache and toolchains are shared.
-    const project = await mkdtemp(path.join(os.tmpdir(), 'digicode-build-'));
-    try {
-      await mkdir(path.join(project, 'src'));
-      await writeFile(path.join(project, 'src', 'main.cpp'), source, 'utf8');
-      const template = await readFile(path.join(board.project, 'platformio.ini'), 'utf8');
-      const config = '[platformio]\nlib_dir = lib\ngloballib_dir = global-lib\nlibdeps_dir = .pio/libdeps\n\n[env]\nlib_deps =\n' +
-        libraries.map(p => `    ${p.owner}/${p.name}@${p.version}`).join('\n') + '\n\n' + template;
-      await writeFile(path.join(project, 'platformio.ini'), config);
-      if (board.family === 'esp') {
-        for (const script of ['portable_paths.py', 'package_firmware.py'])
-          await copyFile(path.join(ESP_SHARED, script), path.join(project, script));
-      }
-      // A template project may carry its own board definitions (compiler/pio-*/boards/*.json) for
-      // boards the platform does not define. PlatformIO looks for them under the *build* project's
-      // boards/ directory, and the build runs in the fresh temporary one, so they are copied too.
-      const boardDefs = await readdir(path.join(board.project, 'boards')).catch(() => []);
-      if (boardDefs.length) {
-        await mkdir(path.join(project, 'boards'));
-        for (const name of boardDefs.filter(n => n.endsWith('.json')))
-          await copyFile(path.join(board.project, 'boards', name), path.join(project, 'boards', name));
-      }
-      // The same holds for a variant the core does not carry (compiler/pio-*/variants/<variant>/):
-      // the env names it with board_build.variants_dir, which the framework resolves against the
-      // *build* project's directory, so the whole variants/ tree is copied into the fresh one too.
-      const variants = await readdir(path.join(board.project, 'variants'), { withFileTypes: true }).catch(() => []);
-      for (const entry of variants.filter(e => e.isDirectory())) {
-        await mkdir(path.join(project, 'variants', entry.name), { recursive: true });
-        for (const file of await readdir(path.join(board.project, 'variants', entry.name)))
-          await copyFile(path.join(board.project, 'variants', entry.name, file), path.join(project, 'variants', entry.name, file));
-      }
-      const { code, log } = await runPio(target, project);
-      const durationMs = Date.now() - started;
-      if (code !== 0) return { ok: false, log: publicLog(log, project),
-        stage: /(?:PackageException|UnknownPackageError|HTTPClientError|Could not install|Could not find the package)/i.test(log) ? 'dependencies' : 'compile', durationMs };
-      const artifact = await readFile(path.join(project, '.pio', 'build', target, board.family === 'esp' ? 'flashset.json' : `firmware.${board.extension}`));
-      return { ok: true, artifact, board, durationMs };
-    } finally { await rm(project, { recursive: true, force: true }); }
+    // The semaphore as this build starts: how many builds are running (this one included) and
+    // how many requests are still queued behind them.
+    const queue = { running, waiting: waiting.length };
+    const r = await build(env, board, target, source, libraries);
+    // One line of JSON per build on stdout (JSON Lines), so `docker logs` is the build record:
+    // which board, how long, how big, how busy the server was. The log carries no user source.
+    console.log(JSON.stringify({ t: new Date().toISOString(), env, target, ok: r.ok,
+      stage: r.ok ? null : r.stage, ms: r.durationMs, bytes: r.ok ? r.artifact.length : null,
+      libs: libraries.length, running: queue.running, waiting: queue.waiting }));
+    return r;
   });
 }
 
+// One build, in its own temporary project directory. The caller holds the semaphore slot.
+async function build(env, board, target, source, libraries) {
+  const started = Date.now();
+  try { await verifyLibraries(libraries); }
+  catch (error) { return { ok: false, log: error.message, stage: 'dependencies', durationMs: Date.now() - started }; }
+  // A fresh source/config/libdeps/build tree for every request, including zero dependencies.
+  // Only PlatformIO's package download cache and toolchains are shared.
+  const project = await mkdtemp(path.join(os.tmpdir(), 'digicode-build-'));
+  try {
+    await mkdir(path.join(project, 'src'));
+    await writeFile(path.join(project, 'src', 'main.cpp'), source, 'utf8');
+    const template = await readFile(path.join(board.project, 'platformio.ini'), 'utf8');
+    const config = '[platformio]\nlib_dir = lib\ngloballib_dir = global-lib\nlibdeps_dir = .pio/libdeps\n\n[env]\nlib_deps =\n' +
+      libraries.map(p => `    ${p.owner}/${p.name}@${p.version}`).join('\n') + '\n\n' + template;
+    await writeFile(path.join(project, 'platformio.ini'), config);
+    if (board.family === 'esp') {
+      for (const script of ['portable_paths.py', 'package_firmware.py'])
+        await copyFile(path.join(ESP_SHARED, script), path.join(project, script));
+    }
+    // A template project may carry its own board definitions (compiler/pio-*/boards/*.json) for
+    // boards the platform does not define. PlatformIO looks for them under the *build* project's
+    // boards/ directory, and the build runs in the fresh temporary one, so they are copied too.
+    const boardDefs = await readdir(path.join(board.project, 'boards')).catch(() => []);
+    if (boardDefs.length) {
+      await mkdir(path.join(project, 'boards'));
+      for (const name of boardDefs.filter(n => n.endsWith('.json')))
+        await copyFile(path.join(board.project, 'boards', name), path.join(project, 'boards', name));
+    }
+    // The same holds for a variant the core does not carry (compiler/pio-*/variants/<variant>/):
+    // the env names it with board_build.variants_dir, which the framework resolves against the
+    // *build* project's directory, so the whole variants/ tree is copied into the fresh one too.
+    const variants = await readdir(path.join(board.project, 'variants'), { withFileTypes: true }).catch(() => []);
+    for (const entry of variants.filter(e => e.isDirectory())) {
+      await mkdir(path.join(project, 'variants', entry.name), { recursive: true });
+      for (const file of await readdir(path.join(board.project, 'variants', entry.name)))
+        await copyFile(path.join(board.project, 'variants', entry.name, file), path.join(project, 'variants', entry.name, file));
+    }
+    const { code, log } = await runPio(target, project, board.platform);
+    const durationMs = Date.now() - started;
+    if (code !== 0) return { ok: false, log: publicLog(log, project),
+      stage: /(?:PackageException|UnknownPackageError|HTTPClientError|Could not install|Could not find the package)/i.test(log) ? 'dependencies' : 'compile', durationMs };
+    const artifact = await readFile(path.join(project, '.pio', 'build', target, board.family === 'esp' ? 'flashset.json' : `firmware.${board.extension}`));
+    return { ok: true, artifact, board, durationMs };
+  } finally { await rm(project, { recursive: true, force: true }); }
+}
+
+// Over the limit the request is answered (the caller turns the rejection into 400), but the rest
+// of the body is still read and thrown away rather than destroying the socket: a client that is
+// mid-upload should see the 400, not a broken connection (through a proxy that becomes a 5xx).
 function readBody(req, limit) {
   return new Promise((resolve, reject) => {
-    let size = 0; const chunks = [];
-    req.on('data', (c) => { size += c.length; if (size > limit) { reject(new Error('body too large')); req.destroy(); } else chunks.push(c); });
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-    req.on('error', reject);
+    let size = 0; let over = false; const chunks = [];
+    req.on('data', (c) => {
+      if (over) return;
+      size += c.length;
+      if (size > limit) { over = true; chunks.length = 0; reject(new Error('body too large')); }
+      else chunks.push(c);
+    });
+    req.on('end', () => { if (!over) resolve(Buffer.concat(chunks).toString('utf8')); });
+    req.on('error', (err) => { if (!over) reject(err); });
   });
+}
+
+// CORS, in one place. The headers are put on the response before any route runs, so every
+// writeHead below (json(), the /compile success response, /assets, /) carries them: writeHead
+// merges what setHeader has already set. Nothing is added unless the request's Origin is one of
+// ALLOWED_ORIGINS, so the default (empty) server answers exactly as it did before.
+// expose-headers is needed because the browser reads the two x- headers off a /compile response.
+function applyCors(req, res) {
+  const origin = req.headers.origin;
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return false;
+  res.setHeader('access-control-allow-origin', origin);
+  res.setHeader('vary', 'origin');
+  res.setHeader('access-control-expose-headers', 'x-compile-duration-ms, x-artifact-sha256');
+  return true;
 }
 
 function json(res, status, obj) {
@@ -623,6 +687,18 @@ function json(res, status, obj) {
 
 const server = http.createServer(async (req, res) => {
   try {
+    const cors = applyCors(req, res);
+    // The preflight is answered for any path: the browser sends it before the request that would
+    // have told us whether the path exists. Without an allowed Origin it is a bare 204.
+    if (req.method === 'OPTIONS') {
+      if (cors) {
+        res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+        res.setHeader('access-control-allow-headers', 'content-type');
+        res.setHeader('access-control-max-age', '86400');
+      }
+      res.writeHead(204);
+      return res.end();
+    }
     const url = new URL(req.url, 'http://127.0.0.1');
     if (req.method === 'GET' && url.pathname === '/libraries/search') {
       try { return json(res, 200, await searchLibraries(url.searchParams.get('q'), Number(url.searchParams.get('page') || 1))); }
@@ -692,6 +768,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`digicode-text compiler listening on http://127.0.0.1:${PORT}  (pio: ${PIO_BIN}, 同時build: ${MAX_BUILDS})`);
+server.listen(PORT, BIND_HOST, () => {
+  console.log(`digicode-text compiler listening on http://${BIND_HOST}:${PORT}  (pio: ${PIO_BIN}, 同時build: ${MAX_BUILDS}, CORS: ${ALLOWED_ORIGINS.join(' ') || 'なし'})`);
 });
