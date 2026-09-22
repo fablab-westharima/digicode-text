@@ -208,6 +208,7 @@
     <nav class="section-nav" id="settings-nav" aria-label="設定の節">
       <button type="button" data-section="appearance" aria-controls="settings-appearance" aria-current="true">外観</button>
       <button type="button" data-section="ai" aria-controls="settings-ai" aria-current="false">AI</button>
+      <button type="button" data-section="compiler" aria-controls="settings-compiler" aria-current="false">compile サーバー</button>
     </nav>
     <div class="settings-content" id="settings-content">
       <section id="settings-appearance" data-section="appearance" aria-labelledby="settings-appearance-title">
@@ -272,6 +273,18 @@
           <div class="actions"><button id="ai-delete" class="danger">キー・保存設定を削除（即時）</button></div>
         </div>
       </section>
+      <!-- compile サーバー。Text 本体を別オリジン（Pages など）に置いたときに、Build を頼む先を
+           指す設定。保存は footer の「保存して閉じる」ではなく、入力を離れたときにその場で行う
+           （footer の2つは AI の下書きを確定する口で、この節を知らない）。配線は app.js。 -->
+      <section id="settings-compiler" data-section="compiler" aria-labelledby="settings-compiler-title" hidden>
+        <h3 class="heading" id="settings-compiler-title">compile サーバー</h3>
+        <div class="form-group">
+          <label for="compiler-url">URL</label>
+          <p class="form-hint">Buildを頼むサーバーです。空ならこのページと同じサーバーを使います。入力欄を離れるとこのブラウザに保存し、応答を確かめます。</p>
+          <input id="compiler-url" type="url" placeholder="https://example.com" autocomplete="off" spellcheck="false">
+          <p id="compiler-status" class="notice" role="status"></p>
+        </div>
+      </section>
     </div>
   </div>
   <div class="settings-footer">
@@ -294,6 +307,7 @@
       <button type="button" data-section="libraries" aria-controls="help-libraries" aria-current="false">ライブラリ</button>
       <button type="button" data-section="export" aria-controls="help-export" aria-current="false">持ち出し</button>
       <button type="button" data-section="ai" aria-controls="help-ai" aria-current="false">AI</button>
+      <button type="button" data-section="compiler" aria-controls="help-compiler" aria-current="false">compile サーバー</button>
       <button type="button" data-section="trouble" aria-controls="help-trouble" aria-current="false">困ったとき</button>
       <button type="button" data-section="about" aria-controls="help-about" aria-current="false">このソフトについて</button>
     </nav>
@@ -413,6 +427,16 @@
         <div class="note">
           <p>API キーと会話は、このブラウザから提供元へ直接送ります。弊社のサーバーへは送りません。キーと設定の保存は暗号化保管ではありません。</p>
           <p>任意のコードや会話の中の秘密の値を自動で見つける機能はありません。</p>
+        </div>
+      </section>
+
+      <section id="help-compiler" data-section="compiler" aria-labelledby="help-compiler-title" hidden>
+        <h3 class="heading" id="help-compiler-title">compile サーバー</h3>
+        <div class="prose">
+          <p>Build は、この画面からコードを compile サーバーへ送り、できた成果物を受け取ります。何も指定しなければ、この画面を配っているのと同じサーバーです。</p>
+          <p>別のサーバーを使うときは、設定の「compile サーバー」の節に URL を入れます。空にすると同じサーバーに戻ります。保存先はこのブラウザだけです。</p>
+          <p>URL を入れると、そのサーバーの /health を呼びます。応答があれば「接続できました」、届かなければ理由を出します。応答したことは、そのサーバーが生きていることだけを示します。</p>
+          <p>ボード一覧はページを読み込んだときに取ります。URL を変えたあとは読み込み直してください。起動時にボード一覧を取れなかったときは、この設定が開いた状態で始まります。</p>
         </div>
       </section>
 

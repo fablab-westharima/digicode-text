@@ -90,17 +90,17 @@ test('Settings opens as a modal dialog over the shell and leaves the sidebar sel
   await expect(page.locator('#settings-nav button[data-section="appearance"]')).toHaveAttribute('aria-current', 'true');
   await page.screenshot({ path: info.outputPath('settings-dialog.png') });
 
-  // 節は「外観」「AI」の2つだけ。「保存」の節は解体され、その中身は AI の節の中にある。
-  expect(await page.locator('#settings-nav button').count()).toBe(2);
+  // 節は「外観」「AI」「compile サーバー」の3つだけ。「保存」の節は解体され、その中身は AI の節の中にある。
+  expect(await page.locator('#settings-nav button').count()).toBe(3);
   expect(await page.locator('#settings-storage').count()).toBe(0);
   expect(await page.locator('#settings-nav button[data-section="storage"]').count()).toBe(0);
   for (const id of ['ai-default', 'ai-delete'])
     expect(await page.locator(`#settings-ai #${id}`).count(), id).toBe(1);
 
   // The table of contents shows one section at a time, and aria-current follows.
-  for (const section of ['ai', 'appearance']) {
+  for (const section of ['ai', 'compiler', 'appearance']) {
     await page.click(`#settings-nav button[data-section="${section}"]`);
-    for (const other of ['appearance', 'ai']) {
+    for (const other of ['appearance', 'ai', 'compiler']) {
       await expect(page.locator(`#settings-${other}`))[other === section ? 'toBeVisible' : 'toBeHidden']();
       await expect(page.locator(`#settings-nav button[data-section="${other}"]`))
         .toHaveAttribute('aria-current', String(other === section));

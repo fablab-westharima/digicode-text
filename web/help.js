@@ -153,6 +153,9 @@ export function setupHelp(boards, showFlashGuide, selectedId) {
   // 切替は共通規則の .actions のボタン列で、選択中は aria-pressed で示す。
   let shownBoard = null;
   function renderBoards(id) {
+    // ボード一覧を取れていないときは、この節に書けることが何も無い（ボードの事実を手で書く場所は
+    // ここに作らない）。取説自体は他の節のために開ける。
+    if (!list.length) { $('help-board-list').replaceChildren(); return; }
     shownBoard = boards.has(id) ? id : list[0].id;
     const row = element('div', null, 'actions');
     for (const board of list) {

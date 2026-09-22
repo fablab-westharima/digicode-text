@@ -17,7 +17,7 @@ import { setupThemes, THEMES } from './themes/duotone.js';
 import { setupBoardList } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
 import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
-import { compilerUrl } from './compiler-url.js';
+import { compilerUrl, getCompilerBase, setCompilerBase, checkCompilerHealth } from './compiler-url.js';
 
 self.MonacoEnvironment = {
   getWorker() { return new Worker('/assets/editor.worker.js', { type: 'module' }); },
@@ -110,18 +110,52 @@ $('ai-settings-open').addEventListener('click', () => { showSettingsSection(next
 // （「閉じる」ボタンと Esc）。開くときの下ごしらえは ai-settings.js の ai-settings-open にある。
 $('view-settings').onclick = () => { nextSettingsSection = 'appearance'; $('ai-settings-open').click(); };
 
+// 設定の「compile サーバー」の節。ここだけは footer の「保存して閉じる」を通さない：
+// あれは AI の下書き（ai-settings.js の drafts）を確定する口で、他の設定を知らない。
+// 入力を離れた時点でこのブラウザに保存し、その URL の /health を叩いて結果をその場に出す。
+function compilerNotice(message, state = '') {
+  const notice = $('compiler-status');
+  notice.textContent = message;
+  if (state) notice.dataset.state = state; else delete notice.dataset.state;
+}
+$('compiler-url').value = getCompilerBase();
+let healthRun = 0;
+async function showCompilerHealth(base) {
+  const run = ++healthRun;
+  compilerNotice('確認中…', 'loading');
+  const { ok, error } = await checkCompilerHealth(base);
+  if (run !== healthRun) return; // 続けて別の URL を入れられたら、古い結果は出さない
+  compilerNotice(ok
+    ? `${base || 'このページと同じサーバー'}に接続できました。ボード一覧はページを読み込み直したときに取り直します`
+    : `compile サーバーに届きません：${error}`, ok ? 'ok' : 'error');
+}
+$('compiler-url').onchange = () => {
+  let base;
+  try { base = setCompilerBase($('compiler-url').value); }
+  catch (error) { compilerNotice(error.message, 'error'); return; }
+  $('compiler-url').value = base;
+  showCompilerHealth(base);
+};
+
 // The compiler's board table is the only board list: select options, project validation
 // and the AI's boardDetails are generated from it.
-const boardsRes = await fetch(compilerUrl('/boards'));
-if (!boardsRes.ok) throw new Error('ボード一覧を取得できません');
-const BOARDS = new Map((await boardsRes.json()).map(b => [b.id, b]));
+// 取れなかったときも本体は開く：別オリジンの compile サーバーを指すのは設定の中なので、
+// 届かないからといって設定に辿り着けなくなると直しようがない。
+const BOARDS = new Map();
+let boardsError = null;
+try {
+  const boardsRes = await fetch(compilerUrl('/boards'));
+  if (!boardsRes.ok) throw new Error(`ボード一覧を取得できません（${boardsRes.status}）`);
+  for (const board of await boardsRes.json()) BOARDS.set(board.id, board);
+} catch (error) { boardsError = String(error?.message ?? error); }
 setBoards(BOARDS.keys());
 $('env').replaceChildren(...[...BOARDS.values()].map(b => Object.assign(document.createElement('option'), { value: b.id, textContent: b.name })));
 // ヘルプの対応ボードもボード表から書く。ボード一覧を手で書く場所はどこにも作らない。
 $('help-boards').textContent = [...BOARDS.values()].map(b => b.name).join(' / ');
 // 書き込み前の接続手順。手順文と図の指定は各ボードの /boards の項目にある。
 const flashGuide = setupFlashGuide();
-const showFlashGuide = () => flashGuide.show(BOARDS.get($('env').value));
+// ボード一覧が取れなかったときは開く手順そのものが無いので、押しても何も起きない。
+const showFlashGuide = () => { const board = BOARDS.get($('env').value); if (board) flashGuide.show(board); };
 $('flash-guide-open').onclick = showFlashGuide;
 // 取説も設定と同じ型の <dialog>。ボードごとの節は同じ BOARDS から描く。
 // #help-flash-guide の配線は setupHelp が持つ（接続手順は取説の上に重ねて開く）。
@@ -707,3 +741,13 @@ ai = setupAI(monaco, {
     editor.pushUndoStop();
   },
 });
+
+// ボード一覧が取れていないなら、直せる場所（設定の「compile サーバー」）を開いたところから始める。
+// dialog を開ける口は ai-settings.js の opener 一つなので、開くのは setupAI のあと。
+if (boardsError) {
+  $('status').textContent = 'compile サーバーに届きません。設定で URL を確認してください';
+  ui.setBuildState('error');
+  nextSettingsSection = 'compiler';
+  $('ai-settings-open').click();
+  compilerNotice(`compile サーバーに届きません：${boardsError}`, 'error');
+}
