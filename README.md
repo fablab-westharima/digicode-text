@@ -15,7 +15,7 @@ npm start              # = node compiler/server.mjs → http://127.0.0.1:3100
 ```
 
 - Node は 20 系で動かしている(`package.json` に `engines` 指定は無い)。サーバー本体は Node 標準機能のみ、依存ゼロ。
-- PlatformIO Core が必要。既定の実行ファイルは `~/.local/bin/pio`(`PIO_BIN` で変更可)。`PORT`、`COMPILE_TIMEOUT_MS` も環境変数で変えられる。
+- PlatformIO Core が必要。既定の実行ファイルは `~/.local/bin/pio`(`PIO_BIN` で変更可)。`PORT`(既定 3100)、`COMPILE_TIMEOUT_MS`(既定 90000)も環境変数で変えられる。環境変数の一覧は下の「Docker image」と `compiler/server.mjs` の冒頭。
 - フロントエンドを変更したら `npm run build:web` を再実行する。`/assets/` は `web/dist` の生成物だけを配信する。
 
 ### サーバー API
@@ -23,6 +23,47 @@ npm start              # = node compiler/server.mjs → http://127.0.0.1:3100
 `POST /compile`(`{env, source, libraries, projectId, projectRevision}` → RP2040 は UF2 バイト列、ESP 系は flash set JSON、失敗は 422 + ログ)、`GET /boards`、`GET /libraries/search`、`GET /libraries/details`(`board` を付けるとそのボードの非互換行が付く)、`GET /libraries/incompat`、`GET /health`、`GET /`。
 
 `/compile` は内部 queue で直列化され、1 要求ごとに新しい一時ディレクトリへ `platformio.ini` とソースを作って build し、終了後に削除する。共有するのは PlatformIO のツールチェーンとパッケージキャッシュだけ。
+
+build のたびに stdout へ 1 行の JSON(JSON Lines)が出る。`{t, env, target, ok, stage, ms, bytes, libs, running, waiting}` で、`env` は要求されたボード id、`target` は実際に build した PlatformIO env、`running`/`waiting` はその build が始まった時点の同時 build 数と待ち数。ソースコードは出さない。
+
+### Docker image
+
+repo 直下の `Dockerfile` が compile サーバーの image を作る。PlatformIO Core・platform・toolchain・framework をすべて焼き込み、build 中に全ボードの hello を 1 回建てて(`compiler/tools/docker-warmup.mjs`)、1 台でも建たなければ image build を失敗させる。だから動いているコンテナは compile のためにネットワークへ出ない。
+
+```
+docker build --platform linux/amd64 -t digicode-compiler:repo .
+```
+
+環境変数(`compiler/server.mjs` の冒頭にも同じ一覧がある):
+
+| 名前 | 既定 | image の既定 | 意味 |
+|---|---|---|---|
+| `BIND_HOST` | `127.0.0.1` | `0.0.0.0` | listen するアドレス。published port は loopback のリスナーには届かない |
+| `PORT` | `3100` | `3100` | listen するポート |
+| `PIO_BIN` | `~/.local/bin/pio` | `/opt/pio-venv/bin/pio` | `pio` の実行ファイル |
+| `COMPILE_TIMEOUT_MS` | `90000` | — | 1 回の `pio run` を打ち切るまで |
+| `MAX_CONCURRENT_BUILDS` | コア数の半分(最低 1) | — | 同時 build 数。`pio run` は 1 件で全コアを使うので、コアの少ない VPS では 1 |
+| `ALLOWED_ORIGINS` | 空(CORS ヘッダ無し) | 設定しない | 許すオリジンをカンマ区切りで。`*` は使わない。同一オリジンで配るなら空のまま |
+| `PIO_CORE_DIR_ESP8266` | 空(共通の core dir) | `/opt/platformio-esp8266` | ESP8266 の build にだけ使う PlatformIO core dir |
+
+run 例(別オリジンの Web から呼ぶ場合):
+
+```
+docker run -d --name digicode-compiler \
+  -p 127.0.0.1:3100:3100 \
+  -e ALLOWED_ORIGINS=https://example.com \
+  -e MAX_CONCURRENT_BUILDS=1 \
+  --memory 2g --restart unless-stopped \
+  --log-opt max-size=10m --log-opt max-file=5 \
+  digicode-compiler:repo
+```
+
+ネットワーク無しで建つことの確認は `--network none` で。このときは `-p` が効かないので、コンテナの内側から叩く。
+
+```
+docker run -d --network none --name dc-verify digicode-compiler:repo
+docker exec dc-verify node -e "fetch('http://127.0.0.1:3100/health').then(r=>r.json()).then(console.log)"
+```
 
 ### 正本(ここだけを直す)
 

@@ -1,0 +1,10 @@
+.git
+.gitignore
+node_modules
+web/dist
+test-results
+playwright-report
+tests/usecases/results
+compiler/pio-*/.pio
+scratchpad
+.DS_Store
