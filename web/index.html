@@ -201,7 +201,9 @@
 </dialog>
 <!-- 設定。サイドバーの view ではなく、エディタの上に開く本物の <dialog>。左が節の目次で、選んだ
      1 節だけを右に出す。結果表示（ai-settings-status）と「保存して閉じる／保存せず使う」は節の外に
-     置く：どの節を見ていても押せるようにするため。ids は ai-settings.js がそのまま使う。 -->
+     置く：どの節を見ていても押せるようにするためで、押すと全部の節をまとめて確定する。
+     どの節も「開いたときに下書き → footer で保存する／保存せず使う」という同じ形を持ち、
+     配線は app.js の settingsSections（AI の節の中身だけ ai-settings.js）。 -->
 <dialog id="ai-settings" aria-labelledby="ai-settings-title">
   <div class="dialog-heading"><h2 id="ai-settings-title">設定</h2><button id="ai-settings-close" class="quiet">閉じる</button></div>
   <div class="settings-body">
@@ -217,7 +219,7 @@
           <!-- 一覧はボード一覧と同じ型（h4.board-vendor ＋ ul.board-group ＋ .list-row）で、
                app.js が THEMES から作る。<select> と違って括りの見出しが型どおりに出る。 -->
           <label id="theme-select-label">テーマ</label>
-          <p class="form-hint">DuoTone・Agila・Material・Kronuz・ayu（いずれもMIT）の配色から選びます。選ぶとすぐ反映します。</p>
+          <p class="form-hint">DuoTone・Agila・Material・Kronuz・ayu（いずれもMIT）の配色から選びます。選ぶとすぐ反映し、下の「保存して閉じる」で保存します。</p>
           <div id="theme-select" role="group" aria-labelledby="theme-select-label"></div>
         </div>
         <div class="form-group">
@@ -274,13 +276,13 @@
         </div>
       </section>
       <!-- compile サーバー。Text 本体を別オリジン（Pages など）に置いたときに、Build を頼む先を
-           指す設定。保存は footer の「保存して閉じる」ではなく、入力を離れたときにその場で行う
-           （footer の2つは AI の下書きを確定する口で、この節を知らない）。配線は app.js。 -->
+           指す設定。入力を離れたときは形を確かめて /health を叩くだけで、保存するのは他の節と
+           同じく footer の2つ。配線は app.js。 -->
       <section id="settings-compiler" data-section="compiler" aria-labelledby="settings-compiler-title" hidden>
         <h3 class="heading" id="settings-compiler-title">compile サーバー</h3>
         <div class="form-group">
           <label for="compiler-url">URL</label>
-          <p class="form-hint">Buildを頼むサーバーです。空ならこのページと同じサーバーを使います。入力欄を離れるとこのブラウザに保存し、応答を確かめます。</p>
+          <p class="form-hint">Buildを頼むサーバーです。空ならこのページと同じサーバーを使います。入力欄を離れると応答を確かめ、下の「保存して閉じる」で保存します。</p>
           <input id="compiler-url" type="url" placeholder="https://example.com" autocomplete="off" spellcheck="false">
           <p id="compiler-status" class="notice" role="status"></p>
         </div>

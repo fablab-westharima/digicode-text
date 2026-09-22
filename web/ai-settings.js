@@ -44,20 +44,23 @@ export function setupAISettings(onChange, say) {
     for (const option of $('ai-api').options) option.disabled = !offered.has(option.value);
   }
   function read() { drafts[draftProvider] = { key: $('ai-key').value.trim(), model: $('ai-model').value.trim(), api: $('ai-api').value }; }
+  // この節の draft / commit。dialog を開ける・閉じる・結果の1行を出すのは app.js の側で、
+  // ここは自分の節のことだけをする：断るときは理由を footer の1行に出して false を返す。
+  function draft() { drafts = structuredClone(configs); draftProvider = provider; fields(); }
   function commit(save) {
     read(); const c = drafts[draftProvider];
-    if (!c.model || c.model.length > 200) { $('ai-settings-status').textContent = 'モデルIDを入力してください'; return; }
+    if (!c.model || c.model.length > 200) { $('ai-settings-status').textContent = 'モデルIDを入力してください'; return false; }
     if (save) {
       try { localStorage.setItem(storageKey(draftProvider), JSON.stringify(c)); }
-      catch { $('ai-settings-status').textContent = '保存できませんでした。再試行するか「保存せず使う」を選択してください'; return; }
+      catch { $('ai-settings-status').textContent = '保存できませんでした。再試行するか「保存せず使う」を選択してください'; return false; }
       // A later save for the provider that is already the default carries its model forward, so
       // the restored startup state is the newest saved one rather than a stale model ID.
       if (readDefault()?.provider === draftProvider) writeDefault(draftProvider, c);
     }
     configs[draftProvider] = { ...c }; provider = draftProvider;
-    onChange(); render(); $('ai-settings').close(); say(save ? 'このブラウザに保存しました' : '保存せず、このページで使用します');
+    onChange(); render();
+    return true;
   }
-  $('ai-settings-open').onclick = () => { drafts = structuredClone(configs); draftProvider = provider; fields(); $('ai-settings-status').textContent = ''; $('ai-settings').showModal(); };
   $('ai-settings-close').onclick = () => $('ai-settings').close();
   $('ai-settings').addEventListener('close', () => { drafts = null; $('ai-key').value = ''; $('ai-api-help').hidden = true; $('ai-api-info').setAttribute('aria-expanded', 'false'); });
   $('ai-provider').onchange = () => { read(); draftProvider = $('ai-provider').value; fields(); };
@@ -68,8 +71,6 @@ export function setupAISettings(onChange, say) {
   };
   $('ai-model').oninput = () => { $('ai-model-choice').value = 'custom'; };
   $('ai-api').onchange = () => { $('ai-model-choice').value = 'custom'; };
-  $('ai-save').onclick = () => commit(true);
-  $('ai-use').onclick = () => commit(false);
   $('ai-default').onclick = () => {
     // Records the provider and model shown right now, a freely typed model ID included. It writes
     // no key: saving the key stays 「保存して閉じる」.
@@ -99,5 +100,6 @@ export function setupAISettings(onChange, say) {
     onChange(); render(); say('別タブで設定が変わりました。キーを再設定してください', 'error');
   });
   render();
-  return { get provider() { return provider; }, config: () => ({ ...configs[provider] }), containsKey: text => Object.values(configs).some(c => c.key && text.includes(c.key)) };
+  return { get provider() { return provider; }, config: () => ({ ...configs[provider] }), containsKey: text => Object.values(configs).some(c => c.key && text.includes(c.key)),
+    section: { name: 'ai', draft, commit } };
 }

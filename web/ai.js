@@ -186,5 +186,7 @@ export function setupAI(monaco, host) {
   }
   $('ai-send').onclick = () => send();
   buildChanged(); renderHistory();
-  return { changed, buildChanged };
+  // settingsSection は設定 dialog の「AI」の節（app.js の footer がまとめて確定する）。
+  // say は、その確定の結果をこのパネルの1行に出すための口。
+  return { changed, buildChanged, say, settingsSection: settings.section };
 }

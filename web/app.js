@@ -17,7 +17,7 @@ import { setupThemes, THEMES } from './themes/duotone.js';
 import { setupBoardList } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
 import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
-import { compilerUrl, getCompilerBase, setCompilerBase, checkCompilerHealth } from './compiler-url.js';
+import { compilerUrl, getCompilerBase, setCompilerBase, useCompilerBase, normalizeBase, checkCompilerHealth } from './compiler-url.js';
 
 self.MonacoEnvironment = {
   getWorker() { return new Worker('/assets/editor.worker.js', { type: 'module' }); },
@@ -80,8 +80,9 @@ function renderThemes() {
     const name = document.createElement('strong');
     name.textContent = theme.name;
     row.append(name);
+    // 押すとその場で当たるが、保存はしない（下書き）。保存は footer の「保存して閉じる」。
     // 行を作り直すので、押した行（＝新しい選択中の行）へフォーカスを戻す。
-    row.onclick = () => { themes.apply(theme.id, { save: true }); renderThemes(); themeRow()?.focus(); };
+    row.onclick = () => { themes.apply(theme.id); renderThemes(); themeRow()?.focus(); };
     item.append(row);
     list.append(item);
   }
@@ -89,8 +90,8 @@ function renderThemes() {
 renderThemes();
 $('layout-reset').onclick = () => { layout.reset(); ui.applyPanel(); themeRow()?.focus(); };
 
-// 設定 dialog の節の切り替え。目次で選んだ1節だけを右に出す。保存のロジック（ai-settings.js）
-// には触れない：ここは表示している節を決めるだけ。
+// 設定 dialog の節の切り替え。目次で選んだ1節だけを右に出す。保存そのものには触れない：
+// ここは表示している節を決めるだけ。
 const settingsParts = [...document.querySelectorAll('#ai-settings [data-section]')];
 function showSettingsSection(name) {
   for (const part of settingsParts) {
@@ -101,24 +102,62 @@ function showSettingsSection(name) {
   $('settings-content').scrollTop = 0;
 }
 for (const button of $('settings-nav').children) button.onclick = () => showSettingsSection(button.dataset.section);
+
+// 設定 dialog の節は、どれも同じ3つの口を持つ。
+//   draft()        dialog を開いたときに、保存されている値から下書きを作る
+//   commit(true)   footer の「保存して閉じる」。このブラウザに保存する
+//   commit(false)  footer の「保存せず使う」。保存せず、開いているこのページにだけ効かせる
+// commit は受け付けたら true、断ったら（形が違う・保存できない）理由を出して false を返す。
+// 即時の操作（キー・保存設定の削除、レイアウトの初期化、「次回から表示しない」の解除）は
+// 下書きにしない：押したその場で効く、と各項目の説明が言っているもの。
+// 節ごとに1つ登録する。回る並びは目次（#settings-nav）そのものから取るので、登録の順は問わない
+// （AI の節は ai-settings.js が持っていて、登録できるのは setupAI のあとになる）。
+const settingsSections = {};
+const orderedSections = () => [...$('settings-nav').children]
+  .map(button => [button.dataset.section, settingsSections[button.dataset.section]])
+  .filter(([, section]) => section);
+function commitSettings(save) {
+  for (const [name, section] of orderedSections()) {
+    if (section.commit(save)) continue;
+    showSettingsSection(name); // 断った節を開いて見せる。理由はその節が出している
+    return;
+  }
+  $('ai-settings').close();
+  ai?.say(save ? 'このブラウザに保存しました' : '保存せず、このページで使用します');
+}
+$('ai-save').onclick = () => commitSettings(true);
+$('ai-use').onclick = () => commitSettings(false);
 // 開いたときの節は「開いた元」で決める。AIパネルの接続表示（#ai-settings-open）を利用者が直接
-// 押したときは「AI API設定」、アクティビティバーの「設定」からは「外観」。dialog を開ける口は
-// ai-settings.js の opener 一つなので、開く前に次の節を置いてからその click を送る。
+// 押したときは「AI」、アクティビティバーの「設定」からは「外観」。設定は sidebar の view では
+// なく本物の <dialog>で、開ける口はここ一つ。閉じるのは dialog 自身（「閉じる」ボタンと Esc）。
 let nextSettingsSection = 'ai';
-$('ai-settings-open').addEventListener('click', () => { showSettingsSection(nextSettingsSection); nextSettingsSection = 'ai'; });
-// 設定は sidebar の view ではなく本物の <dialog>。開けるのはここだけで、閉じるのは dialog 自身
-// （「閉じる」ボタンと Esc）。開くときの下ごしらえは ai-settings.js の ai-settings-open にある。
+$('ai-settings-open').addEventListener('click', () => {
+  showSettingsSection(nextSettingsSection); nextSettingsSection = 'ai';
+  for (const [, section] of orderedSections()) section.draft();
+  $('ai-settings-status').textContent = '';
+  if (!$('ai-settings').open) $('ai-settings').showModal();
+});
 $('view-settings').onclick = () => { nextSettingsSection = 'appearance'; $('ai-settings-open').click(); };
 
-// 設定の「compile サーバー」の節。ここだけは footer の「保存して閉じる」を通さない：
-// あれは AI の下書き（ai-settings.js の drafts）を確定する口で、他の設定を知らない。
-// 入力を離れた時点でこのブラウザに保存し、その URL の /health を叩いて結果をその場に出す。
+// 「外観」の節。テーマは押したその場で当たる（見ないと選べない）が、それは下書き：
+// 「保存して閉じる」でこのブラウザに保存し、「保存せず使う」は保存せずこのページに残す。
+// どちらも押さずに閉じたときは、開いたときのテーマへ戻す（AI のキーの下書きと同じ扱い）。
+let committedTheme = themes.current;
+settingsSections.appearance = {
+  draft() { committedTheme = themes.current; renderThemes(); },
+  commit(save) { themes.apply(themes.current, { save }); committedTheme = themes.current; return true; },
+};
+$('ai-settings').addEventListener('close', () => {
+  if (themes.current !== committedTheme) { themes.apply(committedTheme); renderThemes(); }
+});
+
+// 設定の「compile サーバー」の節。入力を離れたときは、形を確かめて /health を叩き、結果をその場に
+// 出すだけで保存はしない。保存するのは他の節と同じく footer の2つ。
 function compilerNotice(message, state = '') {
   const notice = $('compiler-status');
   notice.textContent = message;
   if (state) notice.dataset.state = state; else delete notice.dataset.state;
 }
-$('compiler-url').value = getCompilerBase();
 let healthRun = 0;
 async function showCompilerHealth(base) {
   const run = ++healthRun;
@@ -131,10 +170,20 @@ async function showCompilerHealth(base) {
 }
 $('compiler-url').onchange = () => {
   let base;
-  try { base = setCompilerBase($('compiler-url').value); }
+  try { base = normalizeBase($('compiler-url').value); }
   catch (error) { compilerNotice(error.message, 'error'); return; }
   $('compiler-url').value = base;
   showCompilerHealth(base);
+};
+settingsSections.compiler = {
+  draft() { $('compiler-url').value = getCompilerBase(); compilerNotice(''); healthRun++; },
+  commit(save) {
+    let base;
+    try { base = save ? setCompilerBase($('compiler-url').value) : useCompilerBase($('compiler-url').value); }
+    catch (error) { compilerNotice(error.message, 'error'); return false; }
+    $('compiler-url').value = base;
+    return true;
+  },
 };
 
 // The compiler's board table is the only board list: select options, project validation
@@ -742,8 +791,11 @@ ai = setupAI(monaco, {
   },
 });
 
+// 設定の「AI」の節は ai-settings.js が持っている。ここで他の2節と同じ並びに加える。
+settingsSections.ai = ai.settingsSection;
+
 // ボード一覧が取れていないなら、直せる場所（設定の「compile サーバー」）を開いたところから始める。
-// dialog を開ける口は ai-settings.js の opener 一つなので、開くのは setupAI のあと。
+// 開くと全部の節の draft() が走るので、開くのは AI の節を登録したあと。
 if (boardsError) {
   $('status').textContent = 'compile サーバーに届きません。設定で URL を確認してください';
   ui.setBuildState('error');

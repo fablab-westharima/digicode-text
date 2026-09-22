@@ -61,8 +61,13 @@ test('Switching theme moves the CSS variables and the Monaco theme together, and
     expect(seen).not.toContainEqual(shown.background);
     seen.push(shown.background);
 
-    expect(await page.evaluate(k => localStorage.getItem(k), THEME_KEY)).toBe(theme);
+    // 選ぶのは下書き。保存するのは footer の「保存して閉じる」なので、ここではまだ書かれない。
+    expect(await page.evaluate(k => localStorage.getItem(k), THEME_KEY)).toBeNull();
   }
+  // footer の「保存して閉じる」で、いま当たっているテーマがこのブラウザに残る。
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  expect(await page.evaluate(k => localStorage.getItem(k), THEME_KEY)).toBe(LAST);
 
   // The chosen theme survives a reload, in the CSS and in Monaco.
   await page.reload();
@@ -80,6 +85,30 @@ test('Switching theme moves the CSS variables and the Monaco theme together, and
   await expect(page.locator('#build')).toBeEnabled();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
   expect(await page.evaluate(k => localStorage.getItem(k), THEME_KEY)).toBe('solarized-light');
+});
+
+// テーマも設定の他の節と同じ「下書き → 保存して閉じる／保存せず使う」の形を持つ。
+test('テーマは下書き：保存せず使うとこのページだけ、閉じると開いたときのテーマへ戻る', async ({ page }) => {
+  await ready(page);
+  await openSettings(page);
+  await pickTheme(page, 'ayu-dark');
+  await page.click('#ai-use');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  // 「保存せず使う」：このページには当たったまま、保存値は書かれない。
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'ayu-dark');
+  expect(await page.evaluate(k => localStorage.getItem(k), THEME_KEY)).toBeNull();
+  await page.reload();
+  await expect(page.locator('#build')).toBeEnabled();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
+
+  // どちらも押さずに閉じたら、開いたときのテーマへ戻る（AI のキーの下書きと同じ）。
+  await openSettings(page);
+  await pickTheme(page, 'kronuz');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'kronuz');
+  await page.click('#ai-settings-close');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'duotone-dark');
+  await expect(page.locator('html')).toHaveAttribute('data-monaco-theme', 'duotone-dark');
 });
 
 test('app.css writes colour literals only where the themes are defined', async () => {

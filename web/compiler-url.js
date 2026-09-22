@@ -2,8 +2,9 @@
 // すべてここを通る。Text 本体を別オリジン（Cloudflare Pages など）に置いても、Build は
 // ML30 の compile サーバーに頼めるようにするための 1 か所。
 //
-// 優先順位は「このブラウザに保存された値 > build 時に埋めた既定 > 空（＝同じオリジン）」。
-// 空文字は「このページを配っているのと同じサーバー」という意味で、正しい値として扱う。
+// 優先順位は「設定で『保存せず使う』を押した値 > このブラウザに保存された値 > build 時に埋めた
+// 既定 > 空（＝同じオリジン）」。空文字は「このページを配っているのと同じサーバー」という意味で、
+// 正しい値として扱う。
 //
 // __COMPILER_BASE__ は scripts/build-web.mjs の esbuild define が埋める定数。
 // esbuild を通さない場面（node --test）でも壊れないよう、typeof で見てから読む。
@@ -33,8 +34,13 @@ function readStored() {
   catch { return null; } // localStorage が無い・読めない場面（node、サイトデータ拒否）
 }
 
+// 設定の「保存せず使う」で入った、開いているこのページにだけ効かせる値。null は「その指定は無い」
+// という意味で、空文字（＝同じオリジン）とは別物。保存すると要らなくなるので null に戻す。
+let sessionBase = null;
+
 /** いま使う base。壊れた保存値は無視して build 時の既定に戻す。 */
 export function getCompilerBase() {
+  if (sessionBase !== null) return sessionBase;
   const stored = readStored();
   if (stored !== null) {
     try { return normalizeBase(stored); } catch { /* 壊れた記録は既定に倒す */ }
@@ -49,7 +55,14 @@ export function setCompilerBase(value) {
     if (base) localStorage.setItem(COMPILER_KEY, base);
     else localStorage.removeItem(COMPILER_KEY); // 空は「同じオリジン」。既定に戻すのではなく空を意味する
   } catch { throw new Error('このブラウザに保存できませんでした'); }
+  sessionBase = null; // 保存したので、このページだけの値は用が済んだ
   return base;
+}
+
+/** base を保存せず、開いているこのページにだけ効かせる。戻り値はそろえたあとの値。 */
+export function useCompilerBase(value) {
+  sessionBase = normalizeBase(value); // 形が違えばここで止まる
+  return sessionBase;
 }
 
 /** compile サーバーへの URL。path は '/boards' のように / で始める。 */

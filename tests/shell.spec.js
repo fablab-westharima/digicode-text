@@ -147,6 +147,39 @@ test('The section a settings dialog opens on is the one the opener asks for, and
   await page.click('#ai-settings-close');
 });
 
+// footer の2つは dialog 全体の口：どの節を見ていても押せて、3 節をまとめて確定する。
+test('設定の footer は、見ている節にかかわらず 3 節をまとめて保存する／保存せず使う', async ({ page }) => {
+  const stored = (page) => page.evaluate(() => ({
+    theme: localStorage.getItem('digicode-text.theme.v1'),
+    compiler: localStorage.getItem('digicode-text.compiler.v1'),
+    ai: localStorage.getItem('digicode-text.ai.openai.v1'),
+  }));
+  await ready(page);
+  await page.click('#view-settings'); // 開くのは「外観」の節
+  await page.click('#theme-select li[data-theme-id="kronuz"] .theme-item');
+  await page.click('#settings-nav button[data-section="ai"]');
+  await page.fill('#ai-key', 'dummy-openai-test-only');
+  await page.click('#settings-nav button[data-section="compiler"]');
+  await page.fill('#compiler-url', 'http://127.0.0.1:3100');
+
+  // 「保存せず使う」：3 節とも効くが、どれも保存されない。
+  await page.click('#ai-use');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'kronuz');
+  await expect(page.locator('#ai-connection')).toContainText('キー設定あり');
+  expect(await stored(page)).toEqual({ theme: null, compiler: null, ai: null });
+
+  // 「保存して閉じる」：compile サーバーの節を見たまま押しても、外観と AI も一緒に保存される。
+  await page.click('#view-settings');
+  await page.click('#settings-nav button[data-section="compiler"]');
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  const after = await stored(page);
+  expect(after.theme).toBe('kronuz');
+  expect(after.compiler).toBe('http://127.0.0.1:3100');
+  expect(JSON.parse(after.ai).key).toBe('dummy-openai-test-only');
+});
+
 test('Layout state is saved and restored: view, widths, panel height, AI panel, and reset', async ({ page }) => {
   await ready(page);
   expect(await layout(page)).toMatchObject({ sidebarOpen: true, sidebarView: 'explorer', sidebarWidth: 320, panelOpen: false, aiOpen: false });

@@ -26,39 +26,55 @@ test('設定が無ければ、これまでどおり同じオリジンの compile
   await expect(page.locator('#compiler-status')).toHaveText('');
 });
 
-test('URL を入れるとその場で保存し、/health の結果を出す', async ({ page }) => {
+test('URL は下書き：入力を離れると /health を確かめ、保存は footer の2つが決める', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#build')).toBeEnabled();
   await openCompilerSection(page);
 
-  // 届かない先：error の知らせ。保存はされる（直しに戻れるように、入力は消さない）。
+  // 届かない先：error の知らせ。入力を離れただけでは保存しない（直しに戻れるように、入力は消さない）。
   await page.fill('#compiler-url', DEAD);
   await page.locator('#compiler-url').blur();
   await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'error');
   await expect(page.locator('#compiler-status')).toContainText('compile サーバーに届きません');
-  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBe(DEAD);
+  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBeNull();
 
-  // 生きている先：ok の知らせ。末尾の / は落として保存する。
+  // 生きている先：ok の知らせ。末尾の / はその場で落とす。
   await page.fill('#compiler-url', 'http://127.0.0.1:3100/');
   await page.locator('#compiler-url').blur();
   await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'ok');
   await expect(page.locator('#compiler-status')).toContainText('接続できました');
   await expect(page.locator('#compiler-url')).toHaveValue('http://127.0.0.1:3100');
-  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBe('http://127.0.0.1:3100');
-
-  // http(s) でないものは拒否し、保存値は前のまま。
-  await page.fill('#compiler-url', 'example.com');
-  await page.locator('#compiler-url').blur();
-  await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'error');
-  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBe('http://127.0.0.1:3100');
-
-  // 空にすると同じオリジンへ戻り、保存値も消える。
-  await page.fill('#compiler-url', '');
-  await page.locator('#compiler-url').blur();
-  await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'ok');
   expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBeNull();
 
-  // 保存した先は、そのあとの fetch が使う。/boards は読み込み直したときに取る。
+  // http(s) でないものは footer が断る：dialog は開いたまま、断った節が出て、保存値も増えない。
+  await page.fill('#compiler-url', 'example.com');
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeVisible();
+  await expect(page.locator('#settings-compiler')).toBeVisible();
+  await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'error');
+  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBeNull();
+
+  // 「保存せず使う」：閉じるが、このブラウザには書かない。
+  await page.fill('#compiler-url', 'http://127.0.0.1:3100');
+  await page.click('#ai-use');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBeNull();
+
+  // 開き直すと、いま効いている値が下書きに入っている。「保存して閉じる」で初めて保存する。
+  await openCompilerSection(page);
+  await expect(page.locator('#compiler-url')).toHaveValue('http://127.0.0.1:3100');
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBe('http://127.0.0.1:3100');
+
+  // 空にして保存すると同じオリジンへ戻り、保存値も消える。
+  await openCompilerSection(page);
+  await page.fill('#compiler-url', '');
+  await page.click('#ai-save');
+  await expect(page.locator('#ai-settings')).toBeHidden();
+  expect(await page.evaluate(k => localStorage.getItem(k), KEY)).toBeNull();
+
+  // 保存した先は、そのあとの fetch が使う。
   await page.evaluate(([k, v]) => localStorage.setItem(k, v), [KEY, 'http://127.0.0.1:3100']);
   const asked = [];
   page.on('request', r => { if (new URL(r.url()).pathname === '/boards') asked.push(r.url()); });
