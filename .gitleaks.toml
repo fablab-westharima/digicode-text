@@ -1,0 +1,10 @@
+# gitleaks の設定。既定ルールをそのまま使い、除外を 1 つだけ足す。
+# tests/usecases/*/54,55,58 の Azure IoT Hub のデバイスキーはダミー
+# （base64 で "digicode-text-dummy-device-key01/02/03"）で、外部へは送られない。
+# fingerprint を個別登録すると env を足すたびに増えるので、文字列そのもので除外する。
+[extend]
+useDefault = true
+
+[allowlist]
+description = "ハーネスのダミー Azure デバイスキー（外部送信 0 件）"
+regexes = ['''ZGlnaWNvZGUtdGV4dC1kdW1teS1kZXZpY2Uta2V5''']

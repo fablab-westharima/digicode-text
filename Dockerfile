@@ -66,6 +66,7 @@ RUN pio pkg install -d /app/compiler/pio-esp32
 RUN pio pkg install -d /app/compiler/pio-esp32c3
 RUN pio pkg install -d /app/compiler/pio-esp32s3
 RUN pio pkg install -d /app/compiler/pio-esp32c5
+RUN pio pkg install -d /app/compiler/pio-esp32c6
 RUN pio pkg install -d /app/compiler/pio-esp32p4
 
 # `pio pkg install` だけでは足りない。実際の build は install とは別の spec で package を
@@ -81,14 +82,16 @@ RUN COMPILE_TIMEOUT_MS=1200000 node /app/compiler/tools/docker-warmup.mjs
 RUN rm -rf /opt/platformio/.cache /opt/platformio-esp8266/.cache /root/.cache
 
 # 削るのは warmup の後（warmup が要ると言ったものは残っている）。
-#  1. ボードの無いチップの prebuilt libs（esp32s2 / esp32c6 / esp32h2 / esp32p4）
+#  1. ボードの無いチップの prebuilt libs（esp32s2 / esp32h2 / esp32p4。esp32p4 は Stamp-P4 が
+#     ES 版の esp32p4_es を使うので消せる。esp32c6 は XIAO ESP32C6 が使うので消さない）
 #  2. pioarduino が staging に残す toolchain の 2 つ目の実体（/opt/platformio/tools）
-# この 2 つを消しても 20 ボードは全部建つ（2026-09-22 実測）。gdb と
+# この 2 つを消しても 20 ボードは全部建つ（2026-09-22 実測）。21 台目の XIAO ESP32C6 は
+# esp32c6 の prebuilt libs を残すことで建つ想定（image build はこの unit では回していない）。gdb と
 # framework-arduinopico/.git は、使わないのに消すと package が無効扱いになるので残す。
 RUN set -eux; \
     LIBS=/opt/platformio/packages/framework-arduinoespressif32-libs; \
     du -sh /opt/platformio /opt/platformio-esp8266; \
-    rm -rf $LIBS/esp32s2 $LIBS/esp32c6 $LIBS/esp32h2 $LIBS/esp32p4; \
+    rm -rf $LIBS/esp32s2 $LIBS/esp32h2 $LIBS/esp32p4; \
     rm -rf /opt/platformio/tools/toolchain-riscv32-esp /opt/platformio/tools/toolchain-xtensa-esp-elf; \
     du -sh /opt/platformio /opt/platformio-esp8266
 

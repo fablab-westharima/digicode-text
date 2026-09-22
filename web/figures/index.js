@@ -17,6 +17,7 @@ import usbCConnectXiaoC5 from './usb-c-connect-xiao-c5.svg';
 import usbCConnectC5Devkitc from './usb-c-connect-c5-devkitc.svg';
 import usbCConnectEsprC5 from './usb-c-connect-espr-c5.svg';
 import usbCConnectStampC5 from './usb-c-connect-stamp-c5.svg';
+import usbCConnectXiaoC6 from './usb-c-connect-xiao-c6.svg';
 import usbCConnectCoreS3 from './usb-c-connect-cores3.svg';
 import resetHoldCoreS3 from './reset-hold-cores3.svg';
 import g0HoldStampS3A from './g0-hold-stamp-s3a.svg';
@@ -52,6 +53,8 @@ export const FIGURES = {
   'usb-c-connect-espr-c5': usbCConnectEsprC5,
   // M5StampC5 はボタンが無いので、挿す口と取り出せるパッドだけを描く。
   'usb-c-connect-stamp-c5': usbCConnectStampC5,
+  // XIAO ESP32C6 は wiki が位置を文で言っている部品が右側のユーザーLEDだけなので、それしか描かない。
+  'usb-c-connect-xiao-c6': usbCConnectXiaoC6,
   // CoreS3 と CoreS3-SE は外形も口もボタンの位置も同じなので、この 2 枚を 2 台で共有する。
   // 挿す口は左側面、書き込みモードに入れる RESET は底面で、図は別の手順ぶん 2 枚。
   'usb-c-connect-cores3': usbCConnectCoreS3,

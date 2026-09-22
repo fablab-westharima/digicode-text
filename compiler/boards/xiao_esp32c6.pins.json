@@ -1,0 +1,130 @@
+{
+  "env": "xiao_esp32c6",
+  "platform": "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.312/platform-espressif32.zip",
+  "board": "seeed_xiao_esp32c6",
+  "mcu": "esp32c6",
+  "core": "esp32",
+  "variant": "XIAO_ESP32C6",
+  "frameworkPackage": "framework-arduinoespressif32",
+  "frameworkVersion": "3.3.12",
+  "sources": {
+    "platformioIni": "compiler/pio-esp32c6/platformio.ini",
+    "boardDefinition": "platforms/espressif32/boards/seeed_xiao_esp32c6.json",
+    "variantHeader": "packages/framework-arduinoespressif32/variants/XIAO_ESP32C6/pins_arduino.h",
+    "digitalLabelsFrom": "pins_arduino.h"
+  },
+  "pins": [
+    {
+      "label": "D0",
+      "pin": 0,
+      "gpio": 0,
+      "functions": [],
+      "adc": "A0",
+      "note": null
+    },
+    {
+      "label": "D1",
+      "pin": 1,
+      "gpio": 1,
+      "functions": [],
+      "adc": "A1",
+      "note": null
+    },
+    {
+      "label": "D2",
+      "pin": 2,
+      "gpio": 2,
+      "functions": [],
+      "adc": "A2",
+      "note": null
+    },
+    {
+      "label": "D6",
+      "pin": 16,
+      "gpio": 16,
+      "functions": [
+        "TX"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D7",
+      "pin": 17,
+      "gpio": 17,
+      "functions": [
+        "RX"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D10",
+      "pin": 18,
+      "gpio": 18,
+      "functions": [
+        "MOSI"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D8",
+      "pin": 19,
+      "gpio": 19,
+      "functions": [
+        "SCK"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D9",
+      "pin": 20,
+      "gpio": 20,
+      "functions": [
+        "MISO"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D3",
+      "pin": 21,
+      "gpio": 21,
+      "functions": [
+        "SS"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D4",
+      "pin": 22,
+      "gpio": 22,
+      "functions": [
+        "SDA"
+      ],
+      "adc": null,
+      "note": null
+    },
+    {
+      "label": "D5",
+      "pin": 23,
+      "gpio": 23,
+      "functions": [
+        "SCL"
+      ],
+      "adc": null,
+      "note": null
+    }
+  ],
+  "unlabelledFunctions": [
+    {
+      "name": "LED_BUILTIN",
+      "pin": 15,
+      "gpio": 15,
+      "note": null
+    }
+  ]
+}

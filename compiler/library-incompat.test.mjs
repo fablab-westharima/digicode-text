@@ -11,6 +11,7 @@ const C5 = { id: 'xiao_esp32c5', platform: 'esp32' };
 const C5_DEVKITC = { id: 'esp32_c5_devkitc_1', platform: 'esp32' };
 const C5_ESPR = { id: 'espr_developer_c5', platform: 'esp32' };
 const C5_STAMP = { id: 'm5stamp_c5', platform: 'esp32' };
+const C6 = { id: 'xiao_esp32c6', platform: 'esp32' };
 const P4_STAMP = { id: 'm5stamp_p4', platform: 'esp32' };
 const S3 = { id: 'xiao_esp32s3', platform: 'esp32' };
 // The M5 boards the harness measured as building OneWire, so they carry the platform row only.
@@ -104,12 +105,12 @@ test('a board row applies to that board alone, while the other boards of its pla
   const row = findIncompat(ONEWIRE, C5);
   assert.ok(row);
   assert.equal(row.alternative, 'pstolarz/OneWireNg');
-  assert.deepEqual(row.boards, ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4']);
+  assert.deepEqual(row.boards, ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4', 'xiao_esp32c6']);
   assert.ok(!('platforms' in row));
-  // Every C5 board carries it, and the P4 too: the failure is the chip's register layout, not one
-  // board's wiring.
-  for (const board of [C5_DEVKITC, C5_ESPR, C5_STAMP, P4_STAMP]) assert.equal(findIncompat(ONEWIRE, board), row, board.id);
-  // The same platform, the boards that are neither C5 nor P4: harness 09/10/29/31 are ok on each.
+  // Every C5 board carries it, and the P4 and the C6 too: the failure is the chip's register
+  // layout, not one board's wiring.
+  for (const board of [C5_DEVKITC, C5_ESPR, C5_STAMP, P4_STAMP, C6]) assert.equal(findIncompat(ONEWIRE, board), row, board.id);
+  // The same platform, the older boards: harness 09/10/29/31 are ok on each of them.
   for (const board of [C3, S3, DEVKITC, ...M5_OK]) assert.equal(findIncompat(ONEWIRE, board), null, board.id);
   for (const board of [PICO_W, WIO]) assert.equal(findIncompat(ONEWIRE, board), null, board.id);
   // C5 carries both rows: the platform one it shares with the other ESP32 boards, and its own.
@@ -118,6 +119,7 @@ test('a board row applies to that board alone, while the other boards of its pla
   assert.deepEqual(incompatFor(C5_ESPR), [findIncompat(MQTT, C5_ESPR), row]);
   assert.deepEqual(incompatFor(C5_STAMP), [findIncompat(MQTT, C5_STAMP), row]);
   assert.deepEqual(incompatFor(P4_STAMP), [findIncompat(MQTT, P4_STAMP), row]);
+  assert.deepEqual(incompatFor(C6), [findIncompat(MQTT, C6), row]);
   assert.deepEqual(incompatFor(C3), [findIncompat(MQTT, C3)]);
   assert.deepEqual(incompatFor(DEVKITC), [findIncompat(MQTT, DEVKITC)]);
   // The M5 boards that build OneWire carry the platform row alone.

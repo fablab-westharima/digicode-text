@@ -132,7 +132,7 @@ test('every /boards entry names its vendor', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.length).toBeGreaterThan(0);
   for (const b of boards) { expect(typeof b.vendor, b.id).toBe('string'); expect(b.vendor.trim(), b.id).not.toBe(''); }
-  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', m5stack_stickc_plus2: 'M5Stack', m5stamp_p4: 'M5Stack', wio_node: 'Seeed Studio' });
+  expect(Object.fromEntries(boards.map(b => [b.id, b.vendor]))).toEqual({ xiao_rp2040: 'Seeed Studio', pico: 'Raspberry Pi', pico_w: 'Raspberry Pi', xiao_esp32c3: 'Seeed Studio', xiao_esp32c6: 'Seeed Studio', xiao_esp32s3: 'Seeed Studio', xiao_esp32c5: 'Seeed Studio', esp32_c5_devkitc_1: 'Espressif', espr_developer_c5: 'Switch Science', m5stamp_c5: 'M5Stack', m5stack_cores3: 'M5Stack', m5stack_cores3_se: 'M5Stack', m5stamp_s3a: 'M5Stack', m5stack_atoms3: 'M5Stack', m5stack_atoms3_lite: 'M5Stack', esp32_devkitc_v4: 'Espressif', m5stack_atom_lite: 'M5Stack', m5stack_atom_matrix: 'M5Stack', m5stack_stickc_plus2: 'M5Stack', m5stamp_p4: 'M5Stack', wio_node: 'Seeed Studio' });
 });
 
 test('/boards serves the generated pin table and the sourced notes, and boardFacts turns them into prose', async ({ request }) => {
@@ -167,7 +167,7 @@ test('/boards serves the generated pin table and the sourced notes, and boardFac
 test('ESP32 系のボードだけが core の世代の注記を持ち、それは選択中のボードの文にだけ出る', async ({ request }) => {
   const boards = await (await request.get('/boards')).json();
   expect(boards.filter(b => b.platform === 'esp32').map(b => b.id))
-    .toEqual(['xiao_esp32c3', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'm5stamp_p4']);
+    .toEqual(['xiao_esp32c3', 'xiao_esp32c6', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'xiao_esp32s3', 'm5stack_cores3', 'm5stack_cores3_se', 'm5stamp_s3a', 'm5stack_atoms3', 'm5stack_atoms3_lite', 'esp32_devkitc_v4', 'm5stack_atom_lite', 'm5stack_atom_matrix', 'm5stack_stickc_plus2', 'm5stamp_p4']);
   for (const b of boards) {
     const facts = boardFacts(b);
     if (b.platform !== 'esp32') { expect(b.coreNote, b.id).toBe(null); expect(facts, b.id).not.toContain('ledcAttach'); continue; }
@@ -252,6 +252,26 @@ test('XIAO ESP32C5 の A マクロは側面パッドではないと先に言う'
   // 同じ書き込み方式の別の板で確認済み（/boards が運ぶ管理用の事実）。
   expect(c5.flashRoute).toBe('esp-usb-cdc');
   expect(c5.routeVerifiedBy).not.toContain(c5.name);
+});
+
+test('XIAO ESP32C6 は Dn ラベルの揃った variant として出る: 断り書きは要らず、アンテナ切替を注意点で言う', async ({ request }) => {
+  const boards = await (await request.get('/boards')).json();
+  const c6 = boards.find(b => b.id === 'xiao_esp32c6');
+  expect(c6.pins.variant).toBe('XIAO_ESP32C6');
+  // Seeed のピンマップと同じ並び。
+  expect(Object.fromEntries(c6.pins.pins.filter(p => /^D\d+$/.test(p.label)).map(p => [p.label, p.gpio])))
+    .toEqual({ D0: 0, D1: 1, D2: 2, D3: 21, D4: 22, D5: 23, D6: 16, D7: 17, D8: 19, D9: 20, D10: 18 });
+  // A マクロは 3 本とも側面パッドの Dn なので、C5 と違って表の読み方の断りが要らない。
+  expect(c6.pins.pins.filter(p => p.adc).map(p => [p.label, p.gpio, p.adc]))
+    .toEqual([['D0', 0, 'A0'], ['D1', 1, 'A1'], ['D2', 2, 'A2']]);
+  expect(c6.pinTableNote).toBe(null);
+  expect(c6.pins.unlabelledFunctions).toEqual([{ name: 'LED_BUILTIN', pin: 15, gpio: 15, note: null }]);
+  const facts = boardFacts(c6);
+  expect(facts).toContain('GPIO3をLowにしてRFスイッチを有効にしてから、GPIO14');
+  expect(facts).toContain('ADC1だけで、チャンネルはGPIO0からGPIO6の7本');
+  // 同じ書き込み方式の別の板で確認済み（/boards が運ぶ管理用の事実）。
+  expect(c6.flashRoute).toBe('esp-usb-cdc');
+  expect(c6.routeVerifiedBy).not.toContain(c6.name);
 });
 
 test('ESP32-C5-DevKitC-1 は 2 つの USB 口と、PSRAM が塞ぐ GPIO15 を先に言う', async ({ request }) => {

@@ -67,6 +67,8 @@ const ESP32_DATASHEET = 'https://documentation.espressif.com/esp32_datasheet_en.
 const ESP32S3_DATASHEET = 'https://documentation.espressif.com/esp32-s3_datasheet_en.pdf';
 const SEEED_XIAO_ESP32S3 = 'https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/';
 const ESP32C5_DATASHEET = 'https://documentation.espressif.com/esp32-c5_datasheet_en.pdf';
+const ESP32C6_DATASHEET = 'https://documentation.espressif.com/esp32-c6_datasheet_en.pdf';
+const SEEED_XIAO_ESP32C6 = 'https://wiki.seeedstudio.com/xiao_esp32c6_getting_started/';
 const SEEED_XIAO_ESP32C5 = 'https://wiki.seeedstudio.com/xiao_esp32c5_getting_started/';
 // The C5 DevKitC's own user guide: the only document that says which of the two USB-C ports is
 // wired to what, and which of the chip's pins this board brings out.
@@ -207,6 +209,18 @@ const BOARDS = new Map([
       { text: 'このボードにLED_BUILTINは無い', source: SEEED_XIAO_ESP32C3 },
       { text: 'BootボタンはGPIO9、ResetボタンはCHIP_ENに接続されている', source: SEEED_XIAO_ESP32C3 },
       { text: 'I/OのHighレベル入力電圧の最大はVDDより0.3V高い値、電源ピンの絶対最大定格は3.6Vなので、5Vを直接加えると定格を超える', source: ESP32C3_DATASHEET },
+    ] }],
+  ['xiao_esp32c6', { project: path.join(here, 'pio-esp32c6'), family: 'esp', platform: 'esp32', extension: 'json', contentType: 'application/json; charset=utf-8',
+    name: 'XIAO ESP32C6', vendor: 'Seeed Studio', framework: 'Arduino', core: 'Arduino ESP32', coreNote: ESP32_CORE_NOTE, artifact: 'flashset', browserFlash: true, serial: true, wireless: true, flashRoute: 'esp-usb-cdc', flashHint: ESP_FLASH, flashGuide: FLASH_GUIDES.xiao_esp32c6,
+    pinNotes: [
+      { text: 'ピンマップのD0からD10は順にGPIO0、GPIO1、GPIO2、GPIO21、GPIO22、GPIO23、GPIO16、GPIO17、GPIO19、GPIO20、GPIO18', source: SEEED_XIAO_ESP32C6 },
+      { text: '側面パッドでアナログ入力に使えるのはA0からA2（D0からD2、GPIO0からGPIO2）の3本。残りのADCチャンネルはJTAGパッドのMTMS（GPIO4）、MTDI（GPIO5）、MTCK（GPIO6）に出ている', source: SEEED_XIAO_ESP32C6 },
+      { text: 'User LEDはGPIO15、BootボタンはGPIO9でブートモードへの移行に使い、ResetボタンはENに繋がっている', source: SEEED_XIAO_ESP32C6 },
+      { text: 'アンテナは基板のセラミックアンテナと外付けを切り替えられる。GPIO3をLowにしてRFスイッチを有効にしてから、GPIO14をLowにすると内蔵、Highにすると外付けになる', source: SEEED_XIAO_ESP32C6 },
+      { text: '2.4GHzのWi-Fi 6、Bluetooth 5.3、Zigbee、Threadに対応する。Flashは4MB、SRAMは512KB。電池で動かしているとき5Vピンには電圧が出ず、電池電圧を読むには200kオームの抵抗を1:2の分圧になるよう自分で半田付けしてA0で測る', source: SEEED_XIAO_ESP32C6 },
+      { text: 'ESP32-C6のADCはADC1だけで、チャンネルはGPIO0からGPIO6の7本。ADC2は無い', source: ESP32C6_DATASHEET },
+      { text: 'GPIO12とGPIO13は既定で内蔵USB Serial/JTAGのD−とD+として動くので、USBを使っている間は汎用I/Oにできない', source: ESP32C6_DATASHEET },
+      { text: 'ストラッピングピンはMTMS（GPIO4）、MTDI（GPIO5）、GPIO8、GPIO9、GPIO15の5本で、ブートモードはGPIO8とGPIO9で決まる。電源ピンの絶対最大定格は3.6V、Highレベル入力電圧の最大はVDDより0.3V高い値なので、GPIOに5Vを直接加えると定格を超える', source: ESP32C6_DATASHEET },
     ] }],
   ['pico_w', { project: RP2040_PROJECT, family: 'rp2040', platform: 'rp2040', extension: 'uf2', contentType: 'application/octet-stream',
     name: 'Raspberry Pi Pico W', vendor: 'Raspberry Pi', framework: 'Arduino', core: 'earlephilhower arduino-pico', artifact: 'uf2', browserFlash: true, serial: true, wireless: true, flashRoute: 'rp2040-uf2', flashHint: RP2040_FLASH, flashGuide: FLASH_GUIDES.pico_w,

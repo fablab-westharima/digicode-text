@@ -6,6 +6,7 @@ compiler/pio-rp2040/.pio/
 compiler/pio-esp32/.pio/
 compiler/pio-esp32s3/.pio/
 compiler/pio-esp32c5/.pio/
+compiler/pio-esp32c6/.pio/
 compiler/pio-esp32c3/.pio/
 compiler/pio-esp8266/.pio/
 node_modules/

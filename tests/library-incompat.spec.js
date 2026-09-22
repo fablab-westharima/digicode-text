@@ -17,7 +17,7 @@ const BLOCKED_BOARD = 'xiao_esp32c3', OK_BOARD = 'wio_node';
 // Same platform as BLOCKED_BOARD ('esp32'), so only a board row can tell them apart.
 const ONE_BOARD = 'xiao_esp32c5', SAME_PLATFORM = ['xiao_esp32c3', 'xiao_esp32s3', 'esp32_devkitc_v4'];
 // The row is about the chip's register layout, so it names every board the harness saw it fail on.
-const ONEWIRE_BOARDS = ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4'];
+const ONEWIRE_BOARDS = ['xiao_esp32c6', 'xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4'];
 const projectKey = 'digicode-text.projects.v1';
 const uiKey = 'digicode-text.libs-ui.v1';
 const mqttRow = page => page.locator(`[data-library-id="${mqtt.id}"]`);

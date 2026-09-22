@@ -39,7 +39,7 @@ node tests/usecases/run.mjs --results latest --rerun     # 既存結果を無視
 // @desc WiFi 接続後に MQTT へ JSON を publish
 ```
 
-- `@board` は必須。`xiao_rp2040` / `pico` / `pico_w` / `xiao_esp32c3` / `xiao_esp32s3` / `xiao_esp32c5` / `esp32_c5_devkitc_1` / `espr_developer_c5` / `m5stamp_c5` / `m5stack_cores3` / `m5stack_cores3_se` / `m5stamp_s3a` / `m5stack_atoms3` / `m5stack_atoms3_lite` / `m5stack_atom_lite` / `m5stack_atom_matrix` / `m5stack_stickc_plus2` / `m5stamp_p4` / `esp32_devkitc_v4` / `wio_node`。
+- `@board` は必須。`xiao_rp2040` / `pico` / `pico_w` / `xiao_esp32c3` / `xiao_esp32c6` / `xiao_esp32s3` / `xiao_esp32c5` / `esp32_c5_devkitc_1` / `espr_developer_c5` / `m5stamp_c5` / `m5stack_cores3` / `m5stack_cores3_se` / `m5stamp_s3a` / `m5stack_atoms3` / `m5stack_atoms3_lite` / `m5stack_atom_lite` / `m5stack_atom_matrix` / `m5stack_stickc_plus2` / `m5stamp_p4` / `esp32_devkitc_v4` / `wio_node`。
 - 同じ PlatformIO env を共有する 2 台（CoreS3 と CoreS3-SE、ATOMS3 と ATOMS3 Lite、ATOM Lite と
   ATOM Matrix）は build の設定がまったく同じなので、ケースは env を代表する 1 台にだけ置く
   (`m5stack_cores3` / `m5stack_atoms3` / `m5stack_atom_lite`)。結果もその 1 台のぶんだけ出る。

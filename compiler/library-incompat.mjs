@@ -28,16 +28,16 @@ export const LIBRARY_INCOMPAT = [
   },
   {
     library: 'paulstoffregen/OneWire',
-    // Board rows, not a platform row. The esp32 boards that are neither C5 nor P4 build this
-    // library: the same four cases are ok on xiao_esp32c3, xiao_esp32s3, esp32_devkitc_v4 and on
-    // the five M5 boards added since. Every C5 board fails, and so does the P4, because OneWire's
+    // Board rows, not a platform row. The older esp32 boards build this library: the same four
+    // cases are ok on xiao_esp32c3, xiao_esp32s3, esp32_devkitc_v4 and on the five M5 boards
+    // added since. Every C5 board fails, and so do the P4 and the C6, because OneWire's
     // util/OneWire_direct_gpio.h reads and writes GPIO.in / GPIO.out_w1tc as plain 32-bit
     // registers, while those chips' soc/gpio_struct.h declares them as bit-field structs. It is
     // the chip, so each board is listed only after its own harness run.
-    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4'],
+    boards: ['xiao_esp32c5', 'esp32_c5_devkitc_1', 'espr_developer_c5', 'm5stamp_c5', 'm5stamp_p4', 'xiao_esp32c6'],
     reason: 'このライブラリがGPIOレジスタを直接読み書きする部分が、このボードのcoreのレジスタ定義と合わないためBuildが失敗します',
     alternative: 'pstolarz/OneWireNg',
-    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1、espr_developer_c5、m5stamp_c5、m5stamp_p4 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 と m5stack_cores3、m5stamp_s3a、m5stack_atoms3、m5stack_atom_lite、m5stack_stickc_plus2 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20、esp32_c5_devkitc_1/62-onewireng-ds18b20、espr_developer_c5/62-onewireng-ds18b20、m5stamp_c5/62-onewireng-ds18b20、m5stamp_p4/62-onewireng-ds18b20 が ok',
+    evidence: 'harness 2026-09-21 xiao_esp32c5/09-onewire-dallas, 2026-09-21 xiao_esp32c5/10-dallas-legacy-version, 2026-09-21 xiao_esp32c5/29-modbus-dallas-json, 2026-09-21 xiao_esp32c5/31-dallas-ssd1306（ng）、同じ4件が 2026-09-21 esp32_c5_devkitc_1、espr_developer_c5、m5stamp_c5、m5stamp_p4 でも同じ operator>> のエラーで ng、2026-09-21 xiao_esp32c3 と m5stack_cores3、m5stamp_s3a、m5stack_atoms3、m5stack_atom_lite、m5stack_stickc_plus2 では ok。代替は 2026-09-21 xiao_esp32c5/62-onewireng-ds18b20、esp32_c5_devkitc_1/62-onewireng-ds18b20、espr_developer_c5/62-onewireng-ds18b20、m5stamp_c5/62-onewireng-ds18b20、m5stamp_p4/62-onewireng-ds18b20 が ok。xiao_esp32c6 は 2026-09-23 に同じ4件が同じ operator>> のエラーで ng、代替の xiao_esp32c6/62-onewireng-ds18b20 は ok',
   },
 ];
 

@@ -127,7 +127,7 @@ test('一覧は vendor の小見出しで括られ、vendor 名→ボード名�
     expect(names).toEqual(boards.filter(b => b.vendor === vendor).sort((a, b) => a.name.localeCompare(b.name)).map(b => b.name));
   }
   expect(await page.locator('#board-list .board-item').allTextContents())
-    .toEqual(['ESP32-C5-DevKitC-1', 'ESP32-DevKitC V4', 'ATOM Lite', 'ATOM Matrix', 'ATOMS3', 'ATOMS3 Lite', 'CoreS3', 'CoreS3-SE', 'M5StampC5', 'M5StampS3A', 'Stamp-P4', 'StickC Plus2', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32S3', 'XIAO RP2040', 'ESPr Developer C5']);
+    .toEqual(['ESP32-C5-DevKitC-1', 'ESP32-DevKitC V4', 'ATOM Lite', 'ATOM Matrix', 'ATOMS3', 'ATOMS3 Lite', 'CoreS3', 'CoreS3-SE', 'M5StampC5', 'M5StampS3A', 'Stamp-P4', 'StickC Plus2', 'Raspberry Pi Pico', 'Raspberry Pi Pico W', 'Wio Node', 'XIAO ESP32C3', 'XIAO ESP32C5', 'XIAO ESP32C6', 'XIAO ESP32S3', 'XIAO RP2040', 'ESPr Developer C5']);
   expect(await page.locator('#env option').evaluateAll(list => list.map(o => o.value))).toEqual(boards.map(b => b.id));
   // メーカーの見出しは view の見出しと同じ .heading の型（15px・左4px の縦線）。深さは
   // 字の大きさではなく、括りの中に行が入っていることで示す。

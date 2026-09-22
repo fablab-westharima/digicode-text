@@ -1,0 +1,27 @@
+<!-- XIAO ESP32C6 を上から見た平面図。21x17.8mm、USB-Cは基板上辺の中央、側面のキャスタレーションは
+     片側7個（ピンマップのD0からD10と電源で14端子）。wiki が文で位置を言っているのは、片面実装で
+     あることと、ユーザーLEDが右側にあること（「the orange LED on the right side of the XIAO
+     ESP32C6」）だけ。BとRのボタンとU.FLのアンテナ端子は wiki の写真にしか無く、位置を文で言って
+     いないので描かない（この手順ではどちらのボタンも押さない）。
+     線画のみ。色は app.css の .flash-figure が変数で与える（この中に色は書かない）。 -->
+<svg viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect class="fig-board" x="112" y="100" width="96" height="113" rx="5"/>
+  <!-- 側面のキャスタレーション 7個ずつ -->
+  <path class="fig-pad" d="M107,114h10v9h-10zM107,127h10v9h-10zM107,140h10v9h-10zM107,153h10v9h-10zM107,166h10v9h-10zM107,179h10v9h-10zM107,192h10v9h-10z"/>
+  <path class="fig-pad" d="M203,114h10v9h-10zM203,127h10v9h-10zM203,140h10v9h-10zM203,153h10v9h-10zM203,166h10v9h-10zM203,179h10v9h-10zM203,192h10v9h-10z"/>
+  <!-- モジュールのラベル面 -->
+  <rect class="fig-face" x="126" y="116" width="68" height="50" rx="3"/>
+  <!-- 右側: ユーザーLED -->
+  <rect class="fig-face" x="184" y="176" width="14" height="10" rx="2"/>
+  <!-- 挿す先: USB-Cコネクタ -->
+  <rect class="fig-part fig-accent" x="134" y="86" width="52" height="28" rx="5"/>
+  <rect class="fig-board fig-accent fig-thin" x="143" y="93" width="34" height="9" rx="4.5"/>
+  <!-- USB-Cケーブルは上から差し込む。rotate(90 160 60) の中でfig-cableが横へ動く＝画面では下向き。 -->
+  <g transform="rotate(90 160 60)">
+    <g class="fig-cable fig-accent">
+      <rect class="fig-part fig-accent" x="152" y="46" width="36" height="28" rx="5"/>
+      <rect class="fig-part fig-accent" x="124" y="53" width="30" height="14" rx="6"/>
+      <path d="M130,60 L70,60"/>
+    </g>
+  </g>
+</svg>
