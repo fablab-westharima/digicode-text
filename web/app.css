@@ -2,7 +2,7 @@
  *
  * Colour literals appear in this file ONLY inside the `:root` / `:root[data-theme=...]` blocks
  * below; every rule after them is written with custom properties. The DuoTone values were taken
- * from simurai's themes (MIT) — see web/themes/LICENSE-duotone.txt and web/themes/duotone.js for
+ * from simurai's themes (MIT) — see web/themes/LICENSE-duotone.txt and web/themes/themes.js for
  * the raw.githubusercontent.com URLs each palette was read from. Every block names its source in
  * the comment above it; the licences sit next to it in web/themes/.
  *
@@ -32,7 +32,7 @@
  *   @uno-5 = background +14 lightness (clamped to 29..40), so the border stays visible
  *   @duo-1 = one colour the palette declares as its highlight — `globals.accent` where the
  *            palette has one, otherwise the keyword/storage colour, which is the role @duo-1
- *            plays in the Monaco theme (web/themes/duotone.js)
+ *            plays in the Monaco theme (web/themes/themes.js)
  *   @duo-2 = @duo-1, saturation x0.45 and lightness -16      @duo-3 = x0.22 and -29,
  *            each then lifted until it clears --bg-editor by 3.5:1 / 2:1 (never past @duo-1):
  *            these two grades draw the heading rule, the selected row's border and the ok

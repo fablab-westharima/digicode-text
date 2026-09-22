@@ -13,7 +13,7 @@ import { incompatibleDependencies } from './library-incompat.js';
 import { setupAI } from './ai.js';
 import { setupUI } from './ui.js';
 import { setupLayout } from './layout.js';
-import { setupThemes, THEMES } from './themes/duotone.js';
+import { setupThemes, THEMES } from './themes/themes.js';
 import { setupBoardList } from './boards.js';
 import { openProjects, makeProject, validName, parseProject, validateContent, setBoards, MAX_FILE } from './projects.js';
 import { exportProject, exportAll, parseImportZip, uniqueName, MAX_ZIP } from './project-io.js';
