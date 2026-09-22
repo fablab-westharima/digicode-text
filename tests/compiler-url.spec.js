@@ -92,3 +92,33 @@ test('ボード一覧を取れなくても本体は開き、compile サーバー
   await page.click('#help-nav button[data-section="boards"]');
   await expect(page.locator('#help-board-list')).toBeEmpty();
 });
+
+test('ボード一覧を取れなくても保存済みプロジェクトはそのまま開き、壊れ扱いにしない', async ({ page }) => {
+  const KEY_PROJECTS = 'digicode-text.projects.v1';
+  const source = '// saved while the compile server was up\n';
+  const saved = {
+    version: 1, activeId: 'p1', migration: 'none',
+    projects: [{ id: 'p1', name: '保存済み', source, env: 'pico', libraries: [], revision: 3,
+      createdAt: '2026-09-01T00:00:00.000Z', updatedAt: '2026-09-02T00:00:00.000Z' }],
+  };
+  await page.addInitScript(({ k, v }) => { if (!localStorage.getItem(k)) localStorage.setItem(k, JSON.stringify(v)); }, { k: KEY_PROJECTS, v: saved });
+  await page.route('**/boards', route => route.abort('connectionrefused'));
+  await page.goto('/');
+
+  // compile 節の error はこれまでどおり出る。
+  await expect(page.locator('#compiler-status')).toHaveAttribute('data-state', 'error');
+  await page.keyboard.press('Escape');
+
+  // 保存済みの内容がそのまま載り、「読み込めません」「上書きを停止」は出ない。
+  await expect(page.locator('.monaco-editor')).toBeVisible();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('saved while the compile server was up');
+  await expect(page.locator('#save-status')).not.toContainText('読み込めません');
+  await expect(page.locator('#save-status')).not.toContainText('上書きを停止');
+  await page.screenshot({ path: 'test-results/boards-down-keeps-saved-project.png' });
+
+  // localStorage は新規プロジェクトに置き換わっていない。
+  const after = await page.evaluate(k => JSON.parse(localStorage.getItem(k)), KEY_PROJECTS);
+  expect(after.projects.map(p => p.id)).toEqual(['p1']);
+  expect(after.projects[0].source).toBe(source);
+  expect(after.projects[0].env).toBe('pico');
+});

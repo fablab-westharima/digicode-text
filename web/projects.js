@@ -20,7 +20,9 @@ export function validateContent(value, limitSize = true) {
   validName(value?.name);
   validateLibraries(value?.libraries);
   validateSource(value.source, limitSize);
-  if (!boards.has(value.env)) throw new Error('未対応のboardです');
+  // ボード表が空なのは compile サーバーに届かなかったとき。そのときは env を裁けないので
+  // 検査を飛ばし、保存済みプロジェクトをそのまま開く（壊れ扱いにして新規に置き換えない）。
+  if (boards.size && !boards.has(value.env)) throw new Error('未対応のboardです');
 }
 export function parseProject(text) {
   if (new TextEncoder().encode(text).length > MAX_FILE) throw new Error('JSONファイルは2 MiB以内にしてください');
