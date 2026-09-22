@@ -85,8 +85,7 @@ RUN rm -rf /opt/platformio/.cache /opt/platformio-esp8266/.cache /root/.cache
 #  1. ボードの無いチップの prebuilt libs（esp32s2 / esp32h2 / esp32p4。esp32p4 は Stamp-P4 が
 #     ES 版の esp32p4_es を使うので消せる。esp32c6 は XIAO ESP32C6 が使うので消さない）
 #  2. pioarduino が staging に残す toolchain の 2 つ目の実体（/opt/platformio/tools）
-# この 2 つを消しても 20 ボードは全部建つ（2026-09-22 実測）。21 台目の XIAO ESP32C6 は
-# esp32c6 の prebuilt libs を残すことで建つ想定（image build はこの unit では回していない）。gdb と
+# この 2 つを消しても 21 ボードは全部建つ（2026-09-23 に --network none で実測）。gdb と
 # framework-arduinopico/.git は、使わないのに消すと package が無効扱いになるので残す。
 RUN set -eux; \
     LIBS=/opt/platformio/packages/framework-arduinoespressif32-libs; \
