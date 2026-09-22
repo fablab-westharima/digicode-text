@@ -73,7 +73,9 @@ RUN pio pkg install -d /app/compiler/pio-esp32p4
 # そこで、まだネットワークがあるうちにサーバーを起こして全ボードの hello を 1 回建てる。
 # ここで建たないボードがあれば image build を失敗させる。
 ENV PIO_CORE_DIR_ESP8266=/opt/platformio-esp8266
-RUN node /app/compiler/tools/docker-warmup.mjs
+# warmup は初回なので framework の全 compile と toolchain の展開が走る。4 コアの ML30 では
+# 1 ボード 90 秒（実行時の既定）に収まらないので、ここだけ長い timeout にする（2026-09-22 実測）。
+RUN COMPILE_TIMEOUT_MS=1200000 node /app/compiler/tools/docker-warmup.mjs
 
 # ダウンロードキャッシュは install のときだけ要る。build は展開済みの package を読む。
 RUN rm -rf /opt/platformio/.cache /opt/platformio-esp8266/.cache /root/.cache
