@@ -5,6 +5,7 @@
 // install とは別の spec で package を解決することがある）。
 // image の外で使うものではない。
 import { spawn } from 'node:child_process';
+import { request } from 'node:http';
 
 const APP = process.env.WARMUP_APP ?? '/app';
 const PORT = process.env.WARMUP_PORT ?? '3100';
@@ -35,16 +36,27 @@ async function waitReady() {
   throw new Error('server did not become ready');
 }
 
+// fetch は使わない。Node の fetch はヘッダが 300 秒返らないと切る（undici の既定）が、
+// 初回の ESP32 系 build は 4 コア機で 5 分を超える（ML30 で 2026-09-22 に実測）。
+function post(path, payload) {
+  return new Promise((resolve, reject) => {
+    const req = request(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, timeout: 20 * 60 * 1000 }, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks) }));
+    });
+    req.on('timeout', () => req.destroy(new Error('no response within 20 minutes')));
+    req.on('error', reject);
+    req.end(JSON.stringify(payload));
+  });
+}
+
 async function compile(id) {
   const started = Date.now();
-  const res = await fetch(`${base}/compile`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ env: id, source: HELLO, libraries: [] }),
-    signal: AbortSignal.timeout(20 * 60 * 1000),
-  });
+  const res = await post('/compile', { env: id, source: HELLO, libraries: [] });
   const secs = ((Date.now() - started) / 1000).toFixed(1);
-  if (res.ok) { const b = await res.arrayBuffer(); console.log(`warmup OK  ${id} ${secs}s ${b.byteLength}B`); return true; }
-  const text = await res.text();
+  if (res.status === 200) { console.log(`warmup OK  ${id} ${secs}s ${res.body.byteLength}B`); return true; }
+  const text = res.body.toString('utf8');
   let body = null; try { body = JSON.parse(text); } catch {}
   console.log(`warmup NG  ${id} ${secs}s ${body?.error ?? ''}`);
   console.log((body?.log ?? text).split('\n').slice(-25).join('\n'));
