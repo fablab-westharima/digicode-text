@@ -89,6 +89,33 @@ test('search failure, no results, stale response, typing automatically searches,
   }
   await page.keyboard.press('Escape'); await expect(page.locator('#libraries-open')).toBeFocused();
 });
+// 行の 2 段（1 段目 名前、2 段目 提供者）と、view の見出しの 1 行（プロジェクト名 · ボード名）。
+// どちらも「長い名前を入れても、隣の字が読めなくならない」ことだけを見る。
+test('行は名前と提供者の2段で、長いプロジェクト名でもボード名は潰れない', async ({ page }, info) => {
+  await mocks(page); await ready(page);
+  await named(page, 'rename', 'ながい名前のプロジェクト'.repeat(6)); // 72 文字
+  await page.click('#libraries-open');
+
+  // ボード名は縮めない：字が全部入っている（scrollWidth が clientWidth を超えない）。
+  const board = page.locator('#library-board');
+  await expect(board).toHaveText(' · XIAO RP2040');
+  expect(await board.evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(80);
+  expect(await board.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  // 縮んで省略されるのはプロジェクト名の側。
+  expect(await page.locator('#library-target').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+
+  // 行は2段：提供者は名前より下の段にあり、段いっぱいの幅を持つ。
+  await page.fill('#library-query', 'ArduinoJson'); await page.locator('#library-search-form button').click();
+  const row = page.locator('[data-library-id="64"] .library-item');
+  await expect(row.locator('.library-meta')).toHaveText('bblanchon');
+  const box = await row.evaluate(el => {
+    const r = (node) => { const b = node.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, width: b.width }; };
+    return { row: r(el), name: r(el.querySelector('strong')), meta: r(el.querySelector('.library-meta')) };
+  });
+  expect(box.meta.top).toBeGreaterThanOrEqual(box.name.bottom);
+  expect(box.meta.width).toBeGreaterThan(box.row.width - 16); // 行の左右の余白（padding 6px ＋ 枠 1px）を引いた幅いっぱい
+  await page.screenshot({ path: info.outputPath('library-list-two-line.png') });
+});
 test('library edits invalidate completed and in-flight artifacts and snapshot dependencies', async ({ page }) => {
   await mocks(page); await ready(page); let release, sent, delayed = false;
   await page.route('**/compile', async r => { sent = r.request().postDataJSON(); if (delayed) await new Promise(resolve => { release = resolve; }); await r.fulfill({ body: Buffer.alloc(512) }); });

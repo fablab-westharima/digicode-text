@@ -827,11 +827,14 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 .field { display: block; margin: 12px 0 4px; color: var(--fg-muted); font-size: 12px; }
 .sidebar-view select, .sidebar-view input:not([type=checkbox]) { width: 100%; }
 .storage-hint { margin: 6px 0; color: var(--fg-muted); font-size: 12px; line-height: 1.65; }
-/* 1行に収める。優先するのはプロジェクト名で、先に縮むのはボード名の側。名前だけで行幅を
-   超えるときは、max-width で頭打ちにして名前も最後に省略する。 */
+/* 1行に収める。縮むのはプロジェクト名の側だけで、ボード名は縮めない：この view が隠す・印を付ける
+   ものはどれも「選んでいるボードの言い分」なので、どのボードの話かが消えると行の意味が無くなる。
+   以前はプロジェクト名を flex: none にしていたため、長い名前を付けるとボード名が 0px まで潰れた。
+   ボード名だけで行を占めてしまわないよう max-width で頭打ちにし、名前の側は min-width の床まで
+   縮んで text-overflow で省略する。 */
 .current-project { display: flex; margin: 6px 0; color: var(--fg-muted); line-height: 1.6; white-space: nowrap; }
-.current-project strong { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
-.current-project #library-board { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.current-project strong { flex: 0 1 auto; min-width: 4em; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.current-project #library-board { flex: 0 0 auto; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
 
 .split { background: transparent; }
 .split-v { grid-row: 1; width: 4px; cursor: ew-resize; touch-action: none; margin-inline: -2px; z-index: 5; }
@@ -863,7 +866,7 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 
 /* ---- sidebar: libraries --------------------------------------------------------------- */
 /* 行の見え方は共通規則の .list-row、見出しは .heading、知らせは .notice、ボタンの列
-   （検索欄・版選択・候補・ページャ）は .actions、入力1組は .form-group。.library-item
+   （検索欄・版選択・候補・ページャ）は .actions、入力1組は .form-group。
    .library-controls .library-pager .library-incompatible-toggle はテストと JS の目印として
    だけ残す。残っているのは、この view だけの事情（sticky の検索帯・行の副題とバッジ・
    開閉できる見出し・一覧の罫線）だけ。 */
@@ -881,8 +884,13 @@ button.compact, .button.compact { height: 24px; padding: 0 var(--sp-2); font-siz
 #library-added, #library-results { list-style: none; padding: 0; margin: 0; }
 #library-added > li, #library-results > li { padding: 2px 0; border-bottom: 1px solid var(--border); }
 /* 行の副題（提供者または版）とバッジ。型の見本（styleguide の「一覧の行」）は名前だけの行で、
-   副題の型は無い。名前が幅を取り、副題とバッジは内容の幅で右に寄る今の見え方をここで保つ。 */
-.list-row > .library-meta { flex: 0 1 auto; min-width: 0; color: var(--fg-muted); font-size: var(--fs-small); overflow-wrap: anywhere; }
+   副題の型は無い。1 段目に名前（とバッジ）、2 段目に副題という 2 段にする：同じ段に置くと、
+   名前の長いライブラリで名前も提供者もどちらも読めない幅まで縮む。
+   折り返しは .list-row を wrap にして副題に 1 段を独り占めさせるやり方で、開閉の印（::after）は
+   1 段目の右端に残す（印の order は 0、副題を 1 にして後ろへ送る）。副題の左端は名前の左端に
+   そろえる（名前の前にある ✓ の枠は 1em ＝ --fs-row と、行の gap の 6px）。 */
+.library-item { flex-wrap: wrap; }
+.list-row > .library-meta { order: 1; flex: 0 0 100%; min-width: 0; padding-left: calc(var(--fs-row) + 6px); color: var(--fg-muted); font-size: var(--fs-small); overflow-wrap: anywhere; }
 .list-row > .library-badge { flex: none; padding: 0 5px; border: 1px solid var(--danger); border-radius: 3px; font-size: var(--fs-tiny); color: var(--danger); background: transparent; }
 .detail-box dd.library-description { color: var(--fg-muted); line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; }
 .library-detail { width: 100%; }
