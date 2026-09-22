@@ -165,6 +165,8 @@ test('設定の footer は、見ている節にかかわらず 3 節をまとめ
   // 「保存せず使う」：3 節とも効くが、どれも保存されない。
   await page.click('#ai-use');
   await expect(page.locator('#ai-settings')).toBeHidden();
+  // 結果の1行はステータスバーに出る（数秒で消えるので、出た直後だけを見る）。
+  await expect(page.locator('#ui-notice')).toContainText('保存せず');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'kronuz');
   await expect(page.locator('#ai-connection')).toContainText('キー設定あり');
   expect(await stored(page)).toEqual({ theme: null, compiler: null, ai: null });
@@ -174,6 +176,7 @@ test('設定の footer は、見ている節にかかわらず 3 節をまとめ
   await page.click('#settings-nav button[data-section="compiler"]');
   await page.click('#ai-save');
   await expect(page.locator('#ai-settings')).toBeHidden();
+  await expect(page.locator('#ui-notice')).toContainText('このブラウザに保存しました');
   const after = await stored(page);
   expect(after.theme).toBe('kronuz');
   expect(after.compiler).toBe('http://127.0.0.1:3100');

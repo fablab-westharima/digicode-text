@@ -1,6 +1,8 @@
 const $ = (id) => document.getElementById(id);
 
 const PHASE = { ready: '待機', changed: '未Build', building: '実行中', success: '✓ 成功', error: '! 失敗' };
+// ステータスバーの1行が出ている時間。押した結果を知らせるだけの行なので、読めるだけ出して消える。
+const NOTICE_MS = 4000;
 // 出力パネルのタブ。左から並べた順がそのまま Home / End / 矢印キーの順になる。
 const TABS = ['build', 'serial', 'plotter'];
 
@@ -53,6 +55,15 @@ export function setupUI(layout) {
   }
   $('panel-toggle').onclick = () => setOpen(!layout.panelOpen);
 
+  // ステータスバーの1行。押した結果（コピーした、保存した）をその場で知らせ、数秒で消す。
+  // 続けて呼ばれたら前の timer を止めるので、残っている1行は必ず最後に出したもの。
+  let noticeTimer;
+  function notice(text) {
+    $('ui-notice').textContent = text;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => { $('ui-notice').textContent = ''; }, NOTICE_MS);
+  }
+
   const handle = $('panel-resize');
   handle.onkeydown = e => {
     if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
@@ -78,21 +89,22 @@ export function setupUI(layout) {
       const output = $(name === 'build' ? 'log' : 'serial-log');
       // The incompatibility notice sits above the build log and is part of what the user is
       // asked to paste elsewhere, so a copy carries it whenever it is showing.
-      const notice = name === 'build' && !$('build-incompat').hidden ? $('build-incompat').textContent + '\n' : '';
+      const incompat = name === 'build' && !$('build-incompat').hidden ? $('build-incompat').textContent + '\n' : '';
       try {
-        await navigator.clipboard.writeText(notice + output.textContent);
-        $('ui-notice').textContent = 'ログをコピーしました';
+        await navigator.clipboard.writeText(incompat + output.textContent);
+        notice('ログをコピーしました');
       } catch {
         const selection = getSelection();
         const range = document.createRange();
         range.selectNodeContents(output);
         selection.removeAllRanges(); selection.addRange(range);
-        $('ui-notice').textContent = 'ログを選択しました。⌘C / Ctrl+Cでコピーできます';
+        notice('ログを選択しました。⌘C / Ctrl+Cでコピーできます');
       }
     };
   }
   return {
     openPanel,
+    notice,
     applyPanel: () => setOpen(layout.panelOpen),
     setBuildState(state) {
       $('build-phase').dataset.state = state;

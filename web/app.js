@@ -123,7 +123,7 @@ function commitSettings(save) {
     return;
   }
   $('ai-settings').close();
-  ai?.say(save ? 'このブラウザに保存しました' : '保存せず、このページで使用します');
+  ui.notice(save ? 'このブラウザに保存しました' : '保存せず、このページで使用します');
 }
 $('ai-save').onclick = () => commitSettings(true);
 $('ai-use').onclick = () => commitSettings(false);
