@@ -5,7 +5,8 @@
   "scripts": {
     "build:web": "node scripts/build-web.mjs",
     "start": "node compiler/server.mjs",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "deploy:pages": "node scripts/deploy-pages.mjs"
   },
   "dependencies": {
     "esptool-js": "0.6.1",

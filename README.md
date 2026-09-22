@@ -18,6 +18,10 @@ npm start              # = node compiler/server.mjs → http://127.0.0.1:3100
 - PlatformIO Core が必要。既定の実行ファイルは `~/.local/bin/pio`(`PIO_BIN` で変更可)。`PORT`(既定 3100)、`COMPILE_TIMEOUT_MS`(既定 90000)も環境変数で変えられる。環境変数の一覧は下の「Docker image」と `compiler/server.mjs` の冒頭。
 - フロントエンドを変更したら `npm run build:web` を再実行する。`/assets/` は `web/dist` の生成物だけを配信する。
 
+### Cloudflare Pages への配布
+
+`npm run deploy:pages` で、`COMPILER_BASE_URL`(既定 `https://text-compile.fablab-westharima.jp`)を埋めて `build:web` し、`web/index.html` と `web/dist` を `/` と `/assets/` の形に並べて `wrangler pages deploy` で Pages project `digicode-text`(`PAGES_PROJECT` で変更可)へ上げる。`wrangler` は PATH にある login 済みのものを使う。画面からの `/boards`・`/compile` は埋めた compile サーバーへ飛ぶ(利用者が設定で入れた URL のほうが強い)。
+
 ### サーバー API
 
 `POST /compile`(`{env, source, libraries, projectId, projectRevision}` → RP2040 は UF2 バイト列、ESP 系は flash set JSON、失敗は 422 + ログ)、`GET /boards`、`GET /libraries/search`、`GET /libraries/details`(`board` を付けるとそのボードの非互換行が付く)、`GET /libraries/incompat`、`GET /health`、`GET /`。
