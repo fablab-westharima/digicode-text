@@ -27,10 +27,10 @@
 - donor の前提(Blockly fragment 注入、global lib_deps、固定 template)は、この project で要ると確かめたものだけ持ち込む(教訓 1)。
 
 ## 今の目標
-- 縦串(編集 → build → 書き込み → Serial に "hello")は動いている。対応ボードの正本は `compiler/server.mjs` の `BOARDS`。
-- 表示の型は全 view に適用済み。ESP32 系の platform は pioarduino(arduino-esp32 3.x)に移した。
-- 次は第 1 陣(無印 ESP32 DevKit、XIAO ESP32S3、Pico W、XIAO ESP32C5)を足す。実機確認は板が届いてから Human が行う。
-- ローカル LLM とデプロイは未着手。順は Human が決める。
+- 縦串(編集 → build → 書き込み → Serial に "hello")は動いている。対応ボードは 20 台、正本は `compiler/server.mjs` の `BOARDS`。ESP32 系の platform は pioarduino。
+- 配布は Web + ML30 のクラウド compile(制限なし)で完成させ、実数を見る。compile サーバーは Docker image(repo 直下の `Dockerfile`)。
+- 対応ボードは無線を持つ MCU 板。実機確認は板が届いてから Human が行う。
+- ローカル LLM は未着手。順は Human が決める。
 
 ## 表示の裁定
 - 型は `web/app.css` の共通規則と `web/styleguide.html` が正。全 view に当てる。
